@@ -1,0 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Cosinium
+// SPDX-License-Identifier: Apache-2.0
+
+// Resources of noirvpn-desktop.exe: the program icon. The first icon is the
+// one Explorer and the window show.
+1 ICON "noirvpn.ico"

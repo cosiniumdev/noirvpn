@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-FileCopyrightText: 2026 Cosinium -->
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+
+<!--
+  The noirvpn installer for Windows x64 (WiX Toolset 5). build/msi.sh builds
+  it from dist/windows-amd64/; see build/README.md.
+
+  Variables (wix build -d):
+    Version    the product version, x.y.z
+    Instance   the service instance (default desktop): service noirvpn-NAME,
+               config %ProgramData%\noirvpn\NAME.conf
+    Dist       the folder dist\windows-amd64
+    Data       the folder with the default config NAME.conf
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+  <?ifndef Instance?>
+  <?define Instance = desktop?>
+  <?endif?>
+  <?define ServiceName = noirvpn-$(var.Instance)?>
+
+  <!-- Keep the UpgradeCode: a new MSI with the same code replaces the old one. -->
+  <Package
+    Name="noirvpn"
+    Manufacturer="noirvpn"
+    Version="$(var.Version)"
+    UpgradeCode="6fa6836a-e11b-433e-957b-c5984abe7621"
+    Scope="perMachine"
+    InstallerVersion="500"
+    Compressed="yes">
+
+    <SummaryInformation Description="noirvpn VPN client" />
+
+    <!-- The old product goes first, so its service stops before the files change. -->
+    <MajorUpgrade
+      AllowSameVersionUpgrades="yes"
+      DowngradeErrorMessage="A newer version of noirvpn is installed. Uninstall it first if you want this version." />
+
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <Property Id="ARPNOMODIFY" Value="1" />
+
+    <!-- The icon of the entry in Installed apps; the program has the same one. -->
+    <Icon Id="noirvpn.ico" SourceFile="$(var.Res)\noirvpn.ico" />
+    <Property Id="ARPPRODUCTICON" Value="noirvpn.ico" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="noirvpn">
+        <Directory Id="LicensesFolder" Name="licenses" />
+      </Directory>
+    </StandardDirectory>
+    <StandardDirectory Id="CommonAppDataFolder">
+      <Directory Id="DataFolder" Name="noirvpn" />
+    </StandardDirectory>
+    <StandardDirectory Id="ProgramMenuFolder" />
+
+    <Feature Id="Main" Title="noirvpn" AllowAbsent="no">
+      <ComponentGroupRef Id="Programs" />
+      <ComponentGroupRef Id="Licenses" />
+      <ComponentGroupRef Id="Data" />
+    </Feature>
+  </Package>
+
+  <Fragment>
+    <ComponentGroup Id="Programs" Directory="INSTALLFOLDER">
+      <!-- The service: the same registration as `noirvpn service install`
+           (cmd/noirvpn/winsvc_windows.odin). -->
+      <Component Id="Daemon">
+        <File Id="noirvpn.exe" Source="$(var.Dist)\noirvpn.exe" KeyPath="yes" />
+        <ServiceInstall
+          Id="Service"
+          Name="$(var.ServiceName)"
+          DisplayName="noirvpn ($(var.Instance))"
+          Description="The noirvpn VPN client: creates the tunnel that a user requests."
+          Type="ownProcess"
+          Start="auto"
+          ErrorControl="normal"
+          Account="LocalSystem"
+          Arguments="service run --name $(var.Instance) &quot;[DataFolder]$(var.Instance).conf&quot;"
+          Vital="yes">
+          <!-- A crash restarts the service twice; a stop with an error code
+               does not. The table of Windows Installer for this
+               (ServiceConfigFailureActions) does not work, and this element
+               has one delay for each restart. -->
+          <util:ServiceConfig
+            FirstFailureActionType="restart"
+            SecondFailureActionType="restart"
+            ThirdFailureActionType="none"
+            RestartServiceDelayInSeconds="5"
+            ResetPeriodInDays="1" />
+        </ServiceInstall>
+        <ServiceControl
+          Id="ServiceControl"
+          Name="$(var.ServiceName)"
+          Start="install"
+          Stop="both"
+          Remove="uninstall"
+          Wait="yes" />
+      </Component>
+
+      <Component Id="Desktop">
+        <File Id="noirvpn_desktop.exe" Source="$(var.Dist)\noirvpn-desktop.exe" KeyPath="yes">
+          <Shortcut
+            Id="StartMenuDesktop"
+            Directory="ProgramMenuFolder"
+            Name="noirvpn"
+            Description="Connect with a noirvpn profile"
+            WorkingDirectory="INSTALLFOLDER" />
+        </File>
+      </Component>
+
+      <File Id="noirvpnctl.exe" Source="$(var.Dist)\noirvpnctl.exe" />
+      <File Id="libcrypto.dll" Source="$(var.Dist)\libcrypto-3-x64.dll" />
+      <File Id="libssl.dll" Source="$(var.Dist)\libssl-3-x64.dll" />
+      <File Id="SDL3.dll" Source="$(var.Dist)\SDL3.dll" />
+      <File Id="wintun.dll" Source="$(var.Dist)\wintun.dll" />
+      <File Id="LICENSE.txt" Source="$(var.Dist)\LICENSE.txt" />
+      <File Id="NOTICE.txt" Source="$(var.Dist)\NOTICE.txt" />
+      <File Id="THIRD_PARTY_NOTICES.txt" Source="$(var.Dist)\THIRD-PARTY-NOTICES.txt" />
+      <File Id="MANIFEST.txt" Source="$(var.Dist)\MANIFEST.txt" />
+    </ComponentGroup>
+
+    <!-- The texts of THIRD-PARTY-NOTICES.txt (packaging/licenses and the fonts). -->
+    <ComponentGroup Id="Licenses" Directory="LicensesFolder">
+      <File Id="lic_SDL3" Source="$(var.Dist)\licenses\SDL3-LICENSE.txt" />
+      <File Id="lic_OpenSSL" Source="$(var.Dist)\licenses\OpenSSL-LICENSE.txt" />
+      <File Id="lic_wintun" Source="$(var.Dist)\licenses\wintun-LICENSE.txt" />
+      <File Id="lic_Odin" Source="$(var.Dist)\licenses\Odin-LICENSE.txt" />
+      <File Id="lic_Odin_compiler_rt" Source="$(var.Dist)\licenses\Odin-compiler-rt-LICENSE.txt" />
+      <File Id="lic_Odin_core" Source="$(var.Dist)\licenses\Odin-core-NOTICES.txt" />
+      <File Id="lic_microui" Source="$(var.Dist)\licenses\microui-LICENSE.txt" />
+      <File Id="lic_stb" Source="$(var.Dist)\licenses\stb-LICENSE.txt" />
+      <File Id="lic_GoogleSansFlex" Source="$(var.Dist)\licenses\GoogleSansFlex-OFL.txt" />
+      <File Id="lic_DejaVu" Source="$(var.Dist)\licenses\DejaVu-LICENSE.txt" />
+    </ComponentGroup>
+
+    <!-- %ProgramData%\noirvpn holds user data: config, profiles and logs. Both
+         components are permanent, so an uninstall leaves the folder. -->
+    <ComponentGroup Id="Data" Directory="DataFolder">
+      <!-- The access list of `noirvpn service install` (SVC_DIR_SDDL). -->
+      <Component Id="DataFolder" Guid="cd33fb8a-7d20-45c4-85a8-3a6378061f5a" Permanent="yes">
+        <CreateFolder>
+          <PermissionEx Sddl="D:PAI(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;OICI;0x1200a9;;;BU)" />
+        </CreateFolder>
+      </Component>
+      <!-- The default config; a config that exists is never replaced. -->
+      <Component Id="DefaultConfig" Permanent="yes" NeverOverwrite="yes">
+        <File Id="default.conf" Source="$(var.Data)\$(var.Instance).conf" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+  </Fragment>
+</Wix>

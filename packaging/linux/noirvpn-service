@@ -1,0 +1,97 @@
+#!/bin/sh
+# SPDX-FileCopyrightText: 2026 Cosinium
+# SPDX-License-Identifier: Apache-2.0
+
+# Starts the noirvpn client service in the foreground. Run it as root (sudo). A
+# service manager (systemd, OpenRC, runit) can use it as its start command: the
+# script ends with exec, so the manager supervises the daemon itself.
+#
+#   noirvpn-service [--check] [--config FILE]
+#
+#   --check        Check the base config and exit.
+#   --config FILE  Base config. Default /etc/noirvpn/service.conf.
+#
+# Before the start the script:
+#   1. creates the group "noirvpn" if it does not exist
+#   2. writes the default base config if FILE does not exist
+#   3. checks that /dev/net/tun exists
+# It never changes an existing config.
+#
+# Environment:
+#   NOIRVPN_BIN  path of the noirvpn daemon (default: next to this script, then PATH)
+#   NOIRVPN_CONF default of --config
+set -eu
+
+GROUP=noirvpn
+conf=${NOIRVPN_CONF:-/etc/noirvpn/service.conf}
+check=false
+
+die() {
+	echo "noirvpn-service: $*" >&2
+	exit 1
+}
+
+while [ $# -gt 0 ]; do
+	case $1 in
+	--check) check=true ;;
+	--config)
+		[ $# -ge 2 ] || die "--config needs a file"
+		conf=$2
+		shift
+		;;
+	-h | --help)
+		sed -n '5,/^set -/p' "$0" | sed '$d' | sed 's/^# \{0,1\}//' >&2
+		exit 2
+		;;
+	*) die "unknown argument '$1'" ;;
+	esac
+	shift
+done
+
+[ "$(id -u)" -eq 0 ] || die "run as root (sudo noirvpn-service)"
+
+here=$(cd "$(dirname "$0")" && pwd -P)
+bin=${NOIRVPN_BIN:-}
+if [ -z "$bin" ]; then
+	if [ -x "$here/noirvpn" ]; then
+		bin=$here/noirvpn
+	else
+		bin=$(command -v noirvpn) || die "noirvpn not found: set NOIRVPN_BIN"
+	fi
+fi
+[ -x "$bin" ] || die "$bin is not executable"
+
+# The default config comes from the package tree, or from /usr/share.
+template=
+for d in "$here/../share/noirvpn" /usr/share/noirvpn /usr/local/share/noirvpn; do
+	if [ -f "$d/service.conf" ]; then
+		template=$d/service.conf
+		break
+	fi
+done
+
+if ! getent group "$GROUP" >/dev/null 2>&1; then
+	if command -v groupadd >/dev/null 2>&1; then
+		groupadd --system "$GROUP"
+	elif command -v addgroup >/dev/null 2>&1; then
+		addgroup -S "$GROUP"
+	else
+		die "cannot create the group $GROUP: no groupadd or addgroup"
+	fi
+	echo "noirvpn-service: created the group $GROUP; add users with: usermod -aG $GROUP USER" >&2
+fi
+
+if [ ! -f "$conf" ]; then
+	[ -n "$template" ] || die "$conf does not exist and the default config is not found"
+	mkdir -p "$(dirname "$conf")"
+	cp "$template" "$conf"
+	chmod 0644 "$conf"
+	echo "noirvpn-service: wrote $conf" >&2
+fi
+
+[ -c /dev/net/tun ] || die "/dev/net/tun is missing (modprobe tun)"
+
+if $check; then
+	exec "$bin" --check-config --config "$conf"
+fi
+exec "$bin" --config "$conf"

@@ -1,0 +1,9 @@
+/out/
+/dist/
+*.bin
+*.o
+*.a
+*.so
+*.dSYM/
+__pycache__/
+.DS_Store

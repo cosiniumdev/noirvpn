@@ -1,0 +1,159 @@
+# SPDX-FileCopyrightText: 2026 Cosinium
+# SPDX-License-Identifier: Apache-2.0
+
+# noirvpn static-musl build image.
+#
+# Alpine 3.24 with:
+#   - the Odin compiler, built from a pinned commit (Alpine has no Odin package)
+#   - OpenSSL 3.5 headers and static libs (Alpine packages)
+#   - AWS-LC, built from source as static libs in /opt/aws-lc
+#   - nng, built from source as static libs in /usr/local
+#
+# All pins are the ARG lines below. build/image.sh and build/musl.sh read
+# ALPINE_VERSION and ODIN_COMMIT from this file to build the image tag, so only
+# this file needs a pin change. See build/README.md.
+#
+# Build with build/image.sh (or let build/musl.sh do it).
+
+ARG ALPINE_VERSION=3.24
+
+# Odin commit that matches the dev machine:
+#   `odin version` -> dev-2026-11-nightly:9a69916 (tag dev-2026-11a)
+ARG ODIN_COMMIT=9a6991685ddf663956d9836602eb421e141fc443
+
+# LLVM major version. 22 is the version Odin suggests in build_odin.sh and
+# the default LLVM of Alpine 3.24.
+ARG LLVM_VERSION=22
+
+# Same versions as the Alpine 3.24 packages (nng 1.11, aws-lc 5.0.0). The
+# sha512 values are the ones in the Alpine APKBUILD files.
+ARG NNG_VERSION=1.11
+ARG NNG_SHA512=cceedb16ecc3849f49b76a2ebfee4ba46a6d22b429aa9a5a94354c92aa643c5dcffd325f854ecba8ebe341c514f8288576a7be392f3a03a69152873fdd277fe3
+ARG AWSLC_VERSION=5.0.0
+ARG AWSLC_SHA512=c3df7ff5f7288e146ffd116447c4a57a16d1a55e607cdefe4e9d709a4d1f7efc00860bce61e0681638ea8980905557302f67d88155230603822d56a2c5e9b732
+
+
+# ---------------------------------------------------------------------------
+# runtime-base: everything needed to USE the compiler and link static binaries.
+# ---------------------------------------------------------------------------
+FROM docker.io/library/alpine:${ALPINE_VERSION} AS runtime-base
+ARG LLVM_VERSION
+
+# build-base: gcc (crt files, libgcc.a), binutils (ld), make. Odin links with
+# `clang`, which needs these. libstdc++ and libLLVM come with clang.
+#
+# openssl-dev + openssl-libs-static: headers and libssl.a/libcrypto.a.
+#   NOTE: aws-lc-dev conflicts with openssl-dev (see build/README.md), so
+#   AWS-LC is built from source into /opt/aws-lc.
+#
+# nng-dev is not installed: Alpine has no nng-static, so nng is built from
+# source below (that install has the headers too).
+RUN apk add --no-cache \
+        build-base \
+        clang${LLVM_VERSION} \
+        musl-dev \
+        linux-headers \
+        openssl-dev \
+        openssl-libs-static \
+        pkgconf \
+        file \
+        git
+
+# ---------------------------------------------------------------------------
+# builder-base: extra tools needed only to build the pieces below.
+# ---------------------------------------------------------------------------
+FROM runtime-base AS builder-base
+ARG LLVM_VERSION
+RUN apk add --no-cache \
+        llvm${LLVM_VERSION}-dev \
+        cmake \
+        samurai \
+        perl \
+        curl
+
+# ---------------------------------------------------------------------------
+# nng, static, no TLS (we do not use nng's own TLS), no tools or tests.
+# ---------------------------------------------------------------------------
+FROM builder-base AS nng
+ARG NNG_VERSION
+ARG NNG_SHA512
+RUN set -eux; \
+    mkdir /work && cd /work; \
+    curl -fsSL -o nng.tar.gz "https://github.com/nanomsg/nng/archive/refs/tags/v${NNG_VERSION}.tar.gz"; \
+    echo "${NNG_SHA512}  nng.tar.gz" | sha512sum -c -; \
+    tar xzf nng.tar.gz; \
+    cmake -S "nng-${NNG_VERSION}" -B build -G Ninja -Wno-dev \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX=/usr/local \
+        -DCMAKE_INSTALL_LIBDIR=lib \
+        -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+        -DBUILD_SHARED_LIBS=OFF \
+        -DNNG_ENABLE_TLS=OFF \
+        -DNNG_ENABLE_DOC=OFF \
+        -DNNG_TESTS=OFF \
+        -DNNG_TOOLS=OFF; \
+    cmake --build build; \
+    DESTDIR=/out cmake --install build; \
+    find /out -type f | sort
+
+# ---------------------------------------------------------------------------
+# AWS-LC, static. Installed under /opt/aws-lc so it does not clash with the
+# OpenSSL headers and libs in /usr (same file names).
+# ---------------------------------------------------------------------------
+FROM builder-base AS awslc
+ARG AWSLC_VERSION
+ARG AWSLC_SHA512
+RUN set -eux; \
+    mkdir /work && cd /work; \
+    curl -fsSL -o awslc.tar.gz "https://github.com/aws/aws-lc/archive/v${AWSLC_VERSION}/aws-lc-${AWSLC_VERSION}.tar.gz"; \
+    echo "${AWSLC_SHA512}  awslc.tar.gz" | sha512sum -c -; \
+    tar xzf awslc.tar.gz; \
+    cmake -S "aws-lc-${AWSLC_VERSION}" -B build -G Ninja -Wno-dev \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX=/opt/aws-lc \
+        -DCMAKE_INSTALL_LIBDIR=lib \
+        -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+        -DBUILD_SHARED_LIBS=OFF \
+        -DBUILD_TESTING=OFF \
+        -DDISABLE_GO=ON; \
+    cmake --build build; \
+    DESTDIR=/out cmake --install build; \
+    find /out -type f | grep -E '\.a$|opensslv|base\.h' | sort
+
+# ---------------------------------------------------------------------------
+# Odin compiler, from the pinned commit. The "nightly" build mode is what the
+# official nightly builds use, so `odin version` prints exactly
+# "dev-2026-08-nightly:902106f", as on the dev machine.
+# ---------------------------------------------------------------------------
+FROM builder-base AS odin
+ARG ODIN_COMMIT
+ARG LLVM_VERSION
+RUN set -eux; \
+    test -n "${ODIN_COMMIT}"; \
+    git init -q /src/odin; \
+    cd /src/odin; \
+    git remote add origin https://github.com/odin-lang/Odin.git; \
+    git fetch -q --depth 1 origin "${ODIN_COMMIT}"; \
+    git checkout -q FETCH_HEAD; \
+    test "$(git rev-parse HEAD)" = "${ODIN_COMMIT}"; \
+    export LLVM_CONFIG="$(command -v llvm${LLVM_VERSION}-config || ls /usr/lib/llvm${LLVM_VERSION}/bin/llvm-config)"; \
+    "$LLVM_CONFIG" --version; \
+    ./build_odin.sh nightly; \
+    mkdir -p /out/opt/odin; \
+    cp -a odin base core vendor shared LICENSE /out/opt/odin/; \
+    /out/opt/odin/odin version
+
+# ---------------------------------------------------------------------------
+# Final image.
+# ---------------------------------------------------------------------------
+FROM runtime-base
+COPY --from=odin  /out/ /
+COPY --from=nng   /out/ /
+COPY --from=awslc /out/ /
+
+ENV ODIN_ROOT=/opt/odin \
+    PATH=/opt/odin:$PATH
+
+# musl.sh mounts the repo read-only at /src and a writable dir at /out.
+WORKDIR /out
+CMD ["odin", "version"]

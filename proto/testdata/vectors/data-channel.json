@@ -1,0 +1,671 @@
+{
+ "what": "P_DATA_V2 decrypt: TLS-EKM export, key split, nonce and AD, baseline and epoch formats, keepalive and OCC exit plaintext",
+ "spec": "OpenVPN protocol",
+ "origin": "captured from stock OpenVPN peers in rootless podman by a test harness; decoded by a verifier following the protocol description only",
+ "note": "static keys and the stock peers' key log are test material only",
+ "cases": [
+  {
+   "cell": "s26c26-udp-none-aes256-ca",
+   "stock": {
+    "server": "2.6.23",
+    "client": "2.6.23"
+   },
+   "transport": "udp",
+   "cipher": "AES-256-GCM",
+   "format": "baseline",
+   "protocol_flags": [
+    "cc-exit",
+    "tls-ekm",
+    "dyn-tls-crypt"
+   ],
+   "tls": {
+    "version": "0x304",
+    "suite": "0x1302",
+    "client_random_hex": "e1e09b5cd3e0bce73b05264df6c40c7b33e26c9f045da3108a24682396ba5ae1",
+    "exporter_secret_hex": "f4d1a06a62fdd44bc211847c0080c46b0c109bfa1ef893e50379fe54113fc42b424681a7a3bcac60292445b0634fbfe3"
+   },
+   "exporter": {
+    "label": "EXPORTER-OpenVPN-datakeys",
+    "context": "none (use_context=0)",
+    "length": 256,
+    "output_hex": "ae44e37bc3045ec7901f7f3cf58a9d68be00d55ecb8bba07f306a831c58a358fbb8df201f19fa45eaeaf64345175e95a4baebb2758ee05a123619a65e41203fe44d4ca0606c44a94e5c03c9e6980f4db7843fd88043afed0f31016d71032aa6543a1a8a2e87a28403a2f2bbf39475ba29a605ebeb2ca8ca8fce7f59465ce01fbdfa8fcef75744430c2dd13a28dd8ee770d05fe3db639d4b4341db3cf8f8778d7e3c1dc02a4fde1c47cdd53952f3b4f060c1d1ae4d9110dc997c9a5323e5baaf00d5ab6950f1891cb3e0c9d200808623f0b445c5e97a0ab55069d6225205bd7c68a1289e98eb10bf5eb971c2753ca9feb84469c0901f9022a8bf6e7006d1c40b5"
+   },
+   "derived": {
+    "c2s": {
+     "key": "ae44e37bc3045ec7901f7f3cf58a9d68be00d55ecb8bba07f306a831c58a358f",
+     "iv8": "44d4ca0606c44a94"
+    },
+    "s2c": {
+     "key": "dfa8fcef75744430c2dd13a28dd8ee770d05fe3db639d4b4341db3cf8f8778d7",
+     "iv8": "0d5ab6950f1891cb"
+    }
+   },
+   "packets": [
+    {
+     "dir": "c2s",
+     "kind": "ipv6",
+     "wire_hex": "48000000000000013c338a056423fded773635aefc59bdf1d34172979b26c7863a399de4c749dd9bc1ef8e01c712d982b44254e942683682541917708a273aded25ca2703e801a85",
+     "peer_id": 0,
+     "packet_id": 1,
+     "ad_hex": "4800000000000001",
+     "nonce_hex": "0000000144d4ca0606c44a94",
+     "tag_hex": "3c338a056423fded773635aefc59bdf1",
+     "plaintext_hex": "6000000000083afffe80000000000000a1e99a8e12e33874ff0200000000000000000000000000028500f56700000000"
+    },
+    {
+     "dir": "c2s",
+     "kind": "ipv6",
+     "wire_hex": "4800000000000002ef591512ccb1e742d1f57a7fc90529aa462fe624ab3d4a2b0047841ba95b9775c8f3ae364cbcf3417f60467495bdbd98cf125ff7eef67d24a33c40404c85cc11",
+     "peer_id": 0,
+     "packet_id": 2,
+     "ad_hex": "4800000000000002",
+     "nonce_hex": "0000000244d4ca0606c44a94",
+     "tag_hex": "ef591512ccb1e742d1f57a7fc90529aa",
+     "plaintext_hex": "6000000000083afffe80000000000000a1e99a8e12e33874ff0200000000000000000000000000028500f56700000000"
+    },
+    {
+     "dir": "c2s",
+     "kind": "ipv4-icmp",
+     "wire_hex": "48000000000000034c75c9dbd40519342738d0cc81c38f6df595db275db9dd38f65eb4d14ba4c1ce7dd492a4818a4bd8e2e0c6526dd020a9988fa2226872e06566637b84d75effe6164b3f165e298890abe2db8e31a0860cd945f31a8bf1573184bcee759a6413620798a53e",
+     "peer_id": 0,
+     "packet_id": 3,
+     "ad_hex": "4800000000000003",
+     "nonce_hex": "0000000344d4ca0606c44a94",
+     "tag_hex": "4c75c9dbd40519342738d0cc81c38f6d",
+     "plaintext_hex": "45000054fe114000400128850a0800020a08000108001e31000b0000b11928aa00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+     "dir": "s2c",
+     "kind": "ipv6",
+     "wire_hex": "48000000000000015e659c54aaa785f710ccd44aa582a15beda24132628b4c23ddfd992cd34f9a10e6f2f1a36e3fc67797f1bf6e613d495b31a89fda2bcd6a467d68f391dc5e7660",
+     "peer_id": 0,
+     "packet_id": 1,
+     "ad_hex": "4800000000000001",
+     "nonce_hex": "000000010d5ab6950f1891cb",
+     "tag_hex": "5e659c54aaa785f710ccd44aa582a15b",
+     "plaintext_hex": "6000000000083afffe80000000000000b16c6104e0766eecff02000000000000000000000000000285001b6300000000"
+    },
+    {
+     "dir": "s2c",
+     "kind": "ping",
+     "wire_hex": "48000000000000024760a2b0cf81342ec7867c881566e6bd191f58eb89f0321be5f290fd5db70e71",
+     "peer_id": 0,
+     "packet_id": 2,
+     "ad_hex": "4800000000000002",
+     "nonce_hex": "000000020d5ab6950f1891cb",
+     "tag_hex": "4760a2b0cf81342ec7867c881566e6bd",
+     "plaintext_hex": "2a187bf3641eb4cb07ed2d0a981fc748"
+    },
+    {
+     "dir": "s2c",
+     "kind": "ipv4-icmp",
+     "wire_hex": "4800000000000003a020756e88276a7862aefffbf777ce637ecdfdb5f0348eeb5df8f5be85332b0a69b57c3cd9b594e3f5a7a44c68129f7da591e220b78bdcdab1d55d6ae92f2ce6f55d54a547edecf3d259dc50e750516d4e16c3e3afa93dffe9177f794053c1d3d5805e77",
+     "peer_id": 0,
+     "packet_id": 3,
+     "ad_hex": "4800000000000003",
+     "nonce_hex": "000000030d5ab6950f1891cb",
+     "tag_hex": "a020756e88276a7862aefffbf777ce63",
+     "plaintext_hex": "450000545997000040010d000a0800010a08000200002631000b0000b11928aa00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+    }
+   ]
+  },
+  {
+   "cell": "s27c27-udp-none-aes256-ca",
+   "stock": {
+    "server": "2.7.7",
+    "client": "2.7.7"
+   },
+   "transport": "udp",
+   "cipher": "AES-256-GCM",
+   "format": "epoch (aead-epoch)",
+   "protocol_flags": [
+    "cc-exit",
+    "tls-ekm",
+    "dyn-tls-crypt",
+    "aead-epoch"
+   ],
+   "tls": {
+    "version": "0x304",
+    "suite": "0x1302",
+    "client_random_hex": "76872648c6f2fe5e2a29b8f7d8d2ca800ebf31519c5ad6466251c6368d08ac70",
+    "exporter_secret_hex": "fdff11b191be47c2da990f16f719e17487a6b8677152fb7af4b2951263c7b2577fbe12e00ea1381ddcf7cff996be7439"
+   },
+   "exporter": {
+    "label": "EXPORTER-OpenVPN-datakeys",
+    "context": "none (use_context=0)",
+    "length": 256,
+    "output_hex": "13c08842d0dbbb70397491807adb5fd3e2ee0f830487165ae437ab800fd4dee81d4555be141a31947ce6572512503fa3114b85f6fdbd1975a98fb9561231099f4c24e02abe6032a3cfbef5f0c3c632f7599c523fac426f802477d43075241ff150561802f925937edc9976ed58484e67bb51e4167fa2893875b37ac1baf678d047eaa11b9abe0d5294898f844563fd511b74fddf609fd4e35ffc6c238b131f96d0ab63ad741bb7dbfc1e93c48f7395a0d36f763ba4b27cf317c1f53a251e234941a5d9594952ec5ca548e72e3d04ed1e7da91dded8d6e8185f5301345d240e33be496ab5571cbac602155188595672dfc3f6e970101eade1cdaf4ac646f06cec"
+   },
+   "derived": {
+    "c2s": {
+     "key": "13c08842d0dbbb70397491807adb5fd3e2ee0f830487165ae437ab800fd4dee8",
+     "epoch_1_base_key_e1": "13c08842d0dbbb70397491807adb5fd3e2ee0f830487165ae437ab800fd4dee8",
+     "epoch_1_key": "abb326cea2205d5de67cddb4ac0050c1d62c42a1f9371a6f6796fc3fddabb353",
+     "epoch_1_iv": "b3749de3912b985b480a4d24"
+    },
+    "s2c": {
+     "key": "47eaa11b9abe0d5294898f844563fd511b74fddf609fd4e35ffc6c238b131f96",
+     "epoch_1_base_key_e1": "47eaa11b9abe0d5294898f844563fd511b74fddf609fd4e35ffc6c238b131f96",
+     "epoch_1_key": "1e21001dc6663c89080f2786a6e80784572b46a9d3cb95fbda7433c54422dfe5",
+     "epoch_1_iv": "af291e9cc21cde73982d664d"
+    }
+   },
+   "packets": [
+    {
+     "dir": "c2s",
+     "kind": "ipv6",
+     "wire_hex": "480000000001000000000001dd7f6ea00319dc6ff00abe469ea1184e9bdcde0b995d80455b51b5eeda703777a95ee38bd5dff0a45f369057d032d6db1144440ef864cd5dbe11dadf793a4b33",
+     "peer_id": 0,
+     "epoch": 1,
+     "packet_counter": 1,
+     "ad_hex": "480000000001000000000001",
+     "nonce_hex": "b3759de3912b985a480a4d24",
+     "tag_hex": "1144440ef864cd5dbe11dadf793a4b33",
+     "plaintext_hex": "6000000000083afffe80000000000000d53c285b1b82e9d9ff02000000000000000000000000000285007a4300000000"
+    },
+    {
+     "dir": "c2s",
+     "kind": "ipv6",
+     "wire_hex": "48000000000100000000000234828ff300f307ddf24fb346416f14136a46f4ee51f0c3a87e4063499816845d81729964e7d7299ccebe1c41eb1c9b447bc9267c1642d2e43f7e98213e42e4fe",
+     "peer_id": 0,
+     "epoch": 1,
+     "packet_counter": 2,
+     "ad_hex": "480000000001000000000002",
+     "nonce_hex": "b3759de3912b9859480a4d24",
+     "tag_hex": "7bc9267c1642d2e43f7e98213e42e4fe",
+     "plaintext_hex": "6000000000083afffe80000000000000d53c285b1b82e9d9ff02000000000000000000000000000285007a4300000000"
+    },
+    {
+     "dir": "c2s",
+     "kind": "ipv4-icmp",
+     "wire_hex": "480000000001000000000003ab1d111c10bf0b6ccbe217f0245845eb47536d7cc8763d01a2d04af57bebb348ce13c36abbf934db0ea5ec8c4fc24ab06ff108decbe372fdf484be7ffd422a6347e4edac63d701d6cf5f9e6e50eac1c6507deec04b83cc859762297ec76613300569efa6",
+     "peer_id": 0,
+     "epoch": 1,
+     "packet_counter": 3,
+     "ad_hex": "480000000001000000000003",
+     "nonce_hex": "b3759de3912b9858480a4d24",
+     "tag_hex": "4b83cc859762297ec76613300569efa6",
+     "plaintext_hex": "45000054bda04000400168f60a0800020a0800010800426600080000efe8c5a800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+     "dir": "s2c",
+     "kind": "ipv6",
+     "wire_hex": "480000000001000000000001c912090a11f81bd1bb23e60b8acc24d529a2d517de333a289c41f854269258c2dce205fc5a8cdbdf51cf735d621884b51c5a273ccc16ba84729ebbf516ecfdeb",
+     "peer_id": 0,
+     "epoch": 1,
+     "packet_counter": 1,
+     "ad_hex": "480000000001000000000001",
+     "nonce_hex": "af281e9cc21cde72982d664d",
+     "tag_hex": "1c5a273ccc16ba84729ebbf516ecfdeb",
+     "plaintext_hex": "6000000000083afffe80000000000000339e252b9d4bc60bff0200000000000000000000000000028500c11600000000"
+    },
+    {
+     "dir": "s2c",
+     "kind": "ping",
+     "wire_hex": "480000000001000000000002a800dd2aa488b45ba42805ac15c79d7c5bae5f5e7f08d2b64d612ecbdb639487",
+     "peer_id": 0,
+     "epoch": 1,
+     "packet_counter": 2,
+     "ad_hex": "480000000001000000000002",
+     "nonce_hex": "af281e9cc21cde71982d664d",
+     "tag_hex": "5bae5f5e7f08d2b64d612ecbdb639487",
+     "plaintext_hex": "2a187bf3641eb4cb07ed2d0a981fc748"
+    },
+    {
+     "dir": "s2c",
+     "kind": "ipv4-icmp",
+     "wire_hex": "480000000001000000000003e7151a6fbf3cab3f37e232a67e8024fc13f4f4fffbe4044a644207425a4861157c359ee75fa573f6f814d73dc1d2bfc860cfc138905f71b5d1e460a83a7c35416242ab8158858a38ab85b2270e199a2b7c545369440009bbd8917bcdad62d23a845d63e4",
+     "peer_id": 0,
+     "epoch": 1,
+     "packet_counter": 3,
+     "ad_hex": "480000000001000000000003",
+     "nonce_hex": "af281e9cc21cde70982d664d",
+     "tag_hex": "440009bbd8917bcdad62d23a845d63e4",
+     "plaintext_hex": "45000054300f0000400136880a0800010a08000200004a6600080000efe8c5a800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+    }
+   ]
+  },
+  {
+   "cell": "s27c27-udp-tlsauth-sha256-aes128",
+   "stock": {
+    "server": "2.7.7",
+    "client": "2.7.7"
+   },
+   "transport": "udp",
+   "cipher": "AES-128-GCM",
+   "format": "epoch (aead-epoch)",
+   "protocol_flags": [
+    "cc-exit",
+    "tls-ekm",
+    "dyn-tls-crypt",
+    "aead-epoch"
+   ],
+   "tls": {
+    "version": "0x304",
+    "suite": "0x1302",
+    "client_random_hex": "0332df8a07b368e9baa4ccdc81a874c54bf84316fc3a3b34cc7e8acc31761f08",
+    "exporter_secret_hex": "ceb39abe3d5cc1b06e0ae2e207a4b3c5d2fe19a6a26456812eaaff48de88a5245498e9c6ecfff7abc4925c27b75d607c"
+   },
+   "exporter": {
+    "label": "EXPORTER-OpenVPN-datakeys",
+    "context": "none (use_context=0)",
+    "length": 256,
+    "output_hex": "6d8195b160bf2fa9df120247ca039d618ac131bf05ed6f2435c2cba332a5d21ef3da879addad3266cb638f3859b4d7847e51ef6890246d3a98c69515304957c8d07c0b4df0aab6e8ac5d8dff088de3e743517ad3d55c2f47bba5e62ac70e27050d79bd22aad27649fdc9e1c38a93bbc5141eb73f556007a1adba81424ad3fbe2729f1283b90f013be098ef3ca85232da3159202274ff3551ca880a3e3e4ab811beebff722584205e4d12ceab401d287a9d2919ce1a7556e5f578e23fede4148ab0bc752565c30c0e4273041a0e56b22ccd6d02c51082a27be785eaf62978d0853a4f43e1557b056cc0466e02febe1ef71be839b30389825e7560cc75b456ea47"
+   },
+   "derived": {
+    "c2s": {
+     "key": "6d8195b160bf2fa9df120247ca039d61",
+     "epoch_1_base_key_e1": "6d8195b160bf2fa9df120247ca039d618ac131bf05ed6f2435c2cba332a5d21e",
+     "epoch_1_key": "46ae55b79f6ee3676bf758dde1ca2e75",
+     "epoch_1_iv": "4e862e7102257f29d20ed290"
+    },
+    "s2c": {
+     "key": "729f1283b90f013be098ef3ca85232da",
+     "epoch_1_base_key_e1": "729f1283b90f013be098ef3ca85232da3159202274ff3551ca880a3e3e4ab811",
+     "epoch_1_key": "1818ec400eacae4ce126a009d31defe3",
+     "epoch_1_iv": "fca3ae937d35237a69f5bc3b"
+    }
+   },
+   "packets": [
+    {
+     "dir": "c2s",
+     "kind": "ipv6",
+     "wire_hex": "4800000000010000000000015743fad4952561481a5fae6ced7cd51a0911cced9060151f3e3bcc133eb49eeafda67ab229428afde70e77aa3b6d0905dbc437efa6859e0cacbcced8fb501a57",
+     "peer_id": 0,
+     "epoch": 1,
+     "packet_counter": 1,
+     "ad_hex": "480000000001000000000001",
+     "nonce_hex": "4e872e7102257f28d20ed290",
+     "tag_hex": "dbc437efa6859e0cacbcced8fb501a57",
+     "plaintext_hex": "6000000000083afffe8000000000000044ffbffbfa732599ff0200000000000000000000000000028500582f00000000"
+    },
+    {
+     "dir": "c2s",
+     "kind": "ipv6",
+     "wire_hex": "480000000001000000000002d9424f20b96691c2649fd63615d974941649913a30445543d89633b6ed5a53ffa8a7d917aa5fb4908a9ff7d759af2a547798b956f30d08836997f76bfd60bcc9",
+     "peer_id": 0,
+     "epoch": 1,
+     "packet_counter": 2,
+     "ad_hex": "480000000001000000000002",
+     "nonce_hex": "4e872e7102257f2bd20ed290",
+     "tag_hex": "7798b956f30d08836997f76bfd60bcc9",
+     "plaintext_hex": "6000000000083afffe8000000000000044ffbffbfa732599ff0200000000000000000000000000028500582f00000000"
+    },
+    {
+     "dir": "c2s",
+     "kind": "ipv4-icmp",
+     "wire_hex": "48000000000100000000000386082a636afe27250eca26dc37fda8857486701d867b400ec5ce8acdbe8ab3f986a867b9101f33e435bd0c5f3b1e8aeebd298ac5f3c7a56ae5011f96bff3a21f14e968b4ed48edf688b285e2dc044cf200c598c654574614bc6c462b596388e0dd5580d5",
+     "peer_id": 0,
+     "epoch": 1,
+     "packet_counter": 3,
+     "ad_hex": "480000000001000000000003",
+     "nonce_hex": "4e872e7102257f2ad20ed290",
+     "tag_hex": "54574614bc6c462b596388e0dd5580d5",
+     "plaintext_hex": "450000547a7e40004001ac180a0800020a0800010800f87b0008000061c89db300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+     "dir": "s2c",
+     "kind": "ipv6",
+     "wire_hex": "480000000001000000000001a817ef1cb50def639fae811da989d6eff56ab22c4838aa2f9b6625521b3461a27750a5e3076902c04b56dcdeba6237c6626d0b6d05c942ef50afbe1ded552536",
+     "peer_id": 0,
+     "epoch": 1,
+     "packet_counter": 1,
+     "ad_hex": "480000000001000000000001",
+     "nonce_hex": "fca2ae937d35237b69f5bc3b",
+     "tag_hex": "626d0b6d05c942ef50afbe1ded552536",
+     "plaintext_hex": "6000000000083afffe80000000000000e926583b64378d97ff02000000000000000000000000000285004a0600000000"
+    },
+    {
+     "dir": "s2c",
+     "kind": "ping",
+     "wire_hex": "480000000001000000000002aef96cf3a852e1929595ae9954ae0e2676282f137c2af071fc1d3da3cd0f2ab2",
+     "peer_id": 0,
+     "epoch": 1,
+     "packet_counter": 2,
+     "ad_hex": "480000000001000000000002",
+     "nonce_hex": "fca2ae937d35237869f5bc3b",
+     "tag_hex": "76282f137c2af071fc1d3da3cd0f2ab2",
+     "plaintext_hex": "2a187bf3641eb4cb07ed2d0a981fc748"
+    },
+    {
+     "dir": "s2c",
+     "kind": "ipv4-icmp",
+     "wire_hex": "480000000001000000000003ac98b6c2313bdc3fead53bc91c5d5e23c1477132816e85ea0061186e5ffac071afd261892a25bca6057f1835509ab45440032f344499d56e42ad8fa23cf7cbf6f4f831c3a07766ad6f07a93fde9171ea09d033fd568866e84bff8fd7779d025ee5ae48d6",
+     "peer_id": 0,
+     "epoch": 1,
+     "packet_counter": 3,
+     "ad_hex": "480000000001000000000003",
+     "nonce_hex": "fca2ae937d35237969f5bc3b",
+     "tag_hex": "568866e84bff8fd7779d025ee5ae48d6",
+     "plaintext_hex": "450000542ed90000400137be0a0800010a0800020000007c0008000061c89db300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+    }
+   ]
+  },
+  {
+   "cell": "s26c26-udp-tlsauth-sha256-chacha",
+   "stock": {
+    "server": "2.6.23",
+    "client": "2.6.23"
+   },
+   "transport": "udp",
+   "cipher": "CHACHA20-POLY1305",
+   "format": "baseline",
+   "protocol_flags": [
+    "cc-exit",
+    "tls-ekm",
+    "dyn-tls-crypt"
+   ],
+   "tls": {
+    "version": "0x304",
+    "suite": "0x1302",
+    "client_random_hex": "52117f606a6e9d43317368d42b41f92063a269e46352fb2cd000dfbb415fba3b",
+    "exporter_secret_hex": "459291a3e0ee3d9fa3e32bd8ec9789de086016d5149233142444f2618b534f07603f695b8330486aac80798e567a671e"
+   },
+   "exporter": {
+    "label": "EXPORTER-OpenVPN-datakeys",
+    "context": "none (use_context=0)",
+    "length": 256,
+    "output_hex": "952083357c61f1c99ed36c549a36b515b1205775e8cfbcc54225d3937b7d665c671df7c01c530e701a3047e0bc563bb7bf31787205bcc5dd13169b2b7d9688fe15d557d5fa7a41cbb8e33088db1a1915f8a4cc2b6c503e35ad4794881eb664d66dbabc05f8f4dfe5761bf4bb1e0c6ecad094b964e60cc91a8be912853862adf3b3c7adf126a5de67f0cc6d8edda5aa1d6395c340ca85c801172d7fd72a55623b1ef135adf5c817f147ae85ca269429d87d8e045cd489de06ca03fe413122ff3c99c15750d192b5581478e2dc2107970d30ee109659c59eb104a84df37556baa7b44bc65502b2a6c8d3fb7c858fd1f79dcd0b6f016819d9a3e9284af31328b829"
+   },
+   "derived": {
+    "c2s": {
+     "key": "952083357c61f1c99ed36c549a36b515b1205775e8cfbcc54225d3937b7d665c",
+     "iv8": "15d557d5fa7a41cb"
+    },
+    "s2c": {
+     "key": "b3c7adf126a5de67f0cc6d8edda5aa1d6395c340ca85c801172d7fd72a55623b",
+     "iv8": "99c15750d192b558"
+    }
+   },
+   "packets": [
+    {
+     "dir": "c2s",
+     "kind": "ipv6",
+     "wire_hex": "480000000000000163944c5f585b3570970806ee5f55f7c5f953b4dc9eb8158e435aedb4343c33a1d4ddf8af77b1d7ebaeeaf291b2c9374c5d9567731dd3dea3626717fa78099fc9",
+     "peer_id": 0,
+     "packet_id": 1,
+     "ad_hex": "4800000000000001",
+     "nonce_hex": "0000000115d557d5fa7a41cb",
+     "tag_hex": "63944c5f585b3570970806ee5f55f7c5",
+     "plaintext_hex": "6000000000083afffe800000000000003d2aa5ff1aac629eff02000000000000000000000000000285001cc300000000"
+    },
+    {
+     "dir": "c2s",
+     "kind": "ipv6",
+     "wire_hex": "4800000000000002b0b7afed40b0dc23fdcf704c6b7cd9bf19805212b56344a03e3d3a7ba068b4d73481b4132748e0574c84c6e1b8a9e4811a1afcb57361a0a439f87c1810057449",
+     "peer_id": 0,
+     "packet_id": 2,
+     "ad_hex": "4800000000000002",
+     "nonce_hex": "0000000215d557d5fa7a41cb",
+     "tag_hex": "b0b7afed40b0dc23fdcf704c6b7cd9bf",
+     "plaintext_hex": "6000000000083afffe800000000000003d2aa5ff1aac629eff02000000000000000000000000000285001cc300000000"
+    },
+    {
+     "dir": "c2s",
+     "kind": "ipv4-icmp",
+     "wire_hex": "48000000000000031d84787eab6da8968e380188e5c5fbeecfec4d4154879a00809f2f84669eedc967b02d050a854e74901d98640704e23c332a7bc14c796ec0b884c9e1de718016fb66b53467c75b162af04c98f3de8a2754d1bc34adf208daf968a2a5442df8df62b29602",
+     "peer_id": 0,
+     "packet_id": 3,
+     "ad_hex": "4800000000000003",
+     "nonce_hex": "0000000315d557d5fa7a41cb",
+     "tag_hex": "1d84787eab6da8968e380188e5c5fbee",
+     "plaintext_hex": "45000054decd4000400147c90a0800020a080001080011a9000b0000e19604b500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+     "dir": "s2c",
+     "kind": "ipv6",
+     "wire_hex": "4800000000000001889b10e0c9723bb1bea317095e371a36c2883e5b0dec06f6ebb70f3f2619f968dab79d0be2f77b3cca75e7a54f0d887a0ecf701e2803cc51d1adf45ec1209dd0",
+     "peer_id": 0,
+     "packet_id": 1,
+     "ad_hex": "4800000000000001",
+     "nonce_hex": "0000000199c15750d192b558",
+     "tag_hex": "889b10e0c9723bb1bea317095e371a36",
+     "plaintext_hex": "6000000000083afffe80000000000000e4f6129b45bc3bccff0200000000000000000000000000028500041d00000000"
+    },
+    {
+     "dir": "s2c",
+     "kind": "ipv4-icmp",
+     "wire_hex": "48000000000000026ff7958f14035608c0e153197946ea56b4fda885712eb3b464dd8b1208b9932332e61b065336a025667e2baa2ae4333c5237e2c2e3154f1914f05100a2b7378f4fd2aa94530afb865f7baf7b7678bfeb73099b198734a54d94453aef4c26ea5a7c3706a4",
+     "peer_id": 0,
+     "packet_id": 2,
+     "ad_hex": "4800000000000002",
+     "nonce_hex": "0000000299c15750d192b558",
+     "tag_hex": "6ff7958f14035608c0e153197946ea56",
+     "plaintext_hex": "4500005463830000400103140a0800010a080002000019a9000b0000e19604b500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+     "dir": "s2c",
+     "kind": "ipv4-icmp",
+     "wire_hex": "480000000000000329186c911b7e0dc3ff17794caff2c2a4ad3590b4c5c59f91f5dd817e375bb6a4469677a706633ce1b245b09aa4746b184eae670dd354004df43cc27a1b334c694d3b717bdb8432fda55a374a22761fba8dbc015e385e7a50e4516c4897327ba303f2d4c6",
+     "peer_id": 0,
+     "packet_id": 3,
+     "ad_hex": "4800000000000003",
+     "nonce_hex": "0000000399c15750d192b558",
+     "tag_hex": "29186c911b7e0dc3ff17794caff2c2a4",
+     "plaintext_hex": "4500005463cf0000400102c80a0800010a08000200007a8d000b00017ab10ab500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+    }
+   ]
+  },
+  {
+   "cell": "s27c27-udp-tlscrypt-chacha-ca",
+   "stock": {
+    "server": "2.7.7",
+    "client": "2.7.7"
+   },
+   "transport": "udp",
+   "cipher": "CHACHA20-POLY1305",
+   "format": "epoch (aead-epoch)",
+   "protocol_flags": [
+    "cc-exit",
+    "tls-ekm",
+    "dyn-tls-crypt",
+    "aead-epoch"
+   ],
+   "tls": {
+    "version": "0x304",
+    "suite": "0x1302",
+    "client_random_hex": "f9a47710de65f4fdbc5a69bd415d29f25d0428a6e259dfb78e262b5946dd5f0b",
+    "exporter_secret_hex": "8c59a5847aab9dcc919a00a5da4deb87d1c25de2cf7a9752f1b3cfa2f6ee2f09c792164e0b7e3f5c7932c14b2841063a"
+   },
+   "exporter": {
+    "label": "EXPORTER-OpenVPN-datakeys",
+    "context": "none (use_context=0)",
+    "length": 256,
+    "output_hex": "c7cb86ea9d5295a45cf6fe9fbc48956147e00d1858a39c891024527b11d9b3e6483bbe7a94be50d992703d05325974a6186de29c6089499ca9581e0eb9577c7d1b175e5669f630720275d482ce94109c58d2b8db0160bc2d87196fa9735326656947017f8a1d9b07d652893ea96bccc0b132738907f49b579d3e340f8a3d27345d7d44379d7f69a0e104a20fee739b162ebce743b3c1f73ddb9f44cbc0dd1e725cc50c3a6e548cc5eef5163662792681c1f6f4e05d46fb672bcdefc3b1d32ee2cbb960f73d20c99d369e303f8ac2f1d25257e4b0d1ae716e01716acd5658636bebf93117ab322c7d06cb3e8148cd049e629288d307fa7b1ae09b38dba180fa5b"
+   },
+   "derived": {
+    "c2s": {
+     "key": "c7cb86ea9d5295a45cf6fe9fbc48956147e00d1858a39c891024527b11d9b3e6",
+     "epoch_1_base_key_e1": "c7cb86ea9d5295a45cf6fe9fbc48956147e00d1858a39c891024527b11d9b3e6",
+     "epoch_1_key": "4deeb8f81478c245c781ddbe9ccef25f849dece7c3b0e7cd38399b7b79f8c52b",
+     "epoch_1_iv": "7c7522e2cb5399ae7aa1ce51"
+    },
+    "s2c": {
+     "key": "5d7d44379d7f69a0e104a20fee739b162ebce743b3c1f73ddb9f44cbc0dd1e72",
+     "epoch_1_base_key_e1": "5d7d44379d7f69a0e104a20fee739b162ebce743b3c1f73ddb9f44cbc0dd1e72",
+     "epoch_1_key": "aec83b5a5413614c3624e64fde82e1297d4e120ddbb75966732489bf35228d0b",
+     "epoch_1_iv": "e545f54ca653767010f8605d"
+    }
+   },
+   "packets": [
+    {
+     "dir": "c2s",
+     "kind": "ipv6",
+     "wire_hex": "4800000000010000000000015cd533e8d9046182ebf03426f15b9c3521cb3045bb5726bc1ecb57de2d4c7c63c2ef4e7b175563cab9bb0b2d192181744de5cf22cf976ac17c8e3d6df56d9461",
+     "peer_id": 0,
+     "epoch": 1,
+     "packet_counter": 1,
+     "ad_hex": "480000000001000000000001",
+     "nonce_hex": "7c7422e2cb5399af7aa1ce51",
+     "tag_hex": "4de5cf22cf976ac17c8e3d6df56d9461",
+     "plaintext_hex": "6000000000083afffe800000000000003978667bae51c1a2ff02000000000000000000000000000285006d4f00000000"
+    },
+    {
+     "dir": "c2s",
+     "kind": "ipv6",
+     "wire_hex": "4800000000010000000000021e18e45aa86f72fc83057806ac067d190f4a8c060dd59dd47216cec4f72d2cbe9327f40f419ee802d0b2fe99207d08df3a943f1081880be1dce46a6b041d05b5",
+     "peer_id": 0,
+     "epoch": 1,
+     "packet_counter": 2,
+     "ad_hex": "480000000001000000000002",
+     "nonce_hex": "7c7422e2cb5399ac7aa1ce51",
+     "tag_hex": "3a943f1081880be1dce46a6b041d05b5",
+     "plaintext_hex": "6000000000083afffe800000000000003978667bae51c1a2ff02000000000000000000000000000285006d4f00000000"
+    },
+    {
+     "dir": "c2s",
+     "kind": "ipv4-icmp",
+     "wire_hex": "48000000000100000000000300c86d79d7d6744f91cd084fe57b4a20a37c283f63e1cc355b7b1df9f2ff2ebf4de2112f99e834c1122e457f4e3b94d51eb9e5b45596e9d5c7fbe3afe707012d3e5879aeb8a1ab1cad8d315d5a956fa1ae00e67d7da5f97f0d98ae7fef44c2069c520991",
+     "peer_id": 0,
+     "epoch": 1,
+     "packet_counter": 3,
+     "ad_hex": "480000000001000000000003",
+     "nonce_hex": "7c7422e2cb5399ad7aa1ce51",
+     "tag_hex": "7da5f97f0d98ae7fef44c2069c520991",
+     "plaintext_hex": "45000054651e40004001c1780a0800020a08000108000f0900080000733475ba00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+     "dir": "s2c",
+     "kind": "ipv6",
+     "wire_hex": "480000000001000000000001d1409cdc77cc9738838bdc7ab344a6004a62c5a7d29e01096adb1c0b712e84f5a3a335222575d3aea8410613556e0db7e85e1b9f67e332f6c27ce4c1e08f63c5",
+     "peer_id": 0,
+     "epoch": 1,
+     "packet_counter": 1,
+     "ad_hex": "480000000001000000000001",
+     "nonce_hex": "e544f54ca653767110f8605d",
+     "tag_hex": "e85e1b9f67e332f6c27ce4c1e08f63c5",
+     "plaintext_hex": "6000000000083afffe8000000000000076a44933a342ae4cff02000000000000000000000000000285006bd000000000"
+    },
+    {
+     "dir": "s2c",
+     "kind": "ping",
+     "wire_hex": "480000000001000000000002e9dd40bc9475c0167a636fa1c321b9826188fe56f9db0f7ba1985adddbf8ab26",
+     "peer_id": 0,
+     "epoch": 1,
+     "packet_counter": 2,
+     "ad_hex": "480000000001000000000002",
+     "nonce_hex": "e544f54ca653767210f8605d",
+     "tag_hex": "6188fe56f9db0f7ba1985adddbf8ab26",
+     "plaintext_hex": "2a187bf3641eb4cb07ed2d0a981fc748"
+    },
+    {
+     "dir": "s2c",
+     "kind": "ipv4-icmp",
+     "wire_hex": "4800000000010000000000032c271c8423fdaf11fca3e103945b0a17fd68038b1211341749d2d428da1781ca1669fedeeef6208ebe033c1cc559d33f1276fb395f6172649eb0bb6f1ebfef990531d58209d6b31f2a48930dcd95c71aa41d7472de3b4f07cc18ef6d04e524e538896dea",
+     "peer_id": 0,
+     "epoch": 1,
+     "packet_counter": 3,
+     "ad_hex": "480000000001000000000003",
+     "nonce_hex": "e544f54ca653767310f8605d",
+     "tag_hex": "de3b4f07cc18ef6d04e524e538896dea",
+     "plaintext_hex": "45000054b63100004001b0650a0800010a0800020000170900080000733475ba00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+    }
+   ]
+  },
+  {
+   "cell": "s26c26-udp-tlscrypt-aes128",
+   "stock": {
+    "server": "2.6.23",
+    "client": "2.6.23"
+   },
+   "transport": "udp",
+   "cipher": "AES-128-GCM",
+   "format": "baseline",
+   "protocol_flags": [
+    "cc-exit",
+    "tls-ekm",
+    "dyn-tls-crypt"
+   ],
+   "tls": {
+    "version": "0x304",
+    "suite": "0x1302",
+    "client_random_hex": "86bb71a49600695ededfa51bdbfc8cc96586345ed825827d9b96ecc86499dac9",
+    "exporter_secret_hex": "f5e5a9a583cbe329bb7bb9b356f84b26dd57519bb190e4efd20e5832f1dd358e9727bc9ed7b4b6cbccee8ba5b5c2033b"
+   },
+   "exporter": {
+    "label": "EXPORTER-OpenVPN-datakeys",
+    "context": "none (use_context=0)",
+    "length": 256,
+    "output_hex": "bdc4862a565c71da20a9f2a89100d08f2e3c045d496bb4db59820c13138fbdc30dd3d5cc496eb3e28e11edb64141ab21df1c8156678c2890a74c6e9632a0a5b5c421d398cf0fe16608decc445f845d8a983ee416fbdc88e9b30c4da6f44e96c611c2258bfe07ad988ea4605f68601afa4ec914e15c7806ea304d6e111d266d4c76e084a9d3f42ac147ca4198912a0e1dd6e485faabeb99b9f4b767aa045237bd0b0f46810c41171e4f02df5db0564d53c5df21d8e878cc5b78852ae5ff66b7abb63a46127b8abd469d678a514615628745381a969f83102d28723879eaaee29c86058924cbdcc7f9e16040aec51784650dabf66e0169986d9b63c992452d022e"
+   },
+   "derived": {
+    "c2s": {
+     "key": "bdc4862a565c71da20a9f2a89100d08f",
+     "iv8": "c421d398cf0fe166"
+    },
+    "s2c": {
+     "key": "76e084a9d3f42ac147ca4198912a0e1d",
+     "iv8": "b63a46127b8abd46"
+    }
+   },
+   "packets": [
+    {
+     "dir": "c2s",
+     "kind": "ipv6",
+     "wire_hex": "48000000000000018d82c9a7ab570bd5fecc97f98385386330fe6fc1e1f75400f0009a41f7ff35a33e7480b8420c68df79426d566dbb5fe3bd7ffe1ae1dd64a5180130f737594331",
+     "peer_id": 0,
+     "packet_id": 1,
+     "ad_hex": "4800000000000001",
+     "nonce_hex": "00000001c421d398cf0fe166",
+     "tag_hex": "8d82c9a7ab570bd5fecc97f983853863",
+     "plaintext_hex": "6000000000083afffe800000000000008408d4d0c54b9924ff0200000000000000000000000000028500c5ed00000000"
+    },
+    {
+     "dir": "c2s",
+     "kind": "ipv6",
+     "wire_hex": "480000000000000299b9f16b62de3b1275a16ac997ce06dd6cd2165f59c9c8fbd80115270c2d590da2029a63a4a40ef5e685ba05625e83e0cfa0392a487ec623014c439ab5822856",
+     "peer_id": 0,
+     "packet_id": 2,
+     "ad_hex": "4800000000000002",
+     "nonce_hex": "00000002c421d398cf0fe166",
+     "tag_hex": "99b9f16b62de3b1275a16ac997ce06dd",
+     "plaintext_hex": "6000000000083afffe800000000000008408d4d0c54b9924ff0200000000000000000000000000028500c5ed00000000"
+    },
+    {
+     "dir": "c2s",
+     "kind": "ipv4-icmp",
+     "wire_hex": "4800000000000003faf5859c8c4e6816e4bbe1a88954615dbc078cf46da79eb2f26f5e0f3748e0362c21869b7f1612f9d72478e2c99c14837ea7fb3e59726a07694675bbe07f3c3d59b30416a879a6a9f3fbe43f0eeae86c62bc6a4b9d09f26d5c63a4e5277d8f7db79bed92",
+     "peer_id": 0,
+     "packet_id": 3,
+     "ad_hex": "4800000000000003",
+     "nonce_hex": "00000003c421d398cf0fe166",
+     "tag_hex": "faf5859c8c4e6816e4bbe1a88954615d",
+     "plaintext_hex": "450000549a5a400040018c3c0a0800020a08000108003d2c000b0000e50cd5bb00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+     "dir": "s2c",
+     "kind": "ipv6",
+     "wire_hex": "4800000000000001d500ef3d3af1f22ebceb11780213fe33aea6d5e61a419cc30f79254ad511cc7f25eead80b39d0fde26f98b050843bda9c901bf9565caa98d9f4b9e3b6c349aff",
+     "peer_id": 0,
+     "packet_id": 1,
+     "ad_hex": "4800000000000001",
+     "nonce_hex": "00000001b63a46127b8abd46",
+     "tag_hex": "d500ef3d3af1f22ebceb11780213fe33",
+     "plaintext_hex": "6000000000083afffe80000000000000827599148544c3eaff0200000000000000000000000000028500187e00000000"
+    },
+    {
+     "dir": "s2c",
+     "kind": "ping",
+     "wire_hex": "48000000000000029caec8b665ae9b01c7cec804d19dfbbfaa62ea90cac40f2b2b13dbe89ced08b6",
+     "peer_id": 0,
+     "packet_id": 2,
+     "ad_hex": "4800000000000002",
+     "nonce_hex": "00000002b63a46127b8abd46",
+     "tag_hex": "9caec8b665ae9b01c7cec804d19dfbbf",
+     "plaintext_hex": "2a187bf3641eb4cb07ed2d0a981fc748"
+    },
+    {
+     "dir": "s2c",
+     "kind": "ipv4-icmp",
+     "wire_hex": "4800000000000003b36f59e90c68323f63bf97f57244b1d52bce1e0c30864abf82e28c4ff5ec5388e3456a49c4416385a3503d395d312f8b99fd280496034d7a823b0abf9b383efc8baa84bf42bf252baae9757ead30c260a4e4c95b403db417d522aa36bcffc6381f3135f2",
+     "peer_id": 0,
+     "packet_id": 3,
+     "ad_hex": "4800000000000003",
+     "nonce_hex": "00000003b63a46127b8abd46",
+     "tag_hex": "b36f59e90c68323f63bf97f57244b1d5",
+     "plaintext_hex": "450000541871000040014e260a0800010a0800020000452c000b0000e50cd5bb00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+    }
+   ]
+  }
+ ]
+}

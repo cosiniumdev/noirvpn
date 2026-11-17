@@ -1,0 +1,98 @@
+{
+ "what": "TLS exporter outputs the stock peers computed (RFC 8446 7.5 and RFC 5705)",
+ "spec": "OpenVPN protocol",
+ "origin": "captured from stock OpenVPN peers in rootless podman by a test harness; decoded by a verifier following the protocol description only",
+ "note": "static keys and the stock peers' key log are test material only",
+ "cases": [
+  {
+   "cell": "s27c27-udp-none-aes256-ca",
+   "stock": {
+    "server": "2.7.7",
+    "client": "2.7.7"
+   },
+   "tls_version": "0x304",
+   "cipher_suite": "0x1302",
+   "hash": "sha384",
+   "client_random_hex": "76872648c6f2fe5e2a29b8f7d8d2ca800ebf31519c5ad6466251c6368d08ac70",
+   "server_random_hex": "b9fa614bae873084e9e0c1747fc299a3eb07b0c9040ed31fd893c7d9a2e78483",
+   "keylog_label": "EXPORTER_SECRET",
+   "secret_hex": "fdff11b191be47c2da990f16f719e17487a6b8677152fb7af4b2951263c7b2577fbe12e00ea1381ddcf7cff996be7439",
+   "exports": [
+    {
+     "label": "EXPORTER-OpenVPN-datakeys",
+     "context": "none",
+     "length": 256,
+     "output_hex": "13c08842d0dbbb70397491807adb5fd3e2ee0f830487165ae437ab800fd4dee81d4555be141a31947ce6572512503fa3114b85f6fdbd1975a98fb9561231099f4c24e02abe6032a3cfbef5f0c3c632f7599c523fac426f802477d43075241ff150561802f925937edc9976ed58484e67bb51e4167fa2893875b37ac1baf678d047eaa11b9abe0d5294898f844563fd511b74fddf609fd4e35ffc6c238b131f96d0ab63ad741bb7dbfc1e93c48f7395a0d36f763ba4b27cf317c1f53a251e234941a5d9594952ec5ca548e72e3d04ed1e7da91dded8d6e8185f5301345d240e33be496ab5571cbac602155188595672dfc3f6e970101eade1cdaf4ac646f06cec",
+     "confirmed_by_stock_peers": true
+    },
+    {
+     "label": "EXPORTER-OpenVPN-dynamic-tls-crypt",
+     "context": "none",
+     "length": 256,
+     "output_hex": "afbacf27899e00f8301854137bb397631912198e9ca6c48ab0333228e8022402ddd33b1eddfcae81fb3627afe5787ffdeb3dbe9a38389064723bc5813d4acd26e1fe72de13fbcd5d18da04422799c11a4532bff4dec3603c346f884c0e9aa484ad03e32583752de071683bc051b9bab21fba842bce3036d60b3b0da357c5d668fd318b24dea7a53fa918c47082b44599a562efec0dae6f25cf2f91338a92f8a68f0b02c89db940c7dd66cc6334f72d2454eaaa10ffdaf6746035043d96c0a6d1e1a555f3700e9f79cdcb56c419d41a5ca7e55acc4db90e633ef24c1e691ca30bdbe45ed02200d26cacf83c0238c72429470e1202aaa04df6308af236026549b8",
+     "confirmed_by_stock_peers": true
+    }
+   ]
+  },
+  {
+   "cell": "s26c26-udp-none-tls12",
+   "stock": {
+    "server": "2.6.23",
+    "client": "2.6.23"
+   },
+   "tls_version": "0x303",
+   "cipher_suite": "0xc030",
+   "hash": "tls12-prf",
+   "client_random_hex": "23f5691ad42420256a8e2b68139e7766f30ad69f6055f340affbb556796a2c8d",
+   "server_random_hex": "4333e882694ee233c0cf126c72ef003700bdb3f9886213e755654ddf661f9a3e",
+   "keylog_label": "CLIENT_RANDOM (master secret)",
+   "secret_hex": "d2277747eac301ad22a6cbca9231abb43bf2c12548f82aa1c641752031e02bfb222e980b193bac1a33393a691beed659",
+   "exports": [
+    {
+     "label": "EXPORTER-OpenVPN-datakeys",
+     "context": "none",
+     "length": 256,
+     "output_hex": "48a273374b03facaf41eb837e12f4d4d6ebbd9071975d588c1ef0b984299d37b349c30579e77a27edbacc260ef90405b06a1ae1ef743518e0f12a67f38c0dd8d7e6fb1779492cfb702262780a8d49a5b4331b015ea1e515806bb968b8428443de6791b23bab0611290b3effdf57a988f479f8058c4428f38fa5fc9f24ca4809d864a4aadb53c6181546901f71c0e533ffebcd75834d9df2ef6ea7bbba3ee8c61ce5e32e6e67d1d454911f7433ce6b5dcbedc3f37ab51bae7d1b5674bfe48f3796dfd67de32032f595d571bd447b670c33dcf0aff6cc043162bc2dfc57b7c0dcc658ac3a946ad35bbf9ec95d28e6e85d0aebc5bb52e6b3cbd71bd223f91069639",
+     "confirmed_by_stock_peers": true
+    },
+    {
+     "label": "EXPORTER-OpenVPN-dynamic-tls-crypt",
+     "context": "none",
+     "length": 256,
+     "output_hex": "a661f5f91375e9f5a20512d95d717c3371bfeacb40c6745e20047a7253920ad46d1eafa75b2e2891596ad64aecd6495e7d93afd53e0e93df3d39f077c3f3861c84e1f2f7f05b45e8f264fc1dae1b6b6badcc2bbea1369a77d055dc2df399039fa0e24d6687fef1a7557dae0c699e58d98409473b7c489fb1bf2fde816d1cf2f79a541da4e70927c1d2778b3cd6e8db193a281944acda760f1854acd43160086f1f1971c0ca5972eada96cb739707dc949a421edfc6ff09c8e54c4fce4ad7573b45d1794de4722598fdb48859852866e2a329152842a5d5967df458991cf88e136bd630c12e13aa3ab238acf893e25703874861d96cde524b797588a25a9ecad4",
+     "confirmed_by_stock_peers": true
+    }
+   ]
+  },
+  {
+   "cell": "s27c27-udp-tlscryptv2-pq",
+   "stock": {
+    "server": "2.7.7",
+    "client": "2.7.7"
+   },
+   "tls_version": "0x304",
+   "cipher_suite": "0x1302",
+   "hash": "sha384",
+   "client_random_hex": "d9ee6ce0e4ce195befcf80a82c2dc179df54df499a6392a080964f9bf174c7b6",
+   "server_random_hex": "68857083fecb2614d84e9014678afebdb484d7021b26c0ee28392da7f532cb0b",
+   "keylog_label": "EXPORTER_SECRET",
+   "secret_hex": "cf80f843b95a3278b1464d17ee8885497882afca09c940b2788257456125d88e51431c584767ef18c5405820bf6ee661",
+   "exports": [
+    {
+     "label": "EXPORTER-OpenVPN-datakeys",
+     "context": "none",
+     "length": 256,
+     "output_hex": "05ca5a04329e3bd8fae2dd6f3cfecd266a0729c8cd38522ae1d9bae45fff5f463bc23c0d2201f445bbb5c2e7d920b395d026df37b2cf6b29db0b51f3449ffbc6e95c09b50721867bc8315c65f4549b10d1fa2475442b8f43cf5fc6ebf3eb1a4b2bdd7f748eaa8b904cb824db7c8bfbba1cbfd262b99c0914f0b9536a410f9bc808c19fdede3f33a24c1f55de04a205baa84bb39ec52f0e795e48b705cd4330b26b3c4bbb5fbd19eb673cfa603b927f071eb6b92b245680139215af35020dcfe5741870056231daf1ef0d2349a8ffe8526f73d1492b97b3628c815500bf79f3540110aeba8c8b61ad920dd5cd3f77c972509f64aed28e04bc8f6fc9082db506b6",
+     "confirmed_by_stock_peers": true
+    },
+    {
+     "label": "EXPORTER-OpenVPN-dynamic-tls-crypt",
+     "context": "none",
+     "length": 256,
+     "output_hex": "f465127351241c96e226bfc0e240cdc9a52432a5ccb8f88f0904076f812f296321903b722570f66260b6a27581508764611a29220c75e71d8705f40d9d00a5c9e036568f74aba7bfa0e614ec9b1580a9745f8b1eaad29879b3e4fb23c9103233a554556acfa5e446acc8cb81d0bb50bae609d5ed5885d58490dc77605e3d7463f9b655a7c075d37c42e00d8d8ad77be1bf8fb0f63be9d285a7353989f94378d7563f1361f438e7dfd496da7aa5966b55ca2c92edae8e5ae081d14c7c4f3a626fc8147eaeacbc2404a2d131d8835a1c1bacdbd71dc098e7ac3fa4e1a73183037c16a56779c5d54c76d47bd30ac7c4340ae5b89f6c9821267a460b987394ac0a23",
+     "confirmed_by_stock_peers": true
+    }
+   ]
+  }
+ ]
+}

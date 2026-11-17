@@ -1,0 +1,15 @@
+NoirVPN
+Copyright 2026 Cosinium
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+The desktop app bundles these fonts, each under its own license:
+- Google Sans Flex: SIL Open Font License 1.1 (desktop/ui/fonts/GOOGLESANSFLEX-OFL.txt)
+- DejaVu Sans Mono: DejaVu fonts license (desktop/ui/fonts/DEJAVU-LICENSE.txt)
+
+Builds contain or link third-party code under its own license, for example
+the Odin libraries, OpenSSL or AWS-LC, nng, SDL3, musl and Wintun.
+THIRD-PARTY-NOTICES.md lists each component, its version and license, and
+which build contains it; the license texts are in packaging/licenses/. A
+binary distribution includes them in share/licenses/noirvpn/ (Linux, macOS)
+or in the install folder (Windows).

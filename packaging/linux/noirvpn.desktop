@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=noirvpn
+Comment=OpenVPN-compatible VPN client
+Exec=noirvpn-desktop
+Icon=noirvpn
+Terminal=false
+Categories=Network;
+Keywords=vpn;openvpn;tunnel;
+StartupWMClass=noirvpn

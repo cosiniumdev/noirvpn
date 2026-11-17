@@ -1,0 +1,421 @@
+{
+ "what": "key-method-2 messages (both directions) as written by stock OpenVPN 2.6.23 and 2.7.7, with the decoded fields",
+ "spec": "OpenVPN protocol",
+ "origin": "TLS plaintext of the first message of each direction, decrypted by a verifier from the pcap and key log of the named cell (rootless podman); decoded fields are the verifier's reading",
+ "note": "random material, session tokens and the user name and password are throwaway test values. The password of the rekey case is an auth-token from a throwaway server.",
+ "cases": [
+  {
+   "name": "s27c27-udp-tlscrypt-aes256/c2s",
+   "cell": "s27c27-udp-tlscrypt-aes256",
+   "stock": {
+    "server": "2.7.7",
+    "client": "2.7.7"
+   },
+   "direction": "c2s",
+   "sender": "client",
+   "key_id": 0,
+   "hex": "0000000002321d509d77caf8f060f19ea7c85321f31561e9364b1268f5808ba4d3d1b1fd84875b0d5ed282279c52486c8099912fbab2f27d1aed2d0fff35ff0fbfc17c6db7ef6b987d0249d2e927c7701c067f29f590b0d8096e20a6056da337cd1ea3202607c4d1c1fb943727aede0035592384d0008156342c6465762d747970652074756e2c6c696e6b2d6d747520313534392c74756e2d6d747520313530302c70726f746f2055445076342c636970686572204145532d3235362d47434d2c61757468205b6e756c6c2d6469676573745d2c6b657973697a65203235362c6b65792d6d6574686f6420322c746c732d636c69656e740000000000008649565f5645523d322e372e370a49565f504c41543d6c696e75780a49565f5443504e4c3d310a49565f4d54553d313630300a49565f434950484552533d4145532d3235362d47434d0a49565f50524f544f3d383039340a49565f4c5a4f5f535455423d310a49565f434f4d505f535455423d310a49565f434f4d505f5354554276323d310a00",
+   "length": 388,
+   "expect": {
+    "random_len": 112,
+    "options": "V4,dev-type tun,link-mtu 1549,tun-mtu 1500,proto UDPv4,cipher AES-256-GCM,auth [null-digest],keysize 256,key-method 2,tls-client",
+    "options_declared_len": 129,
+    "username": "",
+    "username_declared_len": 0,
+    "password": "",
+    "password_prefix": "",
+    "password_declared_len": 0,
+    "peer_info": "IV_VER=2.7.7\nIV_PLAT=linux\nIV_TCPNL=1\nIV_MTU=1600\nIV_CIPHERS=AES-256-GCM\nIV_PROTO=8094\nIV_LZO_STUB=1\nIV_COMP_STUB=1\nIV_COMP_STUBv2=1\n",
+    "peer_info_declared_len": 134
+   }
+  },
+  {
+   "name": "s27c27-udp-tlscrypt-aes256/s2c",
+   "cell": "s27c27-udp-tlscrypt-aes256",
+   "stock": {
+    "server": "2.7.7",
+    "client": "2.7.7"
+   },
+   "direction": "s2c",
+   "sender": "server",
+   "key_id": 0,
+   "hex": "0000000002c3625a809a88023cb1b53a59a608a8b3448c74379fb41b6173031f8626cf92f999abd89e1c84beeec29aa9300faa52dc4334cda540d486a21ff58fd2fb5ff005008156342c6465762d747970652074756e2c6c696e6b2d6d747520313534392c74756e2d6d747520313530302c70726f746f2055445076342c636970686572204145532d3235362d47434d2c61757468205b6e756c6c2d6469676573745d2c6b657973697a65203235362c6b65792d6d6574686f6420322c746c732d73657276657200000000000000",
+   "length": 206,
+   "expect": {
+    "random_len": 64,
+    "options": "V4,dev-type tun,link-mtu 1549,tun-mtu 1500,proto UDPv4,cipher AES-256-GCM,auth [null-digest],keysize 256,key-method 2,tls-server",
+    "options_declared_len": 129,
+    "username": "",
+    "username_declared_len": 0,
+    "password": "",
+    "password_prefix": "",
+    "password_declared_len": 0,
+    "peer_info": "",
+    "peer_info_declared_len": 0
+   },
+   "note": "stream_hex is the whole server stream: the key-method message and the PUSH_REPLY that follows it",
+   "stream_hex": "0000000002c3625a809a88023cb1b53a59a608a8b3448c74379fb41b6173031f8626cf92f999abd89e1c84beeec29aa9300faa52dc4334cda540d486a21ff58fd2fb5ff005008156342c6465762d747970652074756e2c6c696e6b2d6d747520313534392c74756e2d6d747520313530302c70726f746f2055445076342c636970686572204145532d3235362d47434d2c61757468205b6e756c6c2d6469676573745d2c6b657973697a65203235362c6b65792d6d6574686f6420322c746c732d73657276657200000000000000505553485f5245504c592c726f7574652d676174657761792031302e382e302e312c746f706f6c6f6779207375626e65742c70696e6720352c70696e672d726573746172742033302c6966636f6e6669672031302e382e302e32203235352e3235352e3235352e302c706565722d696420302c636970686572204145532d3235362d47434d2c70726f746f636f6c2d666c6167732063632d6578697420746c732d656b6d2064796e2d746c732d637279707420616561642d65706f63682c74756e2d6d7475203135303000",
+   "stream_commands": [
+    "PUSH_REPLY,route-gateway 10.8.0.1,topology subnet,ping 5,ping-restart 30,ifconfig 10.8.0.2 255.255.255.0,peer-id 0,cipher AES-256-GCM,protocol-flags cc-exit tls-ekm dyn-tls-crypt aead-epoch,tun-mtu 1500"
+   ]
+  },
+  {
+   "name": "s26c26-udp-tlscrypt-aes256/c2s",
+   "cell": "s26c26-udp-tlscrypt-aes256",
+   "stock": {
+    "server": "2.6.23",
+    "client": "2.6.23"
+   },
+   "direction": "c2s",
+   "sender": "client",
+   "key_id": 0,
+   "hex": "0000000002184596149c69b339ec50b66468441521c99fc0ce1933fdbf24069eebb0a7930af3d1618993dada1423ad0b2717fd2b4372038a82eacfbcb98b6b938d144ece310bb9820919004cdf5f4d6ca7d5dc4f3a3a66c8fb8dcfec3faf71065940822237dfac608bfe71e7daa199e4e25e93eadb008156342c6465762d747970652074756e2c6c696e6b2d6d747520313534392c74756e2d6d747520313530302c70726f746f2055445076342c636970686572204145532d3235362d47434d2c61757468205b6e756c6c2d6469676573745d2c6b657973697a65203235362c6b65792d6d6574686f6420322c746c732d636c69656e740000000000008649565f5645523d322e362e32330a49565f504c41543d6c696e75780a49565f5443504e4c3d310a49565f4d54553d313630300a49565f434950484552533d4145532d3235362d47434d0a49565f50524f544f3d3939300a49565f4c5a4f5f535455423d310a49565f434f4d505f535455423d310a49565f434f4d505f5354554276323d310a00",
+   "length": 388,
+   "expect": {
+    "random_len": 112,
+    "options": "V4,dev-type tun,link-mtu 1549,tun-mtu 1500,proto UDPv4,cipher AES-256-GCM,auth [null-digest],keysize 256,key-method 2,tls-client",
+    "options_declared_len": 129,
+    "username": "",
+    "username_declared_len": 0,
+    "password": "",
+    "password_prefix": "",
+    "password_declared_len": 0,
+    "peer_info": "IV_VER=2.6.23\nIV_PLAT=linux\nIV_TCPNL=1\nIV_MTU=1600\nIV_CIPHERS=AES-256-GCM\nIV_PROTO=990\nIV_LZO_STUB=1\nIV_COMP_STUB=1\nIV_COMP_STUBv2=1\n",
+    "peer_info_declared_len": 134
+   }
+  },
+  {
+   "name": "s26c26-udp-tlscrypt-aes256/s2c",
+   "cell": "s26c26-udp-tlscrypt-aes256",
+   "stock": {
+    "server": "2.6.23",
+    "client": "2.6.23"
+   },
+   "direction": "s2c",
+   "sender": "server",
+   "key_id": 0,
+   "hex": "0000000002fc30f1b70650a428f00f93373da6ea59b0194ba6050f211a0823a12f624008f50f8ec6d8db70c6623cf8eec269a9fcea126a30a77ed0a928ee5270bc87193861008156342c6465762d747970652074756e2c6c696e6b2d6d747520313534392c74756e2d6d747520313530302c70726f746f2055445076342c636970686572204145532d3235362d47434d2c61757468205b6e756c6c2d6469676573745d2c6b657973697a65203235362c6b65792d6d6574686f6420322c746c732d73657276657200000000000000",
+   "length": 206,
+   "expect": {
+    "random_len": 64,
+    "options": "V4,dev-type tun,link-mtu 1549,tun-mtu 1500,proto UDPv4,cipher AES-256-GCM,auth [null-digest],keysize 256,key-method 2,tls-server",
+    "options_declared_len": 129,
+    "username": "",
+    "username_declared_len": 0,
+    "password": "",
+    "password_prefix": "",
+    "password_declared_len": 0,
+    "peer_info": "",
+    "peer_info_declared_len": 0
+   },
+   "note": "stream_hex is the whole server stream: the key-method message and the PUSH_REPLY that follows it",
+   "stream_hex": "0000000002fc30f1b70650a428f00f93373da6ea59b0194ba6050f211a0823a12f624008f50f8ec6d8db70c6623cf8eec269a9fcea126a30a77ed0a928ee5270bc87193861008156342c6465762d747970652074756e2c6c696e6b2d6d747520313534392c74756e2d6d747520313530302c70726f746f2055445076342c636970686572204145532d3235362d47434d2c61757468205b6e756c6c2d6469676573745d2c6b657973697a65203235362c6b65792d6d6574686f6420322c746c732d73657276657200000000000000505553485f5245504c592c726f7574652d676174657761792031302e382e302e312c746f706f6c6f6779207375626e65742c70696e6720352c70696e672d726573746172742033302c6966636f6e6669672031302e382e302e32203235352e3235352e3235352e302c706565722d696420302c636970686572204145532d3235362d47434d2c70726f746f636f6c2d666c6167732063632d6578697420746c732d656b6d2064796e2d746c732d63727970742c74756e2d6d7475203135303000",
+   "stream_commands": [
+    "PUSH_REPLY,route-gateway 10.8.0.1,topology subnet,ping 5,ping-restart 30,ifconfig 10.8.0.2 255.255.255.0,peer-id 0,cipher AES-256-GCM,protocol-flags cc-exit tls-ekm dyn-tls-crypt,tun-mtu 1500"
+   ]
+  },
+  {
+   "name": "s27c27-udp-tlscrypt-userpass-token/c2s",
+   "cell": "s27c27-udp-tlscrypt-userpass-token",
+   "stock": {
+    "server": "2.7.7",
+    "client": "2.7.7"
+   },
+   "direction": "c2s",
+   "sender": "client",
+   "key_id": 0,
+   "hex": "00000000020c81bebe23913e3ee4a3e6eced026a04a93815acfb2104746138c1b21f7c709e15ef674c6d27b2b0b48ca252d74f2102b83fa7a4177e32561a4124f035d82175cac87b93e1852549fcdf3fe7a91f1f98c2e85c977e5cf69d740fa76cb99c2ba4618f80d52180ae59fbe7c778bd4e56dd008156342c6465762d747970652074756e2c6c696e6b2d6d747520313534392c74756e2d6d747520313530302c70726f746f2055445076342c636970686572204145532d3235362d47434d2c61757468205b6e756c6c2d6469676573745d2c6b657973697a65203235362c6b65792d6d6574686f6420322c746c732d636c69656e74000006616c69636500000a7365637265742d707700008649565f5645523d322e372e370a49565f504c41543d6c696e75780a49565f5443504e4c3d310a49565f4d54553d313630300a49565f434950484552533d4145532d3235362d47434d0a49565f50524f544f3d383039340a49565f4c5a4f5f535455423d310a49565f434f4d505f535455423d310a49565f434f4d505f5354554276323d310a00",
+   "length": 404,
+   "expect": {
+    "random_len": 112,
+    "options": "V4,dev-type tun,link-mtu 1549,tun-mtu 1500,proto UDPv4,cipher AES-256-GCM,auth [null-digest],keysize 256,key-method 2,tls-client",
+    "options_declared_len": 129,
+    "username": "alice",
+    "username_declared_len": 6,
+    "password": "secret-pw",
+    "password_prefix": "secret-pw",
+    "password_declared_len": 10,
+    "peer_info": "IV_VER=2.7.7\nIV_PLAT=linux\nIV_TCPNL=1\nIV_MTU=1600\nIV_CIPHERS=AES-256-GCM\nIV_PROTO=8094\nIV_LZO_STUB=1\nIV_COMP_STUB=1\nIV_COMP_STUBv2=1\n",
+    "peer_info_declared_len": 134
+   },
+   "note": "auth-user-pass: username alice, password secret-pw"
+  },
+  {
+   "name": "s27c27-udp-tlscrypt-userpass-token/c2s/kid1",
+   "cell": "s27c27-udp-tlscrypt-userpass-token",
+   "stock": {
+    "server": "2.7.7",
+    "client": "2.7.7"
+   },
+   "direction": "c2s",
+   "sender": "client",
+   "key_id": 1,
+   "hex": "0000000002481ef4b68cca93cc6cfe8af5d34f655a33716ee78b3c4fea427cb86a633ffe69555a686a8def0c8c84f0cc7dcb9638bb4459b810146410fda8be0526e49e0a5691ff9439f7d469f140f35cfba4722454c75f28c3f82d682e81b7fdd479e16005c0f52e2a299cd74b66c31952d308e09d008156342c6465762d747970652074756e2c6c696e6b2d6d747520313534392c74756e2d6d747520313530302c70726f746f2055445076342c636970686572204145532d3235362d47434d2c61757468205b6e756c6c2d6469676573745d2c6b657973697a65203235362c6b65792d6d6574686f6420322c746c732d636c69656e74000006616c69636500005c534553535f49445f41545f506c346d723743496e4c3855764d61324141414141477278494867414141414161764567654756484c6648516937454774556539434372426441494963576a3038497465423844302b37687664636d2b00008649565f5645523d322e372e370a49565f504c41543d6c696e75780a49565f5443504e4c3d310a49565f4d54553d313630300a49565f434950484552533d4145532d3235362d47434d0a49565f50524f544f3d383039340a49565f4c5a4f5f535455423d310a49565f434f4d505f535455423d310a49565f434f4d505f5354554276323d310a00",
+   "length": 486,
+   "expect": {
+    "random_len": 112,
+    "options": "V4,dev-type tun,link-mtu 1549,tun-mtu 1500,proto UDPv4,cipher AES-256-GCM,auth [null-digest],keysize 256,key-method 2,tls-client",
+    "options_declared_len": 129,
+    "username": "alice",
+    "username_declared_len": 6,
+    "password": null,
+    "password_prefix": "SESS_ID_AT_P",
+    "password_declared_len": 92,
+    "peer_info": "IV_VER=2.7.7\nIV_PLAT=linux\nIV_TCPNL=1\nIV_MTU=1600\nIV_CIPHERS=AES-256-GCM\nIV_PROTO=8094\nIV_LZO_STUB=1\nIV_COMP_STUB=1\nIV_COMP_STUBv2=1\n",
+    "peer_info_declared_len": 134
+   },
+   "note": "renegotiation: the password is the auth-token the server pushed"
+  },
+  {
+   "name": "s26c26-udp-tlscrypt-userpass-token/c2s",
+   "cell": "s26c26-udp-tlscrypt-userpass-token",
+   "stock": {
+    "server": "2.6.23",
+    "client": "2.6.23"
+   },
+   "direction": "c2s",
+   "sender": "client",
+   "key_id": 0,
+   "hex": "0000000002cf1e2892fd10fe1caa5713a5ef761e1ca85919d3e88b4e3e4f559a9b680ba30538a9aae1166f303f4dd4c815e6ea1428fdf4e7d3344a8aa617ad899dee68e2f14b67486b07bede3b7c20e63b611c100cb97a932673c5da73144df5053870d0160bb72b9fd6b5035173466fa5f9939c6c008156342c6465762d747970652074756e2c6c696e6b2d6d747520313534392c74756e2d6d747520313530302c70726f746f2055445076342c636970686572204145532d3235362d47434d2c61757468205b6e756c6c2d6469676573745d2c6b657973697a65203235362c6b65792d6d6574686f6420322c746c732d636c69656e74000006616c69636500000a7365637265742d707700008649565f5645523d322e362e32330a49565f504c41543d6c696e75780a49565f5443504e4c3d310a49565f4d54553d313630300a49565f434950484552533d4145532d3235362d47434d0a49565f50524f544f3d3939300a49565f4c5a4f5f535455423d310a49565f434f4d505f535455423d310a49565f434f4d505f5354554276323d310a00",
+   "length": 404,
+   "expect": {
+    "random_len": 112,
+    "options": "V4,dev-type tun,link-mtu 1549,tun-mtu 1500,proto UDPv4,cipher AES-256-GCM,auth [null-digest],keysize 256,key-method 2,tls-client",
+    "options_declared_len": 129,
+    "username": "alice",
+    "username_declared_len": 6,
+    "password": "secret-pw",
+    "password_prefix": "secret-pw",
+    "password_declared_len": 10,
+    "peer_info": "IV_VER=2.6.23\nIV_PLAT=linux\nIV_TCPNL=1\nIV_MTU=1600\nIV_CIPHERS=AES-256-GCM\nIV_PROTO=990\nIV_LZO_STUB=1\nIV_COMP_STUB=1\nIV_COMP_STUBv2=1\n",
+    "peer_info_declared_len": 134
+   },
+   "note": "auth-user-pass, 2.6.23"
+  },
+  {
+   "name": "s27c27-udp-tlscrypt-chacha-ca/c2s",
+   "cell": "s27c27-udp-tlscrypt-chacha-ca",
+   "stock": {
+    "server": "2.7.7",
+    "client": "2.7.7"
+   },
+   "direction": "c2s",
+   "sender": "client",
+   "key_id": 0,
+   "hex": "000000000288b106a44cf4c21e065336ad050a8d827146658f19f1d3c4a0e7d7cc079f8f54ebc3622eef84c64255ebbe760812f31f3da0e7cd77a908be16b1d10b7d07712e8bd5081c2ba747559efb437c798163e1886579fe68eacc2181482861667370f1c0b3dec8e5d7c0d538430d87afdb60bd008756342c6465762d747970652074756e2c6c696e6b2d6d747520313533342c74756e2d6d747520313530302c70726f746f2055445076342c6369706865722043484143484132302d504f4c59313330352c61757468205b6e756c6c2d6469676573745d2c6b657973697a65203235362c6b65792d6d6574686f6420322c746c732d636c69656e740000000000008c49565f5645523d322e372e370a49565f504c41543d6c696e75780a49565f5443504e4c3d310a49565f4d54553d313630300a49565f434950484552533d43484143484132302d504f4c59313330350a49565f50524f544f3d383039340a49565f4c5a4f5f535455423d310a49565f434f4d505f535455423d310a49565f434f4d505f5354554276323d310a00",
+   "length": 400,
+   "expect": {
+    "random_len": 112,
+    "options": "V4,dev-type tun,link-mtu 1534,tun-mtu 1500,proto UDPv4,cipher CHACHA20-POLY1305,auth [null-digest],keysize 256,key-method 2,tls-client",
+    "options_declared_len": 135,
+    "username": "",
+    "username_declared_len": 0,
+    "password": "",
+    "password_prefix": "",
+    "password_declared_len": 0,
+    "peer_info": "IV_VER=2.7.7\nIV_PLAT=linux\nIV_TCPNL=1\nIV_MTU=1600\nIV_CIPHERS=CHACHA20-POLY1305\nIV_PROTO=8094\nIV_LZO_STUB=1\nIV_COMP_STUB=1\nIV_COMP_STUBv2=1\n",
+    "peer_info_declared_len": 140
+   }
+  },
+  {
+   "name": "s27c27-udp-tlscrypt-chacha-ca/s2c",
+   "cell": "s27c27-udp-tlscrypt-chacha-ca",
+   "stock": {
+    "server": "2.7.7",
+    "client": "2.7.7"
+   },
+   "direction": "s2c",
+   "sender": "server",
+   "key_id": 0,
+   "hex": "0000000002e44d178559091846e49c7cbd7c6bdcc8f122288e8f919773faeb1587e41f0ed1d888240801f79cddc41fbce0809aee35eb0b6b6b32a7d1d4f66c5cb7f4e5a39a008756342c6465762d747970652074756e2c6c696e6b2d6d747520313533342c74756e2d6d747520313530302c70726f746f2055445076342c6369706865722043484143484132302d504f4c59313330352c61757468205b6e756c6c2d6469676573745d2c6b657973697a65203235362c6b65792d6d6574686f6420322c746c732d73657276657200000000000000",
+   "length": 212,
+   "expect": {
+    "random_len": 64,
+    "options": "V4,dev-type tun,link-mtu 1534,tun-mtu 1500,proto UDPv4,cipher CHACHA20-POLY1305,auth [null-digest],keysize 256,key-method 2,tls-server",
+    "options_declared_len": 135,
+    "username": "",
+    "username_declared_len": 0,
+    "password": "",
+    "password_prefix": "",
+    "password_declared_len": 0,
+    "peer_info": "",
+    "peer_info_declared_len": 0
+   }
+  },
+  {
+   "name": "s27c27-tcp-none-aes256-ca/c2s",
+   "cell": "s27c27-tcp-none-aes256-ca",
+   "stock": {
+    "server": "2.7.7",
+    "client": "2.7.7"
+   },
+   "direction": "c2s",
+   "sender": "client",
+   "key_id": 0,
+   "hex": "000000000285638ddda830b65e915db5992f2290be636192a8f67b1136b4bc2f84364dc0cc1a11c54145038cebd3dea371c665971f3ffb08f8a3f838e72710ecd1effb5b99738a45cc536cf3e58e8c64465b8e842de2310016f703bc8c9023dcf4527064556c65f039ff04e21ad42739e87260a867008856342c6465762d747970652074756e2c6c696e6b2d6d747520313535312c74756e2d6d747520313530302c70726f746f2054435076345f434c49454e542c636970686572204145532d3235362d47434d2c61757468205b6e756c6c2d6469676573745d2c6b657973697a65203235362c6b65792d6d6574686f6420322c746c732d636c69656e740000000000008649565f5645523d322e372e370a49565f504c41543d6c696e75780a49565f5443504e4c3d310a49565f4d54553d313630300a49565f434950484552533d4145532d3235362d47434d0a49565f50524f544f3d383039340a49565f4c5a4f5f535455423d310a49565f434f4d505f535455423d310a49565f434f4d505f5354554276323d310a00",
+   "length": 395,
+   "expect": {
+    "random_len": 112,
+    "options": "V4,dev-type tun,link-mtu 1551,tun-mtu 1500,proto TCPv4_CLIENT,cipher AES-256-GCM,auth [null-digest],keysize 256,key-method 2,tls-client",
+    "options_declared_len": 136,
+    "username": "",
+    "username_declared_len": 0,
+    "password": "",
+    "password_prefix": "",
+    "password_declared_len": 0,
+    "peer_info": "IV_VER=2.7.7\nIV_PLAT=linux\nIV_TCPNL=1\nIV_MTU=1600\nIV_CIPHERS=AES-256-GCM\nIV_PROTO=8094\nIV_LZO_STUB=1\nIV_COMP_STUB=1\nIV_COMP_STUBv2=1\n",
+    "peer_info_declared_len": 134
+   }
+  },
+  {
+   "name": "s27c27-tcp-none-aes256-ca/s2c",
+   "cell": "s27c27-tcp-none-aes256-ca",
+   "stock": {
+    "server": "2.7.7",
+    "client": "2.7.7"
+   },
+   "direction": "s2c",
+   "sender": "server",
+   "key_id": 0,
+   "hex": "00000000022574e0a6c0adc40100945f7e17f0d2e3eb634fabd1fc1170b07c02bee6a8006179cafde36fe26bd88ce69e95240bec2d174b767cb9023616bc5d54295347a277008856342c6465762d747970652074756e2c6c696e6b2d6d747520313535312c74756e2d6d747520313530302c70726f746f2054435076345f5345525645522c636970686572204145532d3235362d47434d2c61757468205b6e756c6c2d6469676573745d2c6b657973697a65203235362c6b65792d6d6574686f6420322c746c732d73657276657200000000000000",
+   "length": 213,
+   "expect": {
+    "random_len": 64,
+    "options": "V4,dev-type tun,link-mtu 1551,tun-mtu 1500,proto TCPv4_SERVER,cipher AES-256-GCM,auth [null-digest],keysize 256,key-method 2,tls-server",
+    "options_declared_len": 136,
+    "username": "",
+    "username_declared_len": 0,
+    "password": "",
+    "password_prefix": "",
+    "password_declared_len": 0,
+    "peer_info": "",
+    "peer_info_declared_len": 0
+   }
+  },
+  {
+   "name": "s27c27-udp-tlscrypt-nocipherline/c2s",
+   "cell": "s27c27-udp-tlscrypt-nocipherline",
+   "stock": {
+    "server": "2.7.7",
+    "client": "2.7.7"
+   },
+   "direction": "c2s",
+   "sender": "client",
+   "key_id": 0,
+   "hex": "000000000260487fb74337d8817f4f8547d6d558d173780c5c3ac9267eeb8fd23932582e288843cc8fa57caec90a302e472f68b03e97e967d302e35b8cb0d2c2398420adc286cc2807bb0d3ec0203c807d660fc517cb5adbe93f509cfafb48f426e3899e51371e522250ea094304098da930678a6b006556342c6465762d747970652074756e2c6c696e6b2d6d747520313534312c74756e2d6d747520313530302c70726f746f2055445076342c6175746820534841312c6b657973697a65203132382c6b65792d6d6574686f6420322c746c732d636c69656e740000000000008649565f5645523d322e372e370a49565f504c41543d6c696e75780a49565f5443504e4c3d310a49565f4d54553d313630300a49565f434950484552533d4145532d3235362d47434d0a49565f50524f544f3d383039340a49565f4c5a4f5f535455423d310a49565f434f4d505f535455423d310a49565f434f4d505f5354554276323d310a00",
+   "length": 360,
+   "expect": {
+    "random_len": 112,
+    "options": "V4,dev-type tun,link-mtu 1541,tun-mtu 1500,proto UDPv4,auth SHA1,keysize 128,key-method 2,tls-client",
+    "options_declared_len": 101,
+    "username": "",
+    "username_declared_len": 0,
+    "password": "",
+    "password_prefix": "",
+    "password_declared_len": 0,
+    "peer_info": "IV_VER=2.7.7\nIV_PLAT=linux\nIV_TCPNL=1\nIV_MTU=1600\nIV_CIPHERS=AES-256-GCM\nIV_PROTO=8094\nIV_LZO_STUB=1\nIV_COMP_STUB=1\nIV_COMP_STUBv2=1\n",
+    "peer_info_declared_len": 134
+   }
+  },
+  {
+   "name": "s27c27-udp-tlscrypt-nocipherline/s2c",
+   "cell": "s27c27-udp-tlscrypt-nocipherline",
+   "stock": {
+    "server": "2.7.7",
+    "client": "2.7.7"
+   },
+   "direction": "s2c",
+   "sender": "server",
+   "key_id": 0,
+   "hex": "00000000023763717677739f5203d6ccb4c4b2a978dfea29a59c6c1285556a9156839edfb32126ebdc0f5d9be793ce7f1cdb07fe700771ed6f07819c7bfd127cb8f446be6e006556342c6465762d747970652074756e2c6c696e6b2d6d747520313534312c74756e2d6d747520313530302c70726f746f2055445076342c6175746820534841312c6b657973697a65203132382c6b65792d6d6574686f6420322c746c732d73657276657200000000000000",
+   "length": 178,
+   "expect": {
+    "random_len": 64,
+    "options": "V4,dev-type tun,link-mtu 1541,tun-mtu 1500,proto UDPv4,auth SHA1,keysize 128,key-method 2,tls-server",
+    "options_declared_len": 101,
+    "username": "",
+    "username_declared_len": 0,
+    "password": "",
+    "password_prefix": "",
+    "password_declared_len": 0,
+    "peer_info": "",
+    "peer_info_declared_len": 0
+   }
+  },
+  {
+   "name": "s27c27-udp-tlsauth-sha256-aes128/c2s",
+   "cell": "s27c27-udp-tlsauth-sha256-aes128",
+   "stock": {
+    "server": "2.7.7",
+    "client": "2.7.7"
+   },
+   "direction": "c2s",
+   "sender": "client",
+   "key_id": 0,
+   "hex": "0000000002f5b82e2f146d9267342f82b843bd1828f6b2db14408718ff56cb5a26a2e74d96dac592f3dee8be9069029fe7ec4801718af49a0f08886039867165818428c8afe470c70e59ffab6520e7844d49082550f6163ced42df529757cd2784808d821f200ed288db106d47ec9225c283d81b43009356342c6465762d747970652074756e2c6c696e6b2d6d747520313534392c74756e2d6d747520313530302c70726f746f2055445076342c6b657964697220312c636970686572204145532d3132382d47434d2c61757468205b6e756c6c2d6469676573745d2c6b657973697a65203132382c746c732d617574682c6b65792d6d6574686f6420322c746c732d636c69656e740000000000008649565f5645523d322e372e370a49565f504c41543d6c696e75780a49565f5443504e4c3d310a49565f4d54553d313630300a49565f434950484552533d4145532d3132382d47434d0a49565f50524f544f3d383039340a49565f4c5a4f5f535455423d310a49565f434f4d505f535455423d310a49565f434f4d505f5354554276323d310a00",
+   "length": 406,
+   "expect": {
+    "random_len": 112,
+    "options": "V4,dev-type tun,link-mtu 1549,tun-mtu 1500,proto UDPv4,keydir 1,cipher AES-128-GCM,auth [null-digest],keysize 128,tls-auth,key-method 2,tls-client",
+    "options_declared_len": 147,
+    "username": "",
+    "username_declared_len": 0,
+    "password": "",
+    "password_prefix": "",
+    "password_declared_len": 0,
+    "peer_info": "IV_VER=2.7.7\nIV_PLAT=linux\nIV_TCPNL=1\nIV_MTU=1600\nIV_CIPHERS=AES-128-GCM\nIV_PROTO=8094\nIV_LZO_STUB=1\nIV_COMP_STUB=1\nIV_COMP_STUBv2=1\n",
+    "peer_info_declared_len": 134
+   }
+  },
+  {
+   "name": "s27c27-udp-tlsauth-sha256-aes128/s2c",
+   "cell": "s27c27-udp-tlsauth-sha256-aes128",
+   "stock": {
+    "server": "2.7.7",
+    "client": "2.7.7"
+   },
+   "direction": "s2c",
+   "sender": "server",
+   "key_id": 0,
+   "hex": "000000000268ce2114b23f7908162666045d1a5f2fd918ebf5437e56867aed6889b11b403278737095e20d8eefe0845d352ffbe02445b0f6f03b6602b89b6def9f4d19a4e3009356342c6465762d747970652074756e2c6c696e6b2d6d747520313534392c74756e2d6d747520313530302c70726f746f2055445076342c6b657964697220302c636970686572204145532d3132382d47434d2c61757468205b6e756c6c2d6469676573745d2c6b657973697a65203132382c746c732d617574682c6b65792d6d6574686f6420322c746c732d73657276657200000000000000",
+   "length": 224,
+   "expect": {
+    "random_len": 64,
+    "options": "V4,dev-type tun,link-mtu 1549,tun-mtu 1500,proto UDPv4,keydir 0,cipher AES-128-GCM,auth [null-digest],keysize 128,tls-auth,key-method 2,tls-server",
+    "options_declared_len": 147,
+    "username": "",
+    "username_declared_len": 0,
+    "password": "",
+    "password_prefix": "",
+    "password_declared_len": 0,
+    "peer_info": "",
+    "peer_info_declared_len": 0
+   }
+  },
+  {
+   "name": "s26c26-udp-tlscrypt-nocipherline/c2s",
+   "cell": "s26c26-udp-tlscrypt-nocipherline",
+   "stock": {
+    "server": "2.6.23",
+    "client": "2.6.23"
+   },
+   "direction": "c2s",
+   "sender": "client",
+   "key_id": 0,
+   "hex": "0000000002cf28a2be66135ca310f3000904822416e306b464dd9ba9eeece838483c03ddb5014dfd36b913b050a9b714f0b6964466fa9317aaad7dee3758f8fa6c5dfc3489484c27a6ae658c0b31baf09a17a90ce82b41c90ab396edc2710cc72a2ba872fa5f3922ec36c24cb0cb9e86a1183462c6006556342c6465762d747970652074756e2c6c696e6b2d6d747520313534312c74756e2d6d747520313530302c70726f746f2055445076342c6175746820534841312c6b657973697a65203132382c6b65792d6d6574686f6420322c746c732d636c69656e740000000000008649565f5645523d322e362e32330a49565f504c41543d6c696e75780a49565f5443504e4c3d310a49565f4d54553d313630300a49565f434950484552533d4145532d3235362d47434d0a49565f50524f544f3d3939300a49565f4c5a4f5f535455423d310a49565f434f4d505f535455423d310a49565f434f4d505f5354554276323d310a00",
+   "length": 360,
+   "expect": {
+    "random_len": 112,
+    "options": "V4,dev-type tun,link-mtu 1541,tun-mtu 1500,proto UDPv4,auth SHA1,keysize 128,key-method 2,tls-client",
+    "options_declared_len": 101,
+    "username": "",
+    "username_declared_len": 0,
+    "password": "",
+    "password_prefix": "",
+    "password_declared_len": 0,
+    "peer_info": "IV_VER=2.6.23\nIV_PLAT=linux\nIV_TCPNL=1\nIV_MTU=1600\nIV_CIPHERS=AES-256-GCM\nIV_PROTO=990\nIV_LZO_STUB=1\nIV_COMP_STUB=1\nIV_COMP_STUBv2=1\n",
+    "peer_info_declared_len": 134
+   }
+  }
+ ]
+}

@@ -1,0 +1,1016 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="1044"
+   height="600"
+   viewBox="0 0 1044 600"
+   role="img"
+   aria-labelledby="title desc"
+   version="1.1"
+   id="svg97"
+   sodipodi:docname="server-architecture-inkscape.svg"
+   inkscape:version="1.4.4 (dcaf3e7, 2026-05-05)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns:c2pa="http://c2pa.org/manifest">
+  <sodipodi:namedview
+     id="namedview97"
+     pagecolor="#ffffff"
+     bordercolor="#cccccc"
+     borderopacity="1"
+     inkscape:showpageshadow="0"
+     inkscape:pageopacity="1"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:current-layer="svg97" />
+  <title
+     id="title">noirvpn server architecture</title>
+  <desc
+     id="desc">Clients connect over raw UDP, raw TCP, TLS or WebSocket inside TLS to the listeners of the noirvpn daemon. The daemon runs the control channel and, by default, the data path and the tun device. It publishes events and takes requests on the local control bus. With datapath udco, an optional userspace DCO service takes over the data path over a Unix socket.</desc>
+  <style
+     id="style1">
+text{font-family:-apple-system,BlinkMacSystemFont,&quot;Segoe UI&quot;,&quot;Noto Sans&quot;,Helvetica,Arial,sans-serif;fill:#1f2328}
+.mono,.monob,.monom,.chip{font-family:ui-monospace,SFMono-Regular,&quot;SF Mono&quot;,Menlo,Consolas,&quot;Liberation Mono&quot;,monospace}
+.bg{fill:#ffffff}
+.host{fill:#f6f8fa;stroke:#d8dee4;stroke-width:1}
+.panel{fill:#ffffff;stroke:#d0d7de;stroke-width:1.2}
+.box{fill:#f6f8fa;stroke:#d0d7de;stroke-width:1}
+.h1{font-size:15px;font-weight:600}
+.h2{font-size:13px;font-weight:600}
+.lab{font-size:12px;font-weight:600;fill:#59636e;letter-spacing:.04em}
+.b{font-size:11px}
+.m{font-size:11px;fill:#59636e}
+.s{font-size:10px;fill:#59636e}
+.mono{font-size:10px}
+.monob{font-size:13px;font-weight:600}
+.monom{font-size:11px;fill:#59636e}
+.chip{font-size:10.5px}
+.f-udp{fill:#0969da} .st-udp{stroke:#0969da} .l-udp{fill:none;stroke:#0969da;stroke-width:1.6} .t-udp{fill:#0969da}
+.f-tcp{fill:#1a7f37} .st-tcp{stroke:#1a7f37} .l-tcp{fill:none;stroke:#1a7f37;stroke-width:1.6} .t-tcp{fill:#1a7f37}
+.f-tls{fill:#8250df} .st-tls{stroke:#8250df} .l-tls{fill:none;stroke:#8250df;stroke-width:1.6} .t-tls{fill:#8250df}
+.f-ws{fill:#bf3989} .st-ws{stroke:#bf3989} .l-ws{fill:none;stroke:#bf3989;stroke-width:1.6} .t-ws{fill:#bf3989}
+.f-bus{fill:#9a6700} .st-bus{stroke:#9a6700} .l-bus{fill:none;stroke:#9a6700;stroke-width:1.6} .t-bus{fill:#9a6700}
+.f-dco{fill:#1b7c83} .st-dco{stroke:#1b7c83} .l-dco{fill:none;stroke:#1b7c83;stroke-width:1.6} .t-dco{fill:#1b7c83}
+.f-mut{fill:#818b98} .st-mut{stroke:#818b98} .l-mut{fill:none;stroke:#818b98;stroke-width:1.6} .t-mut{fill:#818b98}
+.dash{stroke-dasharray:5 4}
+.dco-box{fill:#ffffff;stroke:#1b7c83;stroke-width:1.4;stroke-dasharray:6 4}
+.bus-box{fill:#ffffff;stroke:#9a6700;stroke-width:1.4}
+</style>
+  <defs
+     id="defs7">
+    <marker
+       id="ah-udp"
+       viewBox="0 0 10 10"
+       refX="9"
+       refY="5"
+       markerWidth="7"
+       markerHeight="7"
+       orient="auto-start-reverse">
+      <path
+         d="M0 0 L10 5 L0 10 z"
+         class="f-udp"
+         id="path1" />
+    </marker>
+    <marker
+       id="ah-tcp"
+       viewBox="0 0 10 10"
+       refX="9"
+       refY="5"
+       markerWidth="7"
+       markerHeight="7"
+       orient="auto-start-reverse">
+      <path
+         d="M0 0 L10 5 L0 10 z"
+         class="f-tcp"
+         id="path2" />
+    </marker>
+    <marker
+       id="ah-tls"
+       viewBox="0 0 10 10"
+       refX="9"
+       refY="5"
+       markerWidth="7"
+       markerHeight="7"
+       orient="auto-start-reverse">
+      <path
+         d="M0 0 L10 5 L0 10 z"
+         class="f-tls"
+         id="path3" />
+    </marker>
+    <marker
+       id="ah-ws"
+       viewBox="0 0 10 10"
+       refX="9"
+       refY="5"
+       markerWidth="7"
+       markerHeight="7"
+       orient="auto-start-reverse">
+      <path
+         d="M0 0 L10 5 L0 10 z"
+         class="f-ws"
+         id="path4" />
+    </marker>
+    <marker
+       id="ah-bus"
+       viewBox="0 0 10 10"
+       refX="9"
+       refY="5"
+       markerWidth="7"
+       markerHeight="7"
+       orient="auto-start-reverse">
+      <path
+         d="M0 0 L10 5 L0 10 z"
+         class="f-bus"
+         id="path5" />
+    </marker>
+    <marker
+       id="ah-dco"
+       viewBox="0 0 10 10"
+       refX="9"
+       refY="5"
+       markerWidth="7"
+       markerHeight="7"
+       orient="auto-start-reverse">
+      <path
+         d="M0 0 L10 5 L0 10 z"
+         class="f-dco"
+         id="path6" />
+    </marker>
+    <marker
+       id="ah-mut"
+       viewBox="0 0 10 10"
+       refX="9"
+       refY="5"
+       markerWidth="7"
+       markerHeight="7"
+       orient="auto-start-reverse">
+      <path
+         d="M0 0 L10 5 L0 10 z"
+         class="f-mut"
+         id="path7" />
+    </marker>
+  </defs>
+  <rect
+     x="0"
+     y="0"
+     width="1044"
+     height="600"
+     rx="0"
+     class="bg"
+     id="rect7" />
+  <rect
+     x="326"
+     y="26"
+     width="704"
+     height="560"
+     rx="14"
+     class="host"
+     id="rect8"
+     style="stroke:none" />
+  <text
+     x="342"
+     y="48"
+     class="lab"
+     text-anchor="start"
+     id="text8"
+     style="fill:#1a1a1a">SERVER (LINUX)</text>
+  <text
+     x="20"
+     y="48"
+     class="lab"
+     text-anchor="start"
+     id="text9"
+     style="fill:#1a1a1a">CLIENTS</text>
+  <rect
+     x="20"
+     y="90"
+     width="270"
+     height="100"
+     rx="8"
+     class="panel"
+     id="rect9"
+     style="stroke:#96b5ec;stroke-opacity:1" />
+  <text
+     x="36"
+     y="112"
+     class="h2"
+     text-anchor="start"
+     id="text10">Raw UDP</text>
+  <text
+     x="278"
+     y="112"
+     class="s"
+     text-anchor="end"
+     id="text11">OpenVPN 2.6+ or noirvpn</text>
+  <text
+     x="36"
+     y="130"
+     class="monom"
+     text-anchor="start"
+     id="text12">proto udp</text>
+  <rect
+     x="36"
+     y="140"
+     width="134.0"
+     height="42"
+     rx="6"
+     class="f-udp st-udp"
+     fill-opacity="0.08"
+     stroke-opacity="0.55"
+     stroke-width="1"
+     id="rect12" />
+  <text
+     x="42"
+     y="164.5"
+     class="chip"
+     text-anchor="start"
+     id="text13">UDP</text>
+  <rect
+     x="66.0"
+     y="144"
+     width="100.0"
+     height="34"
+     rx="5"
+     class="f-udp st-udp"
+     fill-opacity="0.3"
+     stroke-opacity="0.55"
+     stroke-width="1"
+     id="rect13" />
+  <text
+     x="116.0"
+     y="164.5"
+     class="chip"
+     text-anchor="middle"
+     id="text14">OpenVPN packet</text>
+  <rect
+     x="20"
+     y="210"
+     width="270"
+     height="100"
+     rx="8"
+     class="panel"
+     id="rect14"
+     style="stroke:#55b759;stroke-opacity:1" />
+  <text
+     x="36"
+     y="232"
+     class="h2"
+     text-anchor="start"
+     id="text15">Raw TCP</text>
+  <text
+     x="278"
+     y="232"
+     class="s"
+     text-anchor="end"
+     id="text16">OpenVPN 2.6+ or noirvpn</text>
+  <text
+     x="36"
+     y="250"
+     class="monom"
+     text-anchor="start"
+     id="text17">proto tcp-client</text>
+  <rect
+     x="36"
+     y="260"
+     width="134.0"
+     height="42"
+     rx="6"
+     class="f-tcp st-tcp"
+     fill-opacity="0.08"
+     stroke-opacity="0.55"
+     stroke-width="1"
+     id="rect17" />
+  <text
+     x="42"
+     y="284.5"
+     class="chip"
+     text-anchor="start"
+     id="text18">TCP</text>
+  <rect
+     x="66.0"
+     y="264"
+     width="100.0"
+     height="34"
+     rx="5"
+     class="f-tcp st-tcp"
+     fill-opacity="0.3"
+     stroke-opacity="0.55"
+     stroke-width="1"
+     id="rect18" />
+  <text
+     x="116.0"
+     y="284.5"
+     class="chip"
+     text-anchor="middle"
+     id="text19">OpenVPN stream</text>
+  <rect
+     x="20"
+     y="330"
+     width="270"
+     height="100"
+     rx="8"
+     class="panel"
+     id="rect19"
+     style="stroke:#a541bc;stroke-opacity:1" />
+  <text
+     x="36"
+     y="352"
+     class="h2"
+     text-anchor="start"
+     id="text20">TLS transport</text>
+  <text
+     x="278"
+     y="352"
+     class="s"
+     text-anchor="end"
+     id="text21">noirvpn clients</text>
+  <text
+     x="36"
+     y="370"
+     class="monom"
+     text-anchor="start"
+     id="text22">proto tls-client</text>
+  <rect
+     x="36"
+     y="380"
+     width="192.0"
+     height="42"
+     rx="6"
+     class="f-tls st-tls"
+     fill-opacity="0.08"
+     stroke-opacity="0.55"
+     stroke-width="1"
+     id="rect22" />
+  <text
+     x="42"
+     y="404.5"
+     class="chip"
+     text-anchor="start"
+     id="text23">TCP</text>
+  <rect
+     x="66.0"
+     y="384"
+     width="158.0"
+     height="34"
+     rx="5"
+     class="f-tls st-tls"
+     fill-opacity="0.14"
+     stroke-opacity="0.55"
+     stroke-width="1"
+     id="rect23" />
+  <text
+     x="72.0"
+     y="404.5"
+     class="chip"
+     text-anchor="start"
+     id="text24">TLS 1.3</text>
+  <rect
+     x="120.0"
+     y="388"
+     width="100.0"
+     height="26"
+     rx="4"
+     class="f-tls st-tls"
+     fill-opacity="0.3"
+     stroke-opacity="0.55"
+     stroke-width="1"
+     id="rect24" />
+  <text
+     x="170.0"
+     y="404.5"
+     class="chip"
+     text-anchor="middle"
+     id="text25">OpenVPN stream</text>
+  <rect
+     x="20"
+     y="450"
+     width="270"
+     height="100"
+     rx="8"
+     class="panel"
+     id="rect25"
+     style="stroke:#da65a0;stroke-opacity:1" />
+  <text
+     x="36"
+     y="472"
+     class="h2"
+     text-anchor="start"
+     id="text26">WebSocket over TLS</text>
+  <text
+     x="278"
+     y="472"
+     class="s"
+     text-anchor="end"
+     id="text27">noirvpn clients</text>
+  <text
+     x="36"
+     y="490"
+     class="monom"
+     text-anchor="start"
+     id="text28">tls-transport-ws PATH</text>
+  <rect
+     x="36"
+     y="500"
+     width="220.0"
+     height="42"
+     rx="6"
+     class="f-ws st-ws"
+     fill-opacity="0.08"
+     stroke-opacity="0.55"
+     stroke-width="1"
+     id="rect28" />
+  <text
+     x="42"
+     y="524.5"
+     class="chip"
+     text-anchor="start"
+     id="text29">TCP</text>
+  <rect
+     x="66.0"
+     y="504"
+     width="186.0"
+     height="34"
+     rx="5"
+     class="f-ws st-ws"
+     fill-opacity="0.14"
+     stroke-opacity="0.55"
+     stroke-width="1"
+     id="rect29" />
+  <text
+     x="72.0"
+     y="524.5"
+     class="chip"
+     text-anchor="start"
+     id="text30">TLS 1.3</text>
+  <rect
+     x="120.0"
+     y="508"
+     width="128.0"
+     height="26"
+     rx="4"
+     class="f-ws st-ws"
+     fill-opacity="0.2"
+     stroke-opacity="0.55"
+     stroke-width="1"
+     id="rect30" />
+  <text
+     x="126.0"
+     y="524.5"
+     class="chip"
+     text-anchor="start"
+     id="text31">WebSocket</text>
+  <rect
+     x="186.0"
+     y="512"
+     width="58.0"
+     height="18"
+     rx="3"
+     class="f-ws st-ws"
+     fill-opacity="0.3"
+     stroke-opacity="0.55"
+     stroke-width="1"
+     id="rect31" />
+  <text
+     x="215.0"
+     y="524.5"
+     class="chip"
+     text-anchor="middle"
+     id="text32">OpenVPN</text>
+  <rect
+     x="346"
+     y="66"
+     width="384"
+     height="504"
+     rx="10"
+     class="panel"
+     id="rect32" />
+  <text
+     x="362"
+     y="91"
+     class="h1"
+     text-anchor="start"
+     id="text33">noirvpn daemon</text>
+  <path
+     d="M290 140.0 L361 140.0"
+     class="l-udp"
+     marker-end="url(#ah-udp)"
+     id="path34" />
+  <path
+     d="M290 260.0 L361 260.0"
+     class="l-tcp"
+     marker-end="url(#ah-tcp)"
+     id="path35" />
+  <path
+     d="M290 380.0 L361 380.0"
+     class="l-tls"
+     marker-end="url(#ah-tls)"
+     id="path36" />
+  <path
+     d="M290 500.0 L361 500.0"
+     class="l-ws"
+     marker-end="url(#ah-ws)"
+     id="path37" />
+  <rect
+     x="362"
+     y="112"
+     width="164"
+     height="56"
+     rx="8"
+     class="box"
+     id="rect37" />
+  <text
+     x="376"
+     y="136"
+     class="monob"
+     text-anchor="start"
+     id="text38">udp</text>
+  <text
+     x="376"
+     y="155"
+     class="m"
+     text-anchor="start"
+     id="text39">port 1194</text>
+  <rect
+     x="362"
+     y="232"
+     width="164"
+     height="56"
+     rx="8"
+     class="box"
+     id="rect39" />
+  <text
+     x="376"
+     y="256"
+     class="monob"
+     text-anchor="start"
+     id="text40">tcp-server</text>
+  <text
+     x="376"
+     y="275"
+     class="m"
+     text-anchor="start"
+     id="text41">port 1194</text>
+  <rect
+     x="362"
+     y="336"
+     width="164"
+     height="208"
+     rx="8"
+     class="box"
+     id="rect41" />
+  <text
+     x="376"
+     y="360"
+     class="monob"
+     text-anchor="start"
+     id="text42">tls-server</text>
+  <text
+     x="376"
+     y="379"
+     class="m"
+     text-anchor="start"
+     id="text43">port 443</text>
+  <text
+     x="376"
+     y="414.69156"
+     class="s"
+     text-anchor="start"
+     id="text44">connection type detection</text>
+  <circle
+     cx="381"
+     cy="438"
+     r="4"
+     class="f-tls"
+     id="circle45" />
+  <text
+     x="392"
+     y="442"
+     class="b"
+     text-anchor="start"
+     id="text46">TLS 1.3 stream</text>
+  <circle
+     cx="381"
+     cy="460"
+     r="4"
+     class="f-ws"
+     id="circle46" />
+  <text
+     x="392"
+     y="464"
+     class="b"
+     text-anchor="start"
+     id="text47">TLS 1.3 + WebSocket</text>
+  <circle
+     cx="381"
+     cy="482"
+     r="4"
+     class="f-tcp"
+     id="circle47" />
+  <text
+     x="392"
+     y="486"
+     class="b"
+     text-anchor="start"
+     id="text48">raw TCP, same port</text>
+  <text
+     x="376"
+     y="520"
+     class="s"
+     text-anchor="start"
+     id="text49">outer cert: tls-transport-cert</text>
+  <path
+     d="M526 140 L541 140"
+     class="l-mut"
+     id="path50" />
+  <path
+     d="M526 260 L541 260"
+     class="l-mut"
+     id="path51" />
+  <path
+     d="M526 440 L541 440"
+     class="l-mut"
+     id="path52" />
+  <path
+     d="M541 140 L541 440"
+     class="l-mut"
+     id="path53" />
+  <path
+     d="M541 206 L554 206"
+     class="l-mut"
+     marker-end="url(#ah-mut)"
+     id="path54" />
+  <path
+     d="M541 389 L554 389"
+     class="l-mut"
+     marker-end="url(#ah-mut)"
+     id="path55" />
+  <rect
+     x="556"
+     y="112"
+     width="158"
+     height="188"
+     rx="8"
+     class="box"
+     id="rect55" />
+  <text
+     x="568"
+     y="134"
+     class="h2"
+     text-anchor="start"
+     id="text55">Control channel</text>
+  <text
+     x="568"
+     y="158"
+     class="b"
+     text-anchor="start"
+     id="text56">■ TLS ■ post-quantum</text>
+  <text
+     x="568"
+     y="176"
+     class="b"
+     text-anchor="start"
+     id="text57">■ key exchange</text>
+  <text
+     x="568"
+     y="194"
+     class="b"
+     text-anchor="start"
+     id="text58">■ CA or pinned keys</text>
+  <text
+     x="568"
+     y="212"
+     class="b"
+     text-anchor="start"
+     id="text59">■ login and push</text>
+  <text
+     x="568"
+     y="230"
+     class="b"
+     text-anchor="start"
+     id="text60">■ rekey ■ epoch keys</text>
+  <text
+     x="568"
+     y="248"
+     class="b"
+     text-anchor="start"
+     id="text61">■ pools and routes</text>
+  <text
+     x="568"
+     y="284"
+     class="s"
+     text-anchor="start"
+     id="text62">keeps every session</text>
+  <rect
+     x="556"
+     y="316"
+     width="158"
+     height="146"
+     rx="8"
+     class="box"
+     id="rect62" />
+  <text
+     x="568"
+     y="338"
+     class="h2"
+     text-anchor="start"
+     id="text63">Data path</text>
+  <text
+     x="568"
+     y="360"
+     class="b"
+     text-anchor="start"
+     id="text65">■ AES-GCM, ChaCha20</text>
+  <text
+     x="568"
+     y="378"
+     class="b"
+     text-anchor="start"
+     id="text66">■ UDP GSO and GRO</text>
+  <text
+     x="568"
+     y="396"
+     class="b"
+     text-anchor="start"
+     id="text67">■ crypto workers</text>
+  <text
+     x="568"
+     y="414"
+     class="b"
+     text-anchor="start"
+     id="text68">■ MSS clamp</text>
+  <text
+     x="568"
+     y="450"
+     class="s"
+     text-anchor="start"
+     id="text69">or the DCO service</text>
+  <path
+     d="m 635,465 v 35.27523"
+     class="l-mut"
+     marker-start="url(#ah-mut)"
+     marker-end="url(#ah-mut)"
+     id="path69"
+     sodipodi:nodetypes="cc" />
+  <rect
+     x="556"
+     y="502.75421"
+     width="158"
+     height="41.245785"
+     rx="8"
+     class="box"
+     id="rect69" />
+  <text
+     x="568"
+     y="527.7962"
+     class="monob"
+     text-anchor="start"
+     id="text70">tun0</text>
+  <rect
+     x="796"
+     y="66"
+     width="222"
+     height="234"
+     rx="10"
+     class="bus-box"
+     id="rect72" />
+  <text
+     x="810"
+     y="91"
+     class="h1"
+     text-anchor="start"
+     id="text73">Control bus</text>
+  <text
+     x="810"
+     y="109"
+     class="m"
+     text-anchor="start"
+     id="text74">nng, JSON, local sockets</text>
+  <rect
+     x="810"
+     y="122"
+     width="194"
+     height="26"
+     rx="6"
+     class="box"
+     id="rect74" />
+  <text
+     x="820"
+     y="139"
+     class="b"
+     text-anchor="start"
+     id="text75">event stream</text>
+  <text
+     x="994"
+     y="139"
+     class="mono"
+     text-anchor="end"
+     id="text76">PUB</text>
+  <rect
+     x="810"
+     y="154"
+     width="194"
+     height="26"
+     rx="6"
+     class="box"
+     id="rect76" />
+  <text
+     x="820"
+     y="171"
+     class="b"
+     text-anchor="start"
+     id="text77">requests, per-user roles</text>
+  <text
+     x="994"
+     y="171"
+     class="mono"
+     text-anchor="end"
+     id="text78">REP</text>
+  <text
+     x="810"
+     y="202"
+     class="s"
+     text-anchor="start"
+     id="text79">used by</text>
+  <rect
+     x="810.0"
+     y="212"
+     width="93.0"
+     height="30"
+     rx="6"
+     class="f-bus st-bus"
+     fill-opacity="0.12"
+     stroke-opacity="0.5"
+     id="rect79" />
+  <text
+     x="856.5"
+     y="231"
+     class="chip"
+     text-anchor="middle"
+     id="text80">noirvpnctl</text>
+  <rect
+     x="911.0"
+     y="212"
+     width="93.0"
+     height="30"
+     rx="6"
+     class="f-bus st-bus"
+     fill-opacity="0.12"
+     stroke-opacity="0.5"
+     id="rect80" />
+  <text
+     x="957.5"
+     y="231"
+     class="chip"
+     text-anchor="middle"
+     id="text81">noirvpn-hook</text>
+  <rect
+     x="810.0"
+     y="250"
+     width="93.0"
+     height="30"
+     rx="6"
+     class="f-bus st-bus"
+     fill-opacity="0.12"
+     stroke-opacity="0.5"
+     id="rect81" />
+  <text
+     x="856.5"
+     y="269"
+     class="b"
+     text-anchor="middle"
+     id="text82">auth controller</text>
+  <rect
+     x="911.0"
+     y="250"
+     width="93.0"
+     height="30"
+     rx="6"
+     class="f-bus st-bus"
+     fill-opacity="0.12"
+     stroke-opacity="0.5"
+     id="rect82" />
+  <text
+     x="957.5"
+     y="269"
+     class="b"
+     text-anchor="middle"
+     id="text83">monitoring</text>
+  <path
+     d="M716 206 L794 206"
+     class="l-bus"
+     marker-start="url(#ah-bus)"
+     marker-end="url(#ah-bus)"
+     id="path83" />
+  <text
+     x="755.0"
+     y="198"
+     class="s"
+     text-anchor="middle"
+     id="text84">JSON</text>
+  <rect
+     x="796"
+     y="330"
+     width="222"
+     height="238.66586"
+     rx="10"
+     class="dco-box"
+     id="rect84"
+     style="stroke:#81c9ce;stroke-dasharray:1.4, 2.8;stroke-dashoffset:0;stroke-opacity:1" />
+  <text
+     x="810"
+     y="355"
+     class="h1"
+     text-anchor="start"
+     id="text85">Userspace DCO service</text>
+  <text
+     x="810"
+     y="375"
+     class="monom"
+     text-anchor="start"
+     id="text86">datapath udco</text>
+  <rect
+     x="948"
+     y="363"
+     width="56"
+     height="17"
+     rx="8.5"
+     class="f-dco"
+     fill-opacity="0.15"
+     id="rect86" />
+  <text
+     x="976"
+     y="375"
+     class="s"
+     text-anchor="middle"
+     id="text87">optional</text>
+  <text
+     x="810"
+     y="400"
+     class="b"
+     text-anchor="start"
+     id="text88">■ a separate process</text>
+  <text
+     x="810"
+     y="418"
+     class="b"
+     text-anchor="start"
+     id="text89">■ UDP socket or TCP streams</text>
+  <text
+     x="810"
+     y="436"
+     class="b"
+     text-anchor="start"
+     id="text90">■ AEAD crypto ■ replay check</text>
+  <text
+     x="810"
+     y="454"
+     class="b"
+     text-anchor="start"
+     id="text91">■ keepalive ■ MSS clamp</text>
+  <rect
+     x="810"
+     y="482"
+     width="194"
+     height="62"
+     rx="6"
+     class="f-dco st-dco"
+     fill-opacity="0.10"
+     stroke-opacity="0.5"
+     id="rect91" />
+  <text
+     x="822"
+     y="506"
+     class="monob"
+     text-anchor="start"
+     id="text92">tun0</text>
+  <text
+     x="822"
+     y="527.14459"
+     class="s"
+     text-anchor="start"
+     id="text93">managed by the service</text>
+  <path
+     d="M716 389 L794 389"
+     class="l-dco dash"
+     marker-start="url(#ah-dco)"
+     marker-end="url(#ah-dco)"
+     id="path94"
+     style="stroke-dasharray:1.60000002,3.20000005;stroke-dashoffset:0" />
+  <text
+     x="755.0"
+     y="380"
+     class="s"
+     text-anchor="middle"
+     id="text95">Unix socket</text>
+  <text
+     x="755.0"
+     y="404"
+     class="s"
+     text-anchor="middle"
+     id="text96">keys, sockets</text>
+  <metadata
+     id="metadata97">
+    <c2pa:manifest>AAAWgmp1bWIAAAAeanVtZGMycGEAEQAQgAAAqgA4m3EDYzJwYQAAABZcanVtYgAAAEdqdW1kYzJtYQARABCAAACqADibcQN1cm46YzJwYTpiOTQ4NTdhMy1kMjY2LTQ4NWMtOWMyOC1iZGM4OWRjNDRjN2EAAAADl2p1bWIAAAApanVtZGMyYXMAEQAQgAAAqgA4m3EDYzJwYS5hc3NlcnRpb25zAAAAALxqdW1iAAAARGp1bWRjYm9yABEAEIAAAKoAOJtxE2MycGEuaW5ncmVkaWVudC52MwAAAAAYYzJzaMO5eVkIEp9Pd25fnzKP2bUAAABwY2JvcqNpZGM6Zm9ybWF0bWltYWdlL3N2Zyt4bWxqaW5zdGFuY2VJRHgseG1wOmlpZDo5OTdmNDVjOC0xMWZiLTQwMDItYTRiNy1iOGRiYjg5YTNjOTVscmVsYXRpb25zaGlwaHBhcmVudE9mAAAB4mp1bWIAAABBanVtZGNib3IAEQAQgAAAqgA4m3ETYzJwYS5hY3Rpb25zLnYyAAAAABhjMnNoxrDkh0NXxkXI/8YoRM42iQAAAZljYm9yomdhY3Rpb25zgqJmYWN0aW9ua2MycGEub3BlbmVkanBhcmFtZXRlcnOha2luZ3JlZGllbnRzgaJjdXJseC1zZWxmI2p1bWJmPWMycGEuYXNzZXJ0aW9ucy9jMnBhLmluZ3JlZGllbnQudjNkaGFzaFgg/McyhiBp82uud3YXkFWPpy/EhaR5ThPCip+59Snvr8ikZmFjdGlvbngdY29tLmFudGhyb3BpYy5jbGF1ZGUucHJvdmlkZWRqcGFyYW1ldGVyc6F4H2NvbS5hbnRocm9waWMub3JpZ2luLWNvbmZpZGVuY2VndW5rbm93bmtkZXNjcmlwdGlvbnhmQ2xhdWRlIHByb3ZpZGVkIHRoaXMgZmlsZSBhdCB0aGUgcmVxdWVzdCBvZiBhIHVzZXIgYW5kIG1heSBoYXZlIGNyZWF0ZWQgb3IgbW9kaWZpZWQgdGhlIGZpbGUgY29udGVudHMubXNvZnR3YXJlQWdlbnShZG5hbWVmQ2xhdWRlcmFsbEFjdGlvbnNJbmNsdWRlZPUAAADIanVtYgAAAEBqdW1kY2JvcgARABCAAACqADibcRNjMnBhLmhhc2guZGF0YQAAAAAYYzJzaLAkjoKBn3oyftvL568KiWQAAACAY2JvcqVjYWxnZnNoYTI1NmNwYWRMAAAAAAAAAAAAAAAAZGhhc2hYIGhEtQep8f84FxoRLqxli/XvuRXkgpqgMKaK9PVh82hQZG5hbWVuanVtYmYgbWFuaWZlc3RqZXhjbHVzaW9uc4GiZXN0YXJ0GTmmZmxlbmd0aBkeBAAAAj5qdW1iAAAAJ2p1bWRjMmNsABEAEIAAAKoAOJtxA2MycGEuY2xhaW0udjIAAAACD2Nib3KlY2FsZ2ZzaGEyNTZpc2lnbmF0dXJleE1zZWxmI2p1bWJmPS9jMnBhL3VybjpjMnBhOmI5NDg1N2EzLWQyNjYtNDg1Yy05YzI4LWJkYzg5ZGM0NGM3YS9jMnBhLnNpZ25hdHVyZWppbnN0YW5jZUlEeCx4bXA6aWlkOmZmYjFkODk0LWJjOTMtNDE4MS04OWQxLTgzZjc4NDVjYzY0MnJjcmVhdGVkX2Fzc2VydGlvbnODomN1cmx4LXNlbGYjanVtYmY9YzJwYS5hc3NlcnRpb25zL2MycGEuaW5ncmVkaWVudC52M2RoYXNoWCD8xzKGIGnza653dheQVY+nL8SFpHlOE8KKn7n1Ke+vyKJjdXJseCpzZWxmI2p1bWJmPWMycGEuYXNzZXJ0aW9ucy9jMnBhLmFjdGlvbnMudjJkaGFzaFggPWAa/0iAh0CRNdN7nHd8O0uszJvNzw94Njajg9wv6U6iY3VybHgpc2VsZiNqdW1iZj1jMnBhLmFzc2VydGlvbnMvYzJwYS5oYXNoLmRhdGFkaGFzaFggElHAi1MmDeGhFwTZhXykyyPzBqOKuZj1eCUnq+RwPXV0Y2xhaW1fZ2VuZXJhdG9yX2luZm+jZG5hbWVvQW50aHJvcGljIEZpbGVzZ3ZlcnNpb25lMS4wLjBrc3BlY1ZlcnNpb25lMi40LjAAABA4anVtYgAAAChqdW1kYzJjcwARABCAAACqADibcQNjMnBhLnNpZ25hdHVyZQAAABAIY2JvctKEWQISogEmGCFZAgowggIGMIIBjaADAgECAhRA5aAK7sI50L64g/oGQgU9Z1UTADAKBggqhkjOPQQDAzBJMRcwFQYDVQQKEw5BbnRocm9waWMsIFBCQzEuMCwGA1UEAxMlQW50aHJvcGljIENvbnRlbnQgQ3JlZGVudGlhbHMgUm9vdCBDQTAeFw0yNjA4MDcxODQzNTZaFw0yODA4MDYxOTQzNTZaMEQxFzAVBgNVBAoTDkFudGhyb3BpYywgUEJDMSkwJwYDVQQDEyBBbnRocm9waWMgQ2xhdWRlIENvbnRlbnQgU2lnbmluZzBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABJh6CmvLUBgFFNU0vUKlOVtE6djd17L5SuwX0LemFisBM3dkd/3cyjxFA3Qo5S46fX0/ihY0VZ7mfb9KF703t5OjWDBWMA4GA1UdDwEB/wQEAwIHgDAVBgNVHSUEDjAMBgorBgEEAYPoXgIBMAwGA1UdEwEB/wQCMAAwHwYDVR0jBBgwFoAUzlHiBIFOZFsj+OPEz5o+nMHXXMIwCgYIKoZIzj0EAwMDZwAwZAIwMXMdFJ4BetLLVY7ORuE9noqbbAZOZn/aArXyTwFAZfKrPzxF2vPoJNf1+UCdg1XGAjBwX1zd9WGqYkqmL5SFqw1QySjr1zJfpJM9+1rdDwSPLMOPOjKuiXjoU/pUUeG9RwmhY3BhZFkNngAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPZYQFTQfqQeHgHM6kKSdkgJ8/ZkS90opUgUqqvkILmEI/oaAd5xByjJ0X+hV2GQYzGTBNy+r2c1xy2iSjTlkaOpxwY=</c2pa:manifest>
+  </metadata>
+</svg>

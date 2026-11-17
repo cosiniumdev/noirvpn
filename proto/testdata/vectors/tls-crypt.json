@@ -1,0 +1,666 @@
+{
+ "what": "tls-crypt wrapping (AES-256-CTR + HMAC-SHA256, tag is the IV) and dynamic tls-crypt for key ids above 0",
+ "spec": "OpenVPN protocol",
+ "origin": "captured from stock OpenVPN peers in rootless podman by a test harness; decoded by a verifier following the protocol description only",
+ "note": "static keys and the stock peers' key log are test material only",
+ "cases": [
+  {
+   "cell": "s27c27-udp-tlscrypt-aes256",
+   "stock": {
+    "server": "2.7.7",
+    "client": "2.7.7"
+   },
+   "transport": "udp",
+   "static_key_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff",
+   "keys": {
+    "c2s": {
+     "slot": 1,
+     "Ke": "808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9f",
+     "Ka": "c0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedf"
+    },
+    "s2c": {
+     "slot": 0,
+     "Ke": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+     "Ka": "404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f"
+    }
+   },
+   "packets": [
+    {
+     "dir": "c2s",
+     "wire_hex": "387caf943ee337ea56000000016af11a52eb5b644c9642fcc780307b07236821b9aaf21cdc6ddc67219266861d69cfb4c4e330144efb",
+     "decode": {
+      "opcode": 7,
+      "opcode_name": "P_CONTROL_HARD_RESET_CLIENT_V2",
+      "key_id": 0,
+      "session_id": "7caf943ee337ea56",
+      "wrap_id": 1,
+      "wrap_time": 1794185810,
+      "acks": [],
+      "ack_remote_session_id": null,
+      "msg_id": 0,
+      "payload_hex": ""
+     }
+    },
+    {
+     "dir": "s2c",
+     "wire_hex": "40f4cc8de63d7e3fb5000000016af11a52ebe9a1a3ccaee0521abae6b23a121518f8f6dbfe449a2098e8082d591b50d8e433b575ac2a611e1739f8982cde92e22736",
+     "decode": {
+      "opcode": 8,
+      "opcode_name": "P_CONTROL_HARD_RESET_SERVER_V2",
+      "key_id": 0,
+      "session_id": "f4cc8de63d7e3fb5",
+      "wrap_id": 1,
+      "wrap_time": 1794185810,
+      "acks": [
+       0
+      ],
+      "ack_remote_session_id": "7caf943ee337ea56",
+      "msg_id": 0,
+      "payload_hex": ""
+     }
+    },
+    {
+     "dir": "c2s",
+     "wire_hex": "207caf943ee337ea56000000026af11a5272b83976fa2c1aaed7903b77f0f1bf490be6303e3156761746e3b0d720482e62bac658bdaad3796bed92d81eabe5fd6990a623f91bc86ffba66985d6a429a641f639a179dc403fc575857e6ae1fd266b8160899f3e8528d3f9c9a6bffb2e47eda562e673f995f0b947772e7e71e77c87f93fef8a7adf452fd7539dfb0fd0e421f1020e2fa0bd4a789629d583fc55c44daeb1fd61770d7777e4dbb10469a8af267c1b9f721c83ca70c86d6190b88669335c9136074167e56f1c1d532a29a2f531ac386347a69c536bdcdbe4247225f49ed82de7a4aff734b59282fa63f64936f117f3bc226cdac77b742ef3404693314d5b67fee27b959725fcbdf828c40aafb1a43dd844e99feb6a08a256c729f149733f1117594488dd6bfd6b94d114dc01d46ac8957faf5ad201d9466e8429b416cd15727001b4049720dcb3f6192c6054e1f6d5d131f04051fc9e8cb1f35952bcc9bf5372c2ad2df6a58428dd755c086c64e7f97cf68831e8c0050c5f61ce8ae4437145aa3de5c59f5e5aafdd1ca61a64b9df7e674f51b8eb5c1690d955a8b77c69ed3a2d6ad2a48553f495594a535014f3788ff23c47e3ec4bd1703340866a843a83e6a9246a2831365117d544250d35f7ab9569936893da6afc041adb2696a54c20c08453084563c05cd4fa42700eefed5cf208525a1febce86fbaa0d4dad61c0c0cdddccdd8994bede361a553f2a9ebde4c823833f70120cabc0ce8c7f7fbb1910b14753bf0a9fd140c71c2fb0a1f21128ee8ee5c26a5d12ad2246526a33a7eb73dfc637eb7e2748f2536f6c9ebe2c070160abc350823fef72b7153ae5a5a47161a3bb41500178d587a199ee35a77dd2a84cd4c6823db322735072a3ef4bb0e58fe6457da2b91ec83b6b3eb3a6d410dcedf56379587acbfe6ba6d3720c99a6b5b5f8810a946fcac39e24143455fbb264b3e3137481f9b913ad1ed33d87be34d33f73e25d7f480978d7dbc49a082c1f544a77029c1463762edf170c6771aa52afa6e3cae627587c4ad82fd80c4b02980c5855716b4d72bbb6c97b587e8e0a19182eeaaa7528542c6fbc952e6d909c484ee8df954011183f62ed92ff7f19df1c3807ead6c6a95622c2b14582fc0884758f27643c67319996f60877739c089dfa42595fb908a8d48e06d44c0ddf605c3517612b17f96d9e919ea9212852e7b508697f9f2ed722e33078c38ac12c72194b67f7e5e817563d27b35f7f8178919af01fc674601e57a80137d0c8f963a3a74c3e4e15ede76dc4955ac2206f99e2e8b579ccaa3650c87bb790fa55a316a3cc65c7f3a71971965425ec72df3210162e375f533536c70d370b8d62318fc9901a6f440fbfb3d1f720a04eb218e8eef58d0170e71ad9cbad43c0300ef78b3d7cef1ec53bfd37ed803f45dbca6eae060800b48fdbd0ef2d6da3d35a44676eb9bc80d70688ffe98e521c5f4ee28fc25910be44e48d815fb96cd2ea219d324bbd3a688893be85bb4c8ce019adb0e48b2430f437c6696f579a3d813f0f4231c04c1d925a3cd8bfd589c314b18fde20cc7827dfaa0bbfb25a30563aaebc30dfc0917d629c7f9eab83923466c2910c7553bc7df80dd42ba644d4472c893259e7cef2ea3f64c0d0906d28411d38b0459db3946d5ea2a2a253c99a31600417ce1086e1c535c630efe7cb423d",
+     "decode": {
+      "opcode": 4,
+      "opcode_name": "P_CONTROL_V1",
+      "key_id": 0,
+      "session_id": "7caf943ee337ea56",
+      "wrap_id": 2,
+      "wrap_time": 1794185810,
+      "acks": [
+       0
+      ],
+      "ack_remote_session_id": "f4cc8de63d7e3fb5",
+      "msg_id": 1,
+      "payload_len": 1140,
+      "payload_sha256": "58156a3d67a1b3b238f5fee1f989b96ce8ce1fb5751c28d2fa502904e36b328b",
+      "payload_head_hex": "16030105df010005db03034090b8e199e8dbee59b66dd1025bcfa17a31ed39bd"
+     }
+    },
+    {
+     "dir": "c2s",
+     "wire_hex": "207caf943ee337ea56000000036af11a52ca9261ca28ca33f51bcd8d3a165d1a42ee1073cb06f3c78ebb816da09afdfbb33e7c97829c1049e8da2db01a5242659be9ae535fd1d19841dd90a64a266daf73be8500c8e3203cb47652356654030892d3dca8efea2351f26ea9b8803b1ab72435b807d51a68c3a057c5293db45e1fd70181e18ec51711b3e42ba3dd08b0c07b57cf60bc40a73a505570be4a5e42d834d8309299e2d284f0106056c7de4dcf349bc0056edcf323d992f873c3aa1c054c3ff5b4c3f9a6e8e7d6c82dad9184c25290e0619dd29e6eba9d366c92252dfaf24743c4467cadf48ec22e4d6d0c9312f34d6ecde14b6566b7e17f6314e0de369e1407eb440efd0815d6d9f679431eb1c64fa0b047dcc790dd2f0faf221b9272dcffb7c437eed0eec05b6eb57b22591fa5256b85321edfe4d1b83a6a4e25f9f761ec720f662dc04020a62a4bd066b835aa9a8b027d029dfcc68af6b3ccbf58b72642f2b713f0b7a7af8e3ecf6939eaa8dece6f3471d070c7e473a83931084edcc5d3abd75cb8a8b521685538bd5a8f4676f74eee59deab38cf3383b4033b569c9dc19816d2bc1b5b872c9071cdd8022ebfcf",
+     "decode": {
+      "opcode": 4,
+      "opcode_name": "P_CONTROL_V1",
+      "key_id": 0,
+      "session_id": "7caf943ee337ea56",
+      "wrap_id": 3,
+      "wrap_time": 1794185810,
+      "acks": [
+       0
+      ],
+      "ack_remote_session_id": "f4cc8de63d7e3fb5",
+      "msg_id": 2,
+      "payload_len": 368,
+      "payload_sha256": "aa968313d08b23ab05cc751c1f9d2c20e85a5d0e5bc55372467722d6f93587bc",
+      "payload_head_hex": "5951c451f060bce88b0752d7078565959f1071fd6762613a13a7a6288249a3e0"
+     }
+    },
+    {
+     "dir": "s2c",
+     "wire_hex": "28f4cc8de63d7e3fb5000000026af11a52e2fab57e2458f8a8bb13adb30b9d91aee401d6b23f22ecb80abd552d10a8f36eb16f3180930301d68e01999640",
+     "decode": {
+      "opcode": 5,
+      "opcode_name": "P_ACK_V1",
+      "key_id": 0,
+      "session_id": "f4cc8de63d7e3fb5",
+      "wrap_id": 2,
+      "wrap_time": 1794185810,
+      "acks": [
+       1
+      ],
+      "ack_remote_session_id": "7caf943ee337ea56",
+      "msg_id": null,
+      "payload_hex": ""
+     }
+    }
+   ],
+   "negative": [
+    {
+     "dir": "c2s",
+     "wire_hex": "387caf943ee337ea56000000016af11a52eb5b644d9642fcc780307b07236821b9aaf21cdc6ddc67219266861d69cfb4c4e330144efb",
+     "expect": "reject",
+     "why": "byte 20 of a genuine packet changed by one bit"
+    },
+    {
+     "dir": "s2c",
+     "wire_hex": "40f4cc8de63d7e3fb5000000016af11a52ebe9a1a3ccaee0521abae6b23a121518f8f6dbfe449a2098e8082d591b50d8e433b575ac2a611e1739f8982cde92e22737",
+     "expect": "reject",
+     "why": "byte 65 of a genuine packet changed by one bit"
+    }
+   ]
+  },
+  {
+   "cell": "s26c26-udp-tlscrypt-aes256",
+   "stock": {
+    "server": "2.6.23",
+    "client": "2.6.23"
+   },
+   "transport": "udp",
+   "static_key_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff",
+   "keys": {
+    "c2s": {
+     "slot": 1,
+     "Ke": "808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9f",
+     "Ka": "c0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedf"
+    },
+    "s2c": {
+     "slot": 0,
+     "Ke": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+     "Ka": "404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f"
+    }
+   },
+   "packets": [
+    {
+     "dir": "c2s",
+     "wire_hex": "381d37689a0f99a8b7000000016af11a6af9aae684d7a9c26ee068f209ec0f15102d4676fd615b4de83c2d641fcc543af0204b242b5d",
+     "decode": {
+      "opcode": 7,
+      "opcode_name": "P_CONTROL_HARD_RESET_CLIENT_V2",
+      "key_id": 0,
+      "session_id": "1d37689a0f99a8b7",
+      "wrap_id": 1,
+      "wrap_time": 1794185834,
+      "acks": [],
+      "ack_remote_session_id": null,
+      "msg_id": 0,
+      "payload_hex": ""
+     }
+    },
+    {
+     "dir": "s2c",
+     "wire_hex": "406c95d74a33778ad2000000016af11a6a850c856b5748c0d31ce26464e5bfbabd8528db3e83d9009b6dbf034d433c6514649ef7eb6259307ee1a8624e9c90c356c4",
+     "decode": {
+      "opcode": 8,
+      "opcode_name": "P_CONTROL_HARD_RESET_SERVER_V2",
+      "key_id": 0,
+      "session_id": "6c95d74a33778ad2",
+      "wrap_id": 1,
+      "wrap_time": 1794185834,
+      "acks": [
+       0
+      ],
+      "ack_remote_session_id": "1d37689a0f99a8b7",
+      "msg_id": 0,
+      "payload_hex": ""
+     }
+    },
+    {
+     "dir": "c2s",
+     "wire_hex": "201d37689a0f99a8b7000000026af11a6a37ee190b4ee68b7806cf91e945795e64fa783292e8e8e59507be3db0f1d37a921caf90a29f5c478be87bf5afaa413567bc6b8451c27132db9ad4805ed9ffb04daa780c16386d45dd412119c7bf3150c1608467b1e58fdb36b138796ff797f3e5754550d7e919f3f3b27b1740de306769b0e1d82f61b9f40c820568d3481c73c6a1a4829016b784fccf2581390a130aa5e04888b58483b2ca3dc4cc0158ff3c208f8d11067641cec1323f9eeeb8611b3531f38abe1ca7e2015a2e6179ca13d27023273f372b0880a8a0e690d1d138d331a0d6e67e9cb96968e7d7b9988e986d5a4a2720575193129c1e4424529773438e6283eba3f29f08962dc7c7747586c2a685fa2ec34722df21f72d45f6384bc62c058f0a2173a25e3f358e0f2ec7fea091a1c8122e5e51690fadcddb00cbca96f426ec6bdef6ad3a7e07741318e624e7004504854ba94f31872a9102cc59ed93203644eb9dce6c434b72317bc6a32317c763c7f4f1645c304df4958930664228c122b8c2d5ebbdac8a4812e49cd2152720aba4587f46dddd4e22eb690cf80f28f411bf0681c9f9acf605420be1a29c5c7e7b793fa483ed211aa83e6f239a84f9bc2f603893783878b366e1e18477ef4a427391fd775ef808dd9f783edcf84a30135f2d586a5230beb2b423635361970718fac1b80d4f4c29dbb7e59c3b7fe80b06e0b8addb3c5b39c3a167169e3ce55facb204dba2467dd524cda821138397f29203710d414576e50dfb4d89b2a0e52c4c2528e04b6bfae1215b9868fba2fee5d75aa92f7e48baec79b515365db928370161e4f53a74bd3fca432b0bf95d4038b8f165faf715ff4d22745b5a973e8d8f7ff110a170973d7f7c51e4120e950a47bf45b18aa42df33fd278ecf79f25ff9290a2c88d00168b6648612cba9ac217e7d64ebb12358e2f8f9d3bbb1f712bfd63f2eaaea39e00e67833f88abd6e9514e6ab37435680e7349723198d5dd31353f1bcc413d8bd29ff5d7c61532dc8680802c3a14041a9b67de7fad82892d69f5b04c4bd86c95f97df911aebf86a1448b6d67852044455772eb578c310849a3efd3dea65ddfa209ffa3296fb63c4632be131c4d5f2b81e70fd3c772fa0088fd6eb406954158ca493af4b9b352d5900d978a633eeae7387116f9aaed0af6f59a8d04a98a8052e585ab3d6ca53eac15fbcbf86468279c24811dd6c4e974a65bc7b5d85ad98fe7e7508c1766d0d9af9a9dfd655d90700f4d83a695ca7590675f02abcb0eba7bf13c3949371ec1089645d264a89d3ab8ac953319ef1478a6396a93168199a6023cbc40f7e4daabf150bf2e8d9855dc0cecb904668a93e63af993ab204a79994486da93027a505ebaa941c04257c0bccbf19e4c0c6b48937780171a24de42f92168f4c49ed152a39c9cde6864e0cf3ed3c0afda2216fe2a2def1a85cb51dea1b269d42614c293d456f08c51d8952c6948f6c803f94ad1c0787fb8b8091c8ca1766d0215c9ebb00b35b91cb94556e08082eb5b9ba772e99e780ab83914f47dba6e64cd1f2bf58bfcb60ae681d0bea14a5f3752b7884f64bc9c1cd0ccf0cbdaa10932d9ed9ad327666e9fa7f008c200e411d33df99d83b8d57b7ca4040edc8822ca3cfe827b21b6a2a8eabfe6adec3e27eba1a52184a438a03f42c4a19fb297850541edcc7",
+     "decode": {
+      "opcode": 4,
+      "opcode_name": "P_CONTROL_V1",
+      "key_id": 0,
+      "session_id": "1d37689a0f99a8b7",
+      "wrap_id": 2,
+      "wrap_time": 1794185834,
+      "acks": [
+       0
+      ],
+      "ack_remote_session_id": "6c95d74a33778ad2",
+      "msg_id": 1,
+      "payload_len": 1140,
+      "payload_sha256": "c6bdf021886c01a4b475e12479ce1c317edf1bc209caf4dadcee7c72e66d48b4",
+      "payload_head_hex": "16030105df010005db0303bdecb92b43b4ba07241baa8104bd7b8dbd6dc897d6"
+     }
+    },
+    {
+     "dir": "c2s",
+     "wire_hex": "201d37689a0f99a8b7000000036af11a6a523a7836a802f8a8e8d845c9cd6bcdbc5702184402b3558f33f8aa861e1ccf87f7eb0eba88d44962816e2acfb9eb6ed56ee5df1e8d84e682b171c0207a7f1a9e57ca399bca03f921d331927725b6409bef05f92661eba706806a8b14342cf5471afa59d07af6e562f676f93a25dbdbaf1f4bc792b2395a05b4a9511546d23a13cbb564c20baa104b0bd4c10f15a529ee0cefb06e73a37e931deecd2c888b2dc879682c5d4fca0b984d83b53f464f03595353dcda2fe8a7e343eff3e46d8c28692e413e404cb94253c290f07a24639f5b8bce0c757391fe0066f010b0963220b129973912beb9a668c8a3633aac4e7110001718210fffd296d14ccdacf10417b503b1cb98a22a4893587861ca3d2f0b579a5c70d2214fbbea5f66ec6c10142fa9808f85ad8172372ead5347ab186ae8535cd62128f3984198125a500d5fb27bdd708040c81947e2a305bd904338978db4544f8014ae4692f333f149226a6b072fb93591a207531d0c6a339078e2b37e5f52662f8974ff0053a3bc39cd12d050951ca016a99ee862c7fd469312ed8c0a9a577d8d746cefdef6608ba1c6673ca19ce5",
+     "decode": {
+      "opcode": 4,
+      "opcode_name": "P_CONTROL_V1",
+      "key_id": 0,
+      "session_id": "1d37689a0f99a8b7",
+      "wrap_id": 3,
+      "wrap_time": 1794185834,
+      "acks": [
+       0
+      ],
+      "ack_remote_session_id": "6c95d74a33778ad2",
+      "msg_id": 2,
+      "payload_len": 368,
+      "payload_sha256": "1245f823d68053447b866d2f80bb64ef52f26a458fc8caff7fa81faf414b6739",
+      "payload_head_hex": "203df70421ca702805082a380f0790784f547cc9792aff60580b335b0c2335cb"
+     }
+    },
+    {
+     "dir": "s2c",
+     "wire_hex": "286c95d74a33778ad2000000026af11a6a50b7c176d46cee8dbbced227ad2d9965a67a789329e4d5e215230198ed0a13025b4499864c7b6e025d75522fec",
+     "decode": {
+      "opcode": 5,
+      "opcode_name": "P_ACK_V1",
+      "key_id": 0,
+      "session_id": "6c95d74a33778ad2",
+      "wrap_id": 2,
+      "wrap_time": 1794185834,
+      "acks": [
+       1
+      ],
+      "ack_remote_session_id": "1d37689a0f99a8b7",
+      "msg_id": null,
+      "payload_hex": ""
+     }
+    }
+   ],
+   "negative": [
+    {
+     "dir": "c2s",
+     "wire_hex": "381d37689a0f99a8b7000000016af11a6af9aae685d7a9c26ee068f209ec0f15102d4676fd615b4de83c2d641fcc543af0204b242b5d",
+     "expect": "reject",
+     "why": "byte 20 of a genuine packet changed by one bit"
+    },
+    {
+     "dir": "s2c",
+     "wire_hex": "406c95d74a33778ad2000000016af11a6a850c856b5748c0d31ce26464e5bfbabd8528db3e83d9009b6dbf034d433c6514649ef7eb6259307ee1a8624e9c90c356c5",
+     "expect": "reject",
+     "why": "byte 65 of a genuine packet changed by one bit"
+    }
+   ]
+  },
+  {
+   "cell": "s27c27-tcp-tlscrypt-aes256",
+   "stock": {
+    "server": "2.7.7",
+    "client": "2.7.7"
+   },
+   "transport": "tcp",
+   "static_key_hex": "68f20b003760275b0c1477e3295f5afb08c4c1ff28aedbca9ec196b3c21692c4820b3b116b4a3fc9f026a676a4132a800a667fc464aed9d151e22a1b0235d20dab62c3a55d11a90b99ea18c93348d30a7a05f2d3ca2faaea5b8f6c2309a36e088d595c1dbaf116eeeca65fb34b047b43e6fa49afa1cf30e1969c0b745ba755ae69b19f2b708b1635119f3072c63a2045293fbfb2bef8d6bd68af11c4773f886eb32af9cfac5c2c55d7179583ebb99b81163d993997f305546c71fcb991121ba495367c9021a18a24465985d6ee2e09a96266755ccc3f78015d1c38ddfceacb89b1f6402ce35bd4693b7f282ff1da4cbe49ac6ae2aabd93820a6357dbbcec8978",
+   "keys": {
+    "c2s": {
+     "slot": 1,
+     "Ke": "69b19f2b708b1635119f3072c63a2045293fbfb2bef8d6bd68af11c4773f886e",
+     "Ka": "95367c9021a18a24465985d6ee2e09a96266755ccc3f78015d1c38ddfceacb89"
+    },
+    "s2c": {
+     "slot": 0,
+     "Ke": "68f20b003760275b0c1477e3295f5afb08c4c1ff28aedbca9ec196b3c21692c4",
+     "Ka": "ab62c3a55d11a90b99ea18c93348d30a7a05f2d3ca2faaea5b8f6c2309a36e08"
+    }
+   },
+   "packets": [
+    {
+     "dir": "c2s",
+     "wire_hex": "38f231ca8147fb5496000000016af11b32f29f2e44a70c782f02dbecbea74f30a991809d0c4c3b4d3a7fbbc0c61e8686e982fc0936e2",
+     "decode": {
+      "opcode": 7,
+      "opcode_name": "P_CONTROL_HARD_RESET_CLIENT_V2",
+      "key_id": 0,
+      "session_id": "f231ca8147fb5496",
+      "wrap_id": 1,
+      "wrap_time": 1794186034,
+      "acks": [],
+      "ack_remote_session_id": null,
+      "msg_id": 0,
+      "payload_hex": ""
+     }
+    },
+    {
+     "dir": "s2c",
+     "wire_hex": "40f87cb363e65afd29000000016af11b32c3bb7b3435d0fc6b27065d5e872b3e8db88a36fd3303dcf5d605f040716dc0f03e9ba16c1e8a6752933b7e236e47b05771",
+     "decode": {
+      "opcode": 8,
+      "opcode_name": "P_CONTROL_HARD_RESET_SERVER_V2",
+      "key_id": 0,
+      "session_id": "f87cb363e65afd29",
+      "wrap_id": 1,
+      "wrap_time": 1794186034,
+      "acks": [
+       0
+      ],
+      "ack_remote_session_id": "f231ca8147fb5496",
+      "msg_id": 0,
+      "payload_hex": ""
+     }
+    },
+    {
+     "dir": "c2s",
+     "wire_hex": "20f231ca8147fb5496000000026af11b32606daaffb9bb10555b5d1adb7296641709773c23cf1b218482dd06b0a4c86fe7f5ab0d231992898e2bee2eb4551ef0205358a97c905cd8569b61cd8290249661a8507879c54dcd0529496a9e4e6ef3aef09b1d53862a990ff87bfaab0dba30e5ba85cf31363ace2ccf287d9870f916726d5b350101a3fa6aaeb1d9863d1fb046e37f653ed4a0db7d406e2b018b8d86fb86ecbf2e0a968e66b027bfa87b2f647a6482382fb3a77a4c2466596f6ffc2d561e66d265fee214e34665138403e61b1788804cb964bedecec729d34ad351b575075fffe9b2d286c1a487b808fc9c32af8b42b3e7dc4cdd682a8525b0520a4a0ea1c3b4b51f37a9eb43db1ae51a60e758c89e1260e476e56c51ba7c1bf5e40abe5a336f6861a4e6306bf7b6f49f61f00870177493f2c5fa9c54576bdb2f5e5bb30713a33fccfb5de1f8fe3b1b8c5c91fb84d3d4b36c097cffcf4d99fb9afc323a3b6349f0ffa76d9c8756fe5dc291b6ba1630faa47fb5d67747afb023150d05ed2ed5a9fbc91cf3555f399e7a704eaabd78d2272f83acdf04d88787a0600e9ab6540f6e63b005019de7e9c6b71d0c1548e37d6ad66232b948ca91e707b7d66f95c8afafb8c342a27c22d289d09c0d079d8d7178d695bcb5c946ee81e154edd7e1f7babd341d4685c57d7fd68f27096ac448f4fff9752ec7465e20025b61c06f33d4d97f43c50d745f64b5778805d74744512db2c96a447f847f37e85af2c4db0bfc931d70d4371f43670e044a481624ce5fc6a2c6976aa163804f1b1266bb54391e21ebe1e73b5726f3c9643bee8040dccf97514b635c9bbf1ea0e2e91870de0f14620b8b04fe6789dfaf0a1de6e882a58ce857b6199afa31d04f357b8864729c722d82dd6ccce13c9a9dd28b8d393b04ca5085884354b1fc48ef9f7fbb3bd5caf3733255ce6137057e97b1ffc399c409ce23f8a45895deb584109c8e32677b2893dd2916af946ea524b904b092f3aa7f4ff76a9e9e7b165b05ab557d3aa5d40e40153c98ed093fb8e86c0655a02b708d5c568cfa865ecef402220f4e7f6ec3e0529d815c916a4b1f53aa77f59ebc450305e62cedda80b543a15d2ca5821bc365c73780678cca766d0245932ff1b3f597c4d7d826009b4befaf06d2857e6bca35591f073aaa9133d3396660444c955ce1c01a3b1b699a7421daf8ebc0467f94bc1ba9eb0f4db9d7910a4474fa6242fc55d52eb7e0a0dda6aa7df7f97c052f123812bc7899b6c1ac79147b3db27a43a788d0df0c8ca636b40f34cfca4c6e1020048c5b556377c6da001f7e2b0b92fc8d4ee0cbd66215f2714642c6af4c71479a5f74c9dbf3d3c7a2d5d940017bbb19d6a7703f59f0349cb2d78f676c38feaf2e9ee0aca9a3f163e92b4ebbb5b0c7c785a1f6afe98913a4f17696e259dd20a2474b3a4518add95b7e1192326630595e5977b8233ee41f7cb4b5088e805b21f1130703fc27dcd43d7a29646c98bd174683c8ce07730b3fbeb9a93989403634003a61807024052bfc3d15ea417ff6b82434a1c14b04e515f20d13f3139c90ebac4ca33a24225e258b972db00aa5fd7600b4f47fec19598386148439c6276cab5da192915e9eee23a1eac6415c18849ccaa889cdaba583ddb5899ac8c27ead564e6855bb3321e2db1a6ea78dc9213dde97ef2eaaee5535d4",
+     "decode": {
+      "opcode": 4,
+      "opcode_name": "P_CONTROL_V1",
+      "key_id": 0,
+      "session_id": "f231ca8147fb5496",
+      "wrap_id": 2,
+      "wrap_time": 1794186034,
+      "acks": [
+       0
+      ],
+      "ack_remote_session_id": "f87cb363e65afd29",
+      "msg_id": 1,
+      "payload_len": 1140,
+      "payload_sha256": "c988ab992804ab3d4989dcbc01091b0832543f6830f0fcdff3973e1397b21aae",
+      "payload_head_hex": "16030105df010005db030379f4bad51b45152a9fab0016aac158051ac489aabc"
+     }
+    },
+    {
+     "dir": "c2s",
+     "wire_hex": "20f231ca8147fb5496000000036af11b325377c390152fe851c5dc39eb1480468d5617bc16ea1a1ca32ded4db43cd0ddc0bcc6ad225c9cb96e16ef761fd16bb63252c3d14c02d8766b48914ccb526422c381c76ca85a1ba13638a2413fb87c3d6a4a4666df31dca1459901f6a5967d8c50ad7e412f2b2c57ab3e7abb3c1719ff58554405d74d90e31af46a17cd50544e6927ed762b118b0182030beb14223dc78c4d86e85214e73010349846f7f111ceb8c80db70eba5001b990e115da54beaec861b0d4714e3e0dbd03eb84edfbff315a2837eb5bf50a4a91468eb816f961a470493ead74db974c9888a91aaae62e65681e042a379fe4174d5ed5d36087bbadc5dec3e3157bdd44ff5bf0c936b705fc972f839b98938192d7f0b69566d1de870d64158db1e4de40d9283854a5a8b9a6c127f2168a789248e297bb8b383a39a7f48c775098c309b5f7702d3385df2e7a0dada5107a287e7fd307052b34f2d31c27f03b7a3575b032746835d0da88582c595be115189156eec416d7e43d1a0b1abb4adc2c77ee2666e71c01f1e73679c50a0e6956da0236004aa7e5196e6c949934fa2c0b2d469e464e0a5afba670e580b537",
+     "decode": {
+      "opcode": 4,
+      "opcode_name": "P_CONTROL_V1",
+      "key_id": 0,
+      "session_id": "f231ca8147fb5496",
+      "wrap_id": 3,
+      "wrap_time": 1794186034,
+      "acks": [
+       0
+      ],
+      "ack_remote_session_id": "f87cb363e65afd29",
+      "msg_id": 2,
+      "payload_len": 368,
+      "payload_sha256": "d9c2d016e14563d8ce610e241afb266de5478c97b9b0f32cb0bcf6f6275ba1f3",
+      "payload_head_hex": "7b6e42ceba17b32636a8228b11a93556b402920dca415513bc632c83f85327a4"
+     }
+    },
+    {
+     "dir": "s2c",
+     "wire_hex": "28f87cb363e65afd29000000026af11b328a561fdab21a71b7040b32059bcaa16595a2f77b78f9c58689a510791b1ed5f68d059687f2d5960b2f54d82ea611d0f796",
+     "decode": {
+      "opcode": 5,
+      "opcode_name": "P_ACK_V1",
+      "key_id": 0,
+      "session_id": "f87cb363e65afd29",
+      "wrap_id": 2,
+      "wrap_time": 1794186034,
+      "acks": [
+       1,
+       0
+      ],
+      "ack_remote_session_id": "f231ca8147fb5496",
+      "msg_id": null,
+      "payload_hex": ""
+     }
+    }
+   ],
+   "negative": [
+    {
+     "dir": "c2s",
+     "wire_hex": "38f231ca8147fb5496000000016af11b32f29f2e45a70c782f02dbecbea74f30a991809d0c4c3b4d3a7fbbc0c61e8686e982fc0936e2",
+     "expect": "reject",
+     "why": "byte 20 of a genuine packet changed by one bit"
+    },
+    {
+     "dir": "s2c",
+     "wire_hex": "40f87cb363e65afd29000000016af11b32c3bb7b3435d0fc6b27065d5e872b3e8db88a36fd3303dcf5d605f040716dc0f03e9ba16c1e8a6752933b7e236e47b05770",
+     "expect": "reject",
+     "why": "byte 65 of a genuine packet changed by one bit"
+    }
+   ]
+  }
+ ],
+ "dynamic_tls_crypt": [
+  {
+   "cell": "s27c27-udp-tlscrypt-rekey",
+   "stock": {
+    "server": "2.7.7",
+    "client": "2.7.7"
+   },
+   "protocol_flags": [
+    "cc-exit",
+    "tls-ekm",
+    "dyn-tls-crypt",
+    "aead-epoch"
+   ],
+   "dynamic_tls_crypt_negotiated": true,
+   "original_static_key_hex": "68f20b003760275b0c1477e3295f5afb08c4c1ff28aedbca9ec196b3c21692c4820b3b116b4a3fc9f026a676a4132a800a667fc464aed9d151e22a1b0235d20dab62c3a55d11a90b99ea18c93348d30a7a05f2d3ca2faaea5b8f6c2309a36e088d595c1dbaf116eeeca65fb34b047b43e6fa49afa1cf30e1969c0b745ba755ae69b19f2b708b1635119f3072c63a2045293fbfb2bef8d6bd68af11c4773f886eb32af9cfac5c2c55d7179583ebb99b81163d993997f305546c71fcb991121ba495367c9021a18a24465985d6ee2e09a96266755ccc3f78015d1c38ddfceacb89b1f6402ce35bd4693b7f282ff1da4cbe49ac6ae2aabd93820a6357dbbcec8978",
+   "exporter_label": "EXPORTER-OpenVPN-dynamic-tls-crypt",
+   "exporter_output_256_hex": "2086bbe912c90b723eaa04ff081f4a403eb7936c25a66c59552c090dde5fedb04064802586c62b019c9dca30ae352c839e43dc10fd017bcc9a0c8f1358c0cb2e35145994c107b10eef97d6491d6608ada26b93a972a489f9897efb0de7713e4258ff6aa859ba74051a50599c09e46293cf39dcd2790bee902216c5a57f098eaf892ad422ea8b69ecdb31e975a06cfb496fc839f80a894b0dbba119d4c119148d70fdf1d9e055d301d8facdfc108761b59e4a97befb8a8e96c7015a9de40e889c6ef36970331605eb724700612688b76d034880eb4d3fd2549fe81eb8ade2e5af585450bf4737595598e67feb34b4fdee34a383080d989d40a0a0d6773876a5bf",
+   "exporter_secret_hex": "c3d0ff6d61fea65217787e87cbb2d9712d5624171907ea7dadf8a7df9de130c1accc5b2f64c0b9be740ebb6a958cccad",
+   "tls_client_random_hex": "7df8a62406485647b5becfbfecc0027c49e6cab1a9c1c89a17ec7359400d7ff2",
+   "derived_key_hex": "4874b0e925a92c2932be731c214010bb367352930d08b793cbed9fbe1c497f74c26fbb34ed8c14c86cbb6c460a2606039425a3d499afa21dcbeea5085af519239e769a319c161805767dce802e2edba7d86e617ab88b2313d2f1972eeed2504ad5a636b5e34b62ebf6f6062f42e019d029c3957dd8c4de71b48aced124aedb01e09b4b099a007fd9caaed9076656db0c46f7864ab4719db0d30e0810b6269ce3c3d708164c09ff540fed587ffb3efa3488770e876c798bc2ab70a624751c9338fbc515e012b78fcf341e85b7c8a6bec4612ef5b78100aa55c2f4266551082e26e9a21093a46c8d3ca39957c4c56eb1507d0fe9eaa7250ec2aac381ac849a2cc7",
+   "packets_key_id_1": [
+    {
+     "dir": "c2s",
+     "wire_hex": "1900bf95a5ffe4f1ca000000016af11c7ffd518f6fe0ff046a26691728546c4a31814f1e9fe7d2263bfb8a0ed118e92bec59d3829abd",
+     "decode": {
+      "opcode": 3,
+      "opcode_name": "P_CONTROL_SOFT_RESET_V1",
+      "key_id": 1,
+      "session_id": "00bf95a5ffe4f1ca",
+      "wrap_id": 1,
+      "wrap_time": 1794186367,
+      "acks": [],
+      "ack_remote_session_id": null,
+      "msg_id": 0,
+      "payload_hex": ""
+     }
+    },
+    {
+     "dir": "s2c",
+     "wire_hex": "19c775a61c16df3563000000016af11c7f6d1d565c50a9283c484f0483d28324146838e2c5a7deeea9cabc4a12aba89d7b354fe4b576",
+     "decode": {
+      "opcode": 3,
+      "opcode_name": "P_CONTROL_SOFT_RESET_V1",
+      "key_id": 1,
+      "session_id": "c775a61c16df3563",
+      "wrap_id": 1,
+      "wrap_time": 1794186367,
+      "acks": [],
+      "ack_remote_session_id": null,
+      "msg_id": 0,
+      "payload_hex": ""
+     }
+    },
+    {
+     "dir": "c2s",
+     "wire_hex": "2900bf95a5ffe4f1ca000000026af11c7faea1ab6f9c883d00f882e38cbd4de37cd1af5ffffedadf5ffc44709daca1009e1b3a1d5459df6538aa69037768",
+     "decode": {
+      "opcode": 5,
+      "opcode_name": "P_ACK_V1",
+      "key_id": 1,
+      "session_id": "00bf95a5ffe4f1ca",
+      "wrap_id": 2,
+      "wrap_time": 1794186367,
+      "acks": [
+       0
+      ],
+      "ack_remote_session_id": "c775a61c16df3563",
+      "msg_id": null,
+      "payload_hex": ""
+     }
+    },
+    {
+     "dir": "s2c",
+     "wire_hex": "29c775a61c16df3563000000026af11c7f9e5eaf44245ddff58dd1d4a55ee889a55d62cb97e604b14f9baa2f393be66f2018631eb7d4d79c741ab514daea",
+     "decode": {
+      "opcode": 5,
+      "opcode_name": "P_ACK_V1",
+      "key_id": 1,
+      "session_id": "c775a61c16df3563",
+      "wrap_id": 2,
+      "wrap_time": 1794186367,
+      "acks": [
+       0
+      ],
+      "ack_remote_session_id": "00bf95a5ffe4f1ca",
+      "msg_id": null,
+      "payload_hex": ""
+     }
+    }
+   ]
+  },
+  {
+   "cell": "s26c26-udp-tlscrypt-rekey",
+   "stock": {
+    "server": "2.6.23",
+    "client": "2.6.23"
+   },
+   "protocol_flags": [
+    "cc-exit",
+    "tls-ekm",
+    "dyn-tls-crypt"
+   ],
+   "dynamic_tls_crypt_negotiated": true,
+   "original_static_key_hex": "68f20b003760275b0c1477e3295f5afb08c4c1ff28aedbca9ec196b3c21692c4820b3b116b4a3fc9f026a676a4132a800a667fc464aed9d151e22a1b0235d20dab62c3a55d11a90b99ea18c93348d30a7a05f2d3ca2faaea5b8f6c2309a36e088d595c1dbaf116eeeca65fb34b047b43e6fa49afa1cf30e1969c0b745ba755ae69b19f2b708b1635119f3072c63a2045293fbfb2bef8d6bd68af11c4773f886eb32af9cfac5c2c55d7179583ebb99b81163d993997f305546c71fcb991121ba495367c9021a18a24465985d6ee2e09a96266755ccc3f78015d1c38ddfceacb89b1f6402ce35bd4693b7f282ff1da4cbe49ac6ae2aabd93820a6357dbbcec8978",
+   "exporter_label": "EXPORTER-OpenVPN-dynamic-tls-crypt",
+   "exporter_output_256_hex": "1f3b2754f5cb2b53592d309789b4389239f502a0618a837be513ef228e899b4a6b37e46b26e092c736281b8cf98d6d8d55db84951926629819032befdec77a9586fcff1feae36b8ccb390bdc8425a88d66f9258cfc4bc6c0702c2099eeb6ba78284b387f79dc6451ddb512b9f3e1a4a41360a1460cf17191ba554e19d761f1598ad27eafc3cee2c3c36bf8df6b0fb4687467242cf24e4abb5ca6db6fa67f616ba144ab842cd8e9dbdfe294a8869646b094e724085991d7c1d8fd65203a611ec6b0b241468df7125eff429c6160e935d64305935a269d873859872633e2ec9c020228ab12a47001272ac35db150e07968e100cad8e7b33438b434461452164564",
+   "exporter_secret_hex": "f5b81ae471ea9114716c622462ab1d062ae4ab2858a8fe28da145afa63824c77f58d77ee33b5be6ad52d4e1283dc6a7e",
+   "tls_client_random_hex": "a9f6372274afc8a8ddf2b5b60359e3610f656570181f43b4c9c1317241f225ec",
+   "derived_key_hex": "77c92c54c2ab0c0855394774a0eb62693131c35f492458b17bd279914c9f098ee93cdf7a4daaad0ec60ebdfa5d9e470d5fbdfb517d88bb4948e101f4dcf2a8982d9e3cbab7f2c28752d31315b76d7b871cfcd75f36646c2a2ba34cbae715d470a5126462c32d72bf31134d0ab8e5dfe7f59ae8e9ad3e41702cc9456d8cc6a4f7e363e184b345f4f6d2f4c8adad35942d5d589b9e4cb69c063409caabd140e905126e524b8084c58e08f5012b6d2fdd3182dabd31ce62d295b48c9999ab73056225843dd6ac56987ab91b19b78ec73c7f2163e606eaa2ff39049b1eee1e06578bb3deeb3e472bd54e11bc759ea13a35d6a8aca03a4d0ea7babe5711cfeefacc1c",
+   "packets_key_id_1": [
+    {
+     "dir": "c2s",
+     "wire_hex": "19417c754fa0615ada000000016af11cde45f372a56415abf103876ed25daf54f4533e104cfd9864368e4bbc887607bd3badd52a50ef",
+     "decode": {
+      "opcode": 3,
+      "opcode_name": "P_CONTROL_SOFT_RESET_V1",
+      "key_id": 1,
+      "session_id": "417c754fa0615ada",
+      "wrap_id": 1,
+      "wrap_time": 1794186462,
+      "acks": [],
+      "ack_remote_session_id": null,
+      "msg_id": 0,
+      "payload_hex": ""
+     }
+    },
+    {
+     "dir": "s2c",
+     "wire_hex": "19a8b0729e26e0b054000000016af11cdeb0500d5cda1f3ce7eab7cf26abc5b05543104b6f5e9e81e1eea18e5078e17c9aee1bff1b06",
+     "decode": {
+      "opcode": 3,
+      "opcode_name": "P_CONTROL_SOFT_RESET_V1",
+      "key_id": 1,
+      "session_id": "a8b0729e26e0b054",
+      "wrap_id": 1,
+      "wrap_time": 1794186462,
+      "acks": [],
+      "ack_remote_session_id": null,
+      "msg_id": 0,
+      "payload_hex": ""
+     }
+    },
+    {
+     "dir": "c2s",
+     "wire_hex": "29417c754fa0615ada000000026af11cde27df4e5b94d4ec2cb312ce401004d19383510109414125c31cc24cbd91bda4fadea6ce7e62c9546d1cdebb5e28",
+     "decode": {
+      "opcode": 5,
+      "opcode_name": "P_ACK_V1",
+      "key_id": 1,
+      "session_id": "417c754fa0615ada",
+      "wrap_id": 2,
+      "wrap_time": 1794186462,
+      "acks": [
+       0
+      ],
+      "ack_remote_session_id": "a8b0729e26e0b054",
+      "msg_id": null,
+      "payload_hex": ""
+     }
+    },
+    {
+     "dir": "s2c",
+     "wire_hex": "29a8b0729e26e0b054000000026af11cdef64a82eb92bc6800471387357c5aecf065b93c79205464cf83320629974c42101f0c78a8e00d62cbabde24702c",
+     "decode": {
+      "opcode": 5,
+      "opcode_name": "P_ACK_V1",
+      "key_id": 1,
+      "session_id": "a8b0729e26e0b054",
+      "wrap_id": 2,
+      "wrap_time": 1794186462,
+      "acks": [
+       0
+      ],
+      "ack_remote_session_id": "417c754fa0615ada",
+      "msg_id": null,
+      "payload_hex": ""
+     }
+    }
+   ]
+  },
+  {
+   "cell": "s26c27-udp-tlscrypt-rekey",
+   "stock": {
+    "server": "2.6.23",
+    "client": "2.7.7"
+   },
+   "protocol_flags": [
+    "cc-exit",
+    "tls-ekm",
+    "dyn-tls-crypt"
+   ],
+   "dynamic_tls_crypt_negotiated": true,
+   "original_static_key_hex": "68f20b003760275b0c1477e3295f5afb08c4c1ff28aedbca9ec196b3c21692c4820b3b116b4a3fc9f026a676a4132a800a667fc464aed9d151e22a1b0235d20dab62c3a55d11a90b99ea18c93348d30a7a05f2d3ca2faaea5b8f6c2309a36e088d595c1dbaf116eeeca65fb34b047b43e6fa49afa1cf30e1969c0b745ba755ae69b19f2b708b1635119f3072c63a2045293fbfb2bef8d6bd68af11c4773f886eb32af9cfac5c2c55d7179583ebb99b81163d993997f305546c71fcb991121ba495367c9021a18a24465985d6ee2e09a96266755ccc3f78015d1c38ddfceacb89b1f6402ce35bd4693b7f282ff1da4cbe49ac6ae2aabd93820a6357dbbcec8978",
+   "exporter_label": "EXPORTER-OpenVPN-dynamic-tls-crypt",
+   "exporter_output_256_hex": "e3f0c3a3c1db3a4042f79c0342500cf43f752699792e93aaec6b2a5f9dcbcc3f961d2f279afa2ac8aeab0397b7f04c6ba1d1f49a99a72bdd089532762fae65b9910123c7fbb9fc821cf1bf048702aca18dcf45af6b260e54e1ee6ad9ed022792ed2e78b25fbcaa914292144afe52a8a37481aa73b08a972f58b54278e4a8def5d556b9acdfd56609e8ec4475d647cbbeb692a51f7d6e5aac82a65700a0c3b0fa86f62e3fe4e38aee00b029b4c140473c5e096f03db0eb1b0b2e942d4f32e440379dd89a771eb7d379af49959b828c27fbb99a8538ab52fcbe47dce4b94522fe122f0b86e160dfd7ada38d1289e2171d7fa32dd9a9cb48082fe3918cc4b6a1113",
+   "exporter_secret_hex": "bfa9b4448e28d518b790eb16d1e18394bdedad09f0ea69ccddd6a2d3c5fc96f95de43528be2898fe2884f640d1ffbd46",
+   "tls_client_random_hex": "8c4d94773264f77a895bacc79794a7c652abac9856b7dd8fd5c523caaca49e12",
+   "derived_key_hex": "8b02c8a3f6bb1d1b4ee3ebe06b0f560f37b1e7665180486072aabcec5fdd5efb14161436f1b015015e8da5e113e366ebabb78b5efd09f20c5977186d2d9bb7b43a63e062a6a85589851ba7cdb44a7fabf7cab77ca109a4beba6106fae4a1499a607724afe54dbc7fae344bf9b556d3e0927be3dc1145a7cece29490cbf0f8b5bbce72687af5e703cf9737407107debfb9fad1aadc3968c11ea0946c4d7fc389435dcd7f048bfa6bbd7a7bc372af9dcbd4834f63a4cfdb4e4de98be6d623c5fa7ecebf537504af713dcad1c8f5606cbd6d9ffdd0f468a57cab961f69668b8e4689306f842f5562913e147f9076ffb3d69b39eb77836091300f45a4f17f786986b",
+   "packets_key_id_1": [
+    {
+     "dir": "c2s",
+     "wire_hex": "19cfc464860ba4a5bb000000016af11d3d94e506ec5dfe58d6035ca5d8e4d9b563c0fd4142e0a34c42936450d13d322315c555a5992c",
+     "decode": {
+      "opcode": 3,
+      "opcode_name": "P_CONTROL_SOFT_RESET_V1",
+      "key_id": 1,
+      "session_id": "cfc464860ba4a5bb",
+      "wrap_id": 1,
+      "wrap_time": 1794186557,
+      "acks": [],
+      "ack_remote_session_id": null,
+      "msg_id": 0,
+      "payload_hex": ""
+     }
+    },
+    {
+     "dir": "s2c",
+     "wire_hex": "190641878c52865430000000016af11d3d9f7b7606113c031b0282b4aa9603d5ba70fe8f9f553f8e84d7d4ee5d63cc514c1b4cc83537",
+     "decode": {
+      "opcode": 3,
+      "opcode_name": "P_CONTROL_SOFT_RESET_V1",
+      "key_id": 1,
+      "session_id": "0641878c52865430",
+      "wrap_id": 1,
+      "wrap_time": 1794186557,
+      "acks": [],
+      "ack_remote_session_id": null,
+      "msg_id": 0,
+      "payload_hex": ""
+     }
+    },
+    {
+     "dir": "c2s",
+     "wire_hex": "29cfc464860ba4a5bb000000026af11d3d124d0364efef359a397c15d92b6a3fa206bdf822722017a2aa70175610da442c5ebddbbcd234f886e5344adfe1",
+     "decode": {
+      "opcode": 5,
+      "opcode_name": "P_ACK_V1",
+      "key_id": 1,
+      "session_id": "cfc464860ba4a5bb",
+      "wrap_id": 2,
+      "wrap_time": 1794186557,
+      "acks": [
+       0
+      ],
+      "ack_remote_session_id": "0641878c52865430",
+      "msg_id": null,
+      "payload_hex": ""
+     }
+    },
+    {
+     "dir": "s2c",
+     "wire_hex": "290641878c52865430000000026af11d3d18c3ca5d94fbed1718a76e82bbcce440e1d093401342ad9b90361b2191f32b00fe6dc9e1fe7509b2764b0eea06",
+     "decode": {
+      "opcode": 5,
+      "opcode_name": "P_ACK_V1",
+      "key_id": 1,
+      "session_id": "0641878c52865430",
+      "wrap_id": 2,
+      "wrap_time": 1794186557,
+      "acks": [
+       0
+      ],
+      "ack_remote_session_id": "cfc464860ba4a5bb",
+      "msg_id": null,
+      "payload_hex": ""
+     }
+    }
+   ]
+  }
+ ]
+}

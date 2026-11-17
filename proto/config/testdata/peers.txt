@@ -1,0 +1,8 @@
+# noirvpn peers file: <username> <pin> [options]
+# Pins are the SHA-256 of the SubjectPublicKeyInfo, in base64.
+
+alice   sha256:jzyXE/jd4JYLM3XtvDrr2jXrx7xyEIWhFdFIUlIFeN8=   ifconfig-push=10.8.0.10
+alice   sha256:9S+BUlQJ6p3MyLP5vDsUcJ8Acg7K2Oq41rk0mqiRTyo=   # her second laptop
+bob     mldsa65-sha256:gbY32PzSxtpjWeaWMROhFw3nleS3JbhNHgtM/Z7FjOk=  iroute=192.168.10.0/24 iroute=192.168.11.0/24
+carol   sha256:TCbZB0wn2J7eWScMCsFLceBxsVI5UZ91R0svO6Y0gfU=   disabled
+dave	sha256:YeoIA/iFNSO3d9QUrOMTDNTT+S3izX/4aVwzfXnC7u4	ifconfig-ipv6-push=fd00:8::10/64 iroute-ipv6=fd00:99::/64

@@ -1,0 +1,314 @@
+{
+ "what": "Text commands from stock servers and clients: PUSH_REQUEST, EXIT, RESTART, RESTART,[N], AUTH_FAILED (plain, reason, SESSION, TEMP)",
+ "spec": "OpenVPN protocol",
+ "origin": "TLS plaintext after the key-method message, decrypted by a verifier from the named cell. Cells named authfail-* are one-off runs of the harness (with the server's auth hook replaced); the others are in the committed matrix",
+ "note": "texts are exactly as captured, without the closing NUL. A string with \\n in it is how the stock server sent it.",
+ "cases": [
+  {
+   "name": "s26c26-udp-tlscrypt-slowpush/c2s",
+   "cell": "s26c26-udp-tlscrypt-slowpush",
+   "stock": {
+    "server": "2.6.23",
+    "client": "2.6.23"
+   },
+   "direction": "c2s",
+   "commands": [
+    "PUSH_REQUEST",
+    "PUSH_REQUEST",
+    "PUSH_REQUEST",
+    "EXIT"
+   ],
+   "typed": [
+    "Push_Request",
+    "Push_Request",
+    "Push_Request",
+    "Exit"
+   ],
+   "note": "PUSH_REPLY held back 13 s: the client asks three times; EXIT at the end"
+  },
+  {
+   "name": "s27c27-udp-tlscrypt-aes256/c2s",
+   "cell": "s27c27-udp-tlscrypt-aes256",
+   "stock": {
+    "server": "2.7.7",
+    "client": "2.7.7"
+   },
+   "direction": "c2s",
+   "commands": [
+    "EXIT"
+   ],
+   "typed": [
+    "Exit"
+   ]
+  },
+  {
+   "name": "s27c27-udp-tlscrypt-serverend/s2c",
+   "cell": "s27c27-udp-tlscrypt-serverend",
+   "stock": {
+    "server": "2.7.7",
+    "client": "2.7.7"
+   },
+   "direction": "s2c",
+   "commands": [
+    "RESTART"
+   ],
+   "typed": [
+    {
+     "kind": "Restart",
+     "keep": false,
+     "next": false,
+     "text": ""
+    }
+   ],
+   "note": "server stopped with explicit-exit-notify 3"
+  },
+  {
+   "name": "s26c26-udp-tlscrypt-serverend/s2c",
+   "cell": "s26c26-udp-tlscrypt-serverend",
+   "stock": {
+    "server": "2.6.23",
+    "client": "2.6.23"
+   },
+   "direction": "s2c",
+   "commands": [
+    "RESTART"
+   ],
+   "typed": [
+    {
+     "kind": "Restart",
+     "keep": false,
+     "next": false,
+     "text": ""
+    }
+   ]
+  },
+  {
+   "name": "s27c27-udp-tlscrypt-serverend-n2/s2c",
+   "cell": "s27c27-udp-tlscrypt-serverend-n2",
+   "stock": {
+    "server": "2.7.7",
+    "client": "2.7.7"
+   },
+   "direction": "s2c",
+   "commands": [
+    "RESTART,[N]"
+   ],
+   "typed": [
+    {
+     "kind": "Restart",
+     "keep": false,
+     "next": true,
+     "text": ""
+    }
+   ],
+   "note": "explicit-exit-notify 2 on the server"
+  },
+  {
+   "name": "s26c26-udp-tlscrypt-serverend-n2/s2c",
+   "cell": "s26c26-udp-tlscrypt-serverend-n2",
+   "stock": {
+    "server": "2.6.23",
+    "client": "2.6.23"
+   },
+   "direction": "s2c",
+   "commands": [
+    "RESTART,[N]"
+   ],
+   "typed": [
+    {
+     "kind": "Restart",
+     "keep": false,
+     "next": true,
+     "text": ""
+    }
+   ]
+  },
+  {
+   "name": "authfail-s27c27-udp-tlscrypt-plain-nl/s2c",
+   "cell": "authfail-s27c27-udp-tlscrypt-plain",
+   "stock": {
+    "server": "2.7.7",
+    "client": "2.7.7"
+   },
+   "direction": "s2c",
+   "commands": [
+    "AUTH_FAILED"
+   ],
+   "typed": [
+    {
+     "kind": "Plain"
+    }
+   ],
+   "note": "made with a one-off cell (the harness userpass cell with auth-user-pass-verify failing); not in the committed matrix; the client had sent a PUSH_REQUEST"
+  },
+  {
+   "name": "authfail-s26c26-udp-tlscrypt-plain-nl/s2c",
+   "cell": "authfail-s26c26-udp-tlscrypt-plain",
+   "stock": {
+    "server": "2.6.23",
+    "client": "2.6.23"
+   },
+   "direction": "s2c",
+   "commands": [
+    "AUTH_FAILED"
+   ],
+   "typed": [
+    {
+     "kind": "Plain"
+    }
+   ]
+  },
+  {
+   "name": "authfail-s27c27-udp-tlscrypt-text/s2c",
+   "cell": "authfail-s27c27-udp-tlscrypt-text",
+   "stock": {
+    "server": "2.7.7",
+    "client": "2.7.7"
+   },
+   "direction": "s2c",
+   "commands": [
+    "AUTH_FAILED,Data channel cipher negotiation failed (no shared cipher)"
+   ],
+   "typed": [
+    {
+     "kind": "Reason",
+     "reason": "Data channel cipher negotiation failed (no shared cipher)"
+    }
+   ],
+   "note": "made with a one-off cell (the harness userpass cell with auth-user-pass-verify failing); not in the committed matrix; reason from the auth_failed_reason_file"
+  },
+  {
+   "name": "authfail-s26c26-udp-tlscrypt-text/s2c",
+   "cell": "authfail-s26c26-udp-tlscrypt-text",
+   "stock": {
+    "server": "2.6.23",
+    "client": "2.6.23"
+   },
+   "direction": "s2c",
+   "commands": [
+    "AUTH_FAILED,Data channel cipher negotiation failed (no shared cipher)"
+   ],
+   "typed": [
+    {
+     "kind": "Reason",
+     "reason": "Data channel cipher negotiation failed (no shared cipher)"
+    }
+   ]
+  },
+  {
+   "name": "authfail-s27c27-udp-tlscrypt-session/s2c",
+   "cell": "authfail-s27c27-udp-tlscrypt-session",
+   "stock": {
+    "server": "2.7.7",
+    "client": "2.7.7"
+   },
+   "direction": "s2c",
+   "commands": [
+    "AUTH_FAILED,SESSION"
+   ],
+   "typed": [
+    {
+     "kind": "Session"
+    }
+   ],
+   "note": "made with a one-off cell (the harness userpass cell with auth-user-pass-verify failing); not in the committed matrix; reason file held SESSION"
+  },
+  {
+   "name": "authfail-s26c26-udp-tlscrypt-session/s2c",
+   "cell": "authfail-s26c26-udp-tlscrypt-session",
+   "stock": {
+    "server": "2.6.23",
+    "client": "2.6.23"
+   },
+   "direction": "s2c",
+   "commands": [
+    "AUTH_FAILED,SESSION"
+   ],
+   "typed": [
+    {
+     "kind": "Session"
+    }
+   ]
+  },
+  {
+   "name": "authfail-s27c27-udp-tlscrypt-temp/s2c",
+   "cell": "authfail-s27c27-udp-tlscrypt-temp",
+   "stock": {
+    "server": "2.7.7",
+    "client": "2.7.7"
+   },
+   "direction": "s2c",
+   "commands": [
+    "AUTH_FAILED,TEMP[backoff 5,advance addr]: server is busy"
+   ],
+   "typed": [
+    {
+     "kind": "Temp",
+     "backoff": 5,
+     "advance": "Addr",
+     "reason": "server is busy"
+    }
+   ],
+   "note": "made with a one-off cell (the harness userpass cell with auth-user-pass-verify failing); not in the committed matrix; stock 2.7.7 sent the reason file text verbatim after AUTH_FAILED,"
+  },
+  {
+   "name": "authfail-s26c26-udp-tlscrypt-temp/s2c",
+   "cell": "authfail-s26c26-udp-tlscrypt-temp",
+   "stock": {
+    "server": "2.6.23",
+    "client": "2.6.23"
+   },
+   "direction": "s2c",
+   "commands": [
+    "AUTH_FAILED,TEMP[backoff 5,advance addr]: server is busy"
+   ],
+   "typed": [
+    {
+     "kind": "Temp",
+     "backoff": 5,
+     "advance": "Addr",
+     "reason": "server is busy"
+    }
+   ]
+  },
+  {
+   "name": "authfail-s27c27-udp-tlscrypt-session-nl/s2c",
+   "cell": "authfail-s27c27-udp-tlscrypt-session",
+   "stock": {
+    "server": "2.7.7",
+    "client": "2.7.7"
+   },
+   "direction": "s2c",
+   "commands": [
+    "AUTH_FAILED,SESSION\n"
+   ],
+   "typed": [
+    {
+     "kind": "Session"
+    }
+   ],
+   "note": "made with a one-off cell (the harness userpass cell with auth-user-pass-verify failing); not in the committed matrix; the reason file ended with a newline and the server sent it: the reader strips it"
+  },
+  {
+   "name": "authfail-s27c27-udp-tlscrypt-temp-nl/s2c",
+   "cell": "authfail-s27c27-udp-tlscrypt-temp",
+   "stock": {
+    "server": "2.7.7",
+    "client": "2.7.7"
+   },
+   "direction": "s2c",
+   "commands": [
+    "AUTH_FAILED,TEMP[backoff 5,advance addr]: server is busy\n"
+   ],
+   "typed": [
+    {
+     "kind": "Temp",
+     "backoff": 5,
+     "advance": "Addr",
+     "reason": "server is busy"
+    }
+   ],
+   "note": "made with a one-off cell (the harness userpass cell with auth-user-pass-verify failing); not in the committed matrix; trailing newline as above"
+  }
+ ]
+}

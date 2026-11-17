@@ -1,0 +1,431 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="1040"
+   height="500"
+   viewBox="0 0 1040 500"
+   role="img"
+   aria-labelledby="title desc"
+   version="1.1"
+   id="svg32"
+   sodipodi:docname="tls-http-proxy-inkscape.svg"
+   inkscape:version="1.4.4 (dcaf3e7, 2026-05-05)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns:c2pa="http://c2pa.org/manifest">
+  <sodipodi:namedview
+     id="namedview32"
+     pagecolor="#ffffff"
+     bordercolor="#cccccc"
+     borderopacity="1"
+     inkscape:showpageshadow="0"
+     inkscape:pageopacity="1"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:current-layer="svg32" />
+  <title
+     id="title">HTTP proxy</title>
+  <desc
+     id="desc">The client opens TCP to the HTTP proxy and asks for a CONNECT tunnel to the server, with Basic authentication when it has a login. The proxy connects to the server and answers 200. The outer TLS then runs through the tunnel to the server with the server name as SNI, and the OpenVPN session runs inside it. The proxy only relays bytes.</desc>
+  <style
+     id="style1">
+text{font-family:-apple-system,BlinkMacSystemFont,&quot;Segoe UI&quot;,&quot;Noto Sans&quot;,Helvetica,Arial,sans-serif;fill:#1f2328}
+.mono,.monob,.monom,.chip,.code{font-family:ui-monospace,SFMono-Regular,&quot;SF Mono&quot;,Menlo,Consolas,&quot;Liberation Mono&quot;,monospace}
+.bg{fill:#ffffff}
+.host{fill:#f6f8fa;stroke:#d8dee4;stroke-width:1}
+.panel{fill:#ffffff;stroke:#d0d7de;stroke-width:1.2}
+.box{fill:#f6f8fa;stroke:#d0d7de;stroke-width:1}
+.h1{font-size:15px;font-weight:600}
+.h2{font-size:13px;font-weight:600}
+.lab{font-size:12px;font-weight:600;fill:#59636e;letter-spacing:.04em}
+.b{font-size:11px}
+.m{font-size:11px;fill:#59636e}
+.s{font-size:10px;fill:#59636e}
+.mono{font-size:10px}
+.monob{font-size:13px;font-weight:600}
+.monom{font-size:11px;fill:#59636e}
+.chip{font-size:10.5px}
+.code{font-size:10.5px}
+.yn{font-size:10px;font-weight:600;fill:#59636e}
+.life{stroke:#d0d7de;stroke-width:1.2;stroke-dasharray:4 4}
+.f-udp{fill:#0969da} .st-udp{stroke:#0969da} .l-udp{fill:none;stroke:#0969da;stroke-width:1.6} .t-udp{fill:#0969da}
+.f-tcp{fill:#1a7f37} .st-tcp{stroke:#1a7f37} .l-tcp{fill:none;stroke:#1a7f37;stroke-width:1.6} .t-tcp{fill:#1a7f37}
+.f-tls{fill:#8250df} .st-tls{stroke:#8250df} .l-tls{fill:none;stroke:#8250df;stroke-width:1.6} .t-tls{fill:#8250df}
+.f-ws{fill:#bf3989} .st-ws{stroke:#bf3989} .l-ws{fill:none;stroke:#bf3989;stroke-width:1.6} .t-ws{fill:#bf3989}
+.f-bus{fill:#9a6700} .st-bus{stroke:#9a6700} .l-bus{fill:none;stroke:#9a6700;stroke-width:1.6} .t-bus{fill:#9a6700}
+.f-dco{fill:#1b7c83} .st-dco{stroke:#1b7c83} .l-dco{fill:none;stroke:#1b7c83;stroke-width:1.6} .t-dco{fill:#1b7c83}
+.f-mut{fill:#818b98} .st-mut{stroke:#818b98} .l-mut{fill:none;stroke:#818b98;stroke-width:1.6} .t-mut{fill:#818b98}
+.f-bad{fill:#cf222e} .st-bad{stroke:#cf222e} .l-bad{fill:none;stroke:#cf222e;stroke-width:1.6} .t-bad{fill:#cf222e}
+.dash{stroke-dasharray:5 4}
+.dco-box{fill:#ffffff;stroke:#1b7c83;stroke-width:1.4;stroke-dasharray:6 4}
+.bus-box{fill:#ffffff;stroke:#9a6700;stroke-width:1.4}
+</style>
+  <defs
+     id="defs8">
+    <marker
+       id="ah-udp"
+       viewBox="0 0 10 10"
+       refX="9"
+       refY="5"
+       markerWidth="7"
+       markerHeight="7"
+       orient="auto-start-reverse">
+      <path
+         d="M0 0 L10 5 L0 10 z"
+         class="f-udp"
+         id="path1" />
+    </marker>
+    <marker
+       id="ah-tcp"
+       viewBox="0 0 10 10"
+       refX="9"
+       refY="5"
+       markerWidth="7"
+       markerHeight="7"
+       orient="auto-start-reverse">
+      <path
+         d="M0 0 L10 5 L0 10 z"
+         class="f-tcp"
+         id="path2" />
+    </marker>
+    <marker
+       id="ah-tls"
+       viewBox="0 0 10 10"
+       refX="9"
+       refY="5"
+       markerWidth="7"
+       markerHeight="7"
+       orient="auto-start-reverse">
+      <path
+         d="M0 0 L10 5 L0 10 z"
+         class="f-tls"
+         id="path3" />
+    </marker>
+    <marker
+       id="ah-ws"
+       viewBox="0 0 10 10"
+       refX="9"
+       refY="5"
+       markerWidth="7"
+       markerHeight="7"
+       orient="auto-start-reverse">
+      <path
+         d="M0 0 L10 5 L0 10 z"
+         class="f-ws"
+         id="path4" />
+    </marker>
+    <marker
+       id="ah-bus"
+       viewBox="0 0 10 10"
+       refX="9"
+       refY="5"
+       markerWidth="7"
+       markerHeight="7"
+       orient="auto-start-reverse">
+      <path
+         d="M0 0 L10 5 L0 10 z"
+         class="f-bus"
+         id="path5" />
+    </marker>
+    <marker
+       id="ah-dco"
+       viewBox="0 0 10 10"
+       refX="9"
+       refY="5"
+       markerWidth="7"
+       markerHeight="7"
+       orient="auto-start-reverse">
+      <path
+         d="M0 0 L10 5 L0 10 z"
+         class="f-dco"
+         id="path6" />
+    </marker>
+    <marker
+       id="ah-mut"
+       viewBox="0 0 10 10"
+       refX="9"
+       refY="5"
+       markerWidth="7"
+       markerHeight="7"
+       orient="auto-start-reverse">
+      <path
+         d="M0 0 L10 5 L0 10 z"
+         class="f-mut"
+         id="path7" />
+    </marker>
+    <marker
+       id="ah-bad"
+       viewBox="0 0 10 10"
+       refX="9"
+       refY="5"
+       markerWidth="7"
+       markerHeight="7"
+       orient="auto-start-reverse">
+      <path
+         d="M0 0 L10 5 L0 10 z"
+         class="f-bad"
+         id="path8" />
+    </marker>
+  </defs>
+  <rect
+     x="0"
+     y="0"
+     width="1040"
+     height="500"
+     rx="0"
+     class="bg"
+     id="rect8" />
+  <rect
+     x="16"
+     y="20"
+     width="646"
+     height="396"
+     rx="14"
+     class="host"
+     id="rect9"
+     style="stroke:none" />
+  <text
+     x="32"
+     y="42"
+     class="lab"
+     text-anchor="start"
+     id="text9"
+     style="fill:#000000">CORPORATE NETWORK</text>
+  <rect
+     x="676"
+     y="20"
+     width="348"
+     height="396"
+     rx="14"
+     class="host"
+     id="rect10"
+     style="fill:#f1f8ff;fill-opacity:1;stroke:none" />
+  <text
+     x="692"
+     y="42"
+     class="lab"
+     text-anchor="start"
+     id="text10"
+     style="fill:#000000">INTERNET</text>
+  <rect
+     x="55"
+     y="56"
+     width="190"
+     height="50"
+     rx="8"
+     class="panel"
+     id="rect11"
+     style="stroke:#db9bd8;stroke-opacity:1" />
+  <text
+     x="150"
+     y="77"
+     class="h2"
+     text-anchor="middle"
+     id="text12">noirvpn client</text>
+  <text
+     x="150"
+     y="95"
+     class="monom"
+     text-anchor="middle"
+     id="text13">proto tls-client</text>
+  <path
+     d="M150 106 L150 404"
+     class="life"
+     id="path13" />
+  <rect
+     x="375"
+     y="56"
+     width="190"
+     height="50"
+     rx="8"
+     class="panel"
+     id="rect13" />
+  <text
+     x="470"
+     y="77"
+     class="h2"
+     text-anchor="middle"
+     id="text14">HTTP proxy</text>
+  <text
+     x="470"
+     y="95"
+     class="monom"
+     text-anchor="middle"
+     id="text15">proxy.example.com:3128</text>
+  <path
+     d="M470 106 L470 404"
+     class="life"
+     id="path15" />
+  <rect
+     x="785"
+     y="56"
+     width="190"
+     height="50"
+     rx="8"
+     class="panel"
+     id="rect15"
+     style="stroke:#5da1e4;stroke-opacity:1" />
+  <text
+     x="880"
+     y="77"
+     class="h2"
+     text-anchor="middle"
+     id="text16">noirvpn server</text>
+  <text
+     x="880"
+     y="95"
+     class="monom"
+     text-anchor="middle"
+     id="text17">vpn.example.com:443</text>
+  <path
+     d="M880 106 L880 404"
+     class="life"
+     id="path17" />
+  <path
+     d="M150 140 L469 140"
+     class="l-tcp"
+     marker-end="url(#ah-tcp)"
+     id="path18" />
+  <text
+     x="310"
+     y="133"
+     class="code"
+     text-anchor="middle"
+     id="text18">TCP connection</text>
+  <path
+     d="M150 186 L469 186"
+     class="l-tcp"
+     marker-end="url(#ah-tcp)"
+     id="path19" />
+  <text
+     x="310"
+     y="179"
+     class="code"
+     text-anchor="middle"
+     id="text19">CONNECT vpn.example.com:443 HTTP/1.1</text>
+  <text
+     x="310"
+     y="201"
+     class="s"
+     text-anchor="middle"
+     id="text20">Host, then User-Agent (AGENT) and Proxy-Authorization: Basic (with a login)</text>
+  <path
+     d="M470 240 L879 240"
+     class="l-tcp"
+     marker-end="url(#ah-tcp)"
+     id="path20" />
+  <text
+     x="675"
+     y="233"
+     class="code"
+     text-anchor="middle"
+     id="text21">TCP connection to vpn.example.com:443</text>
+  <path
+     d="M470 282 L151 282"
+     class="l-mut"
+     marker-end="url(#ah-mut)"
+     id="path21" />
+  <text
+     x="310"
+     y="275"
+     class="code"
+     text-anchor="middle"
+     id="text22">HTTP/1.1 200 Connection established</text>
+  <rect
+     x="140"
+     y="306"
+     width="750"
+     height="94"
+     rx="6"
+     class="f-tls st-tls"
+     fill-opacity="0.1"
+     stroke-opacity="0.5"
+     stroke-width="1"
+     id="rect22"
+     style="stroke:#e5d7ff;stroke-opacity:0.5" />
+  <text
+     x="154"
+     y="324"
+     class="b"
+     text-anchor="start"
+     id="text23">outer TLS 1.3, SNI vpn.example.com</text>
+  <rect
+     x="150"
+     y="334"
+     width="730"
+     height="56"
+     rx="6"
+     class="f-tls st-tls"
+     fill-opacity="0.22"
+     stroke-opacity="0.5"
+     stroke-width="1"
+     id="rect23"
+     style="fill:#2dceff;fill-opacity:0.22000003;stroke:#50a1df;stroke-opacity:0.5" />
+  <text
+     x="164"
+     y="357"
+     class="h2"
+     text-anchor="start"
+     id="text24">noir control and data channel</text>
+  <text
+     x="164"
+     y="375"
+     class="s"
+     text-anchor="start"
+     id="text25">authenticated end to end, inside the outer TLS</text>
+  <rect
+     x="422"
+     y="349"
+     width="96"
+     height="26"
+     rx="13"
+     class="panel"
+     id="rect25"
+     style="stroke:#889db2;stroke-opacity:1" />
+  <text
+     x="470"
+     y="366"
+     class="b"
+     text-anchor="middle"
+     id="text26">relayed packets</text>
+  <text
+     x="866"
+     y="357"
+     class="code"
+     text-anchor="end"
+     id="text27">outer=direct</text>
+  <text
+     x="866"
+     y="375"
+     class="s"
+     text-anchor="end"
+     id="text28">in the client status</text>
+  <rect
+     x="524"
+     y="430"
+     width="500"
+     height="56"
+     rx="8"
+     class="box"
+     id="rect30"
+     style="stroke:none;fill:#fbf7e6;fill-opacity:1" />
+  <text
+     x="536"
+     y="452"
+     class="s"
+     text-anchor="start"
+     id="text31">A proxy that terminates TLS to inspect results in noir marking <tspan
+   style="font-weight:bold"
+   id="tspan32">outer=terminated</tspan>.</text>
+  <text
+     x="536"
+     y="467"
+     class="s"
+     text-anchor="start"
+     id="text32">That proxy sees size and timing, but cannot see the encrypted traffic..</text>
+  <metadata
+     id="metadata32">
+    <c2pa:manifest>AAAWgmp1bWIAAAAeanVtZGMycGEAEQAQgAAAqgA4m3EDYzJwYQAAABZcanVtYgAAAEdqdW1kYzJtYQARABCAAACqADibcQN1cm46YzJwYTpjNzc5NmVlYS05NTdkLTQ2ZmYtOTdkOS0zYzRhODY1ODQ0YjgAAAADl2p1bWIAAAApanVtZGMyYXMAEQAQgAAAqgA4m3EDYzJwYS5hc3NlcnRpb25zAAAAALxqdW1iAAAARGp1bWRjYm9yABEAEIAAAKoAOJtxE2MycGEuaW5ncmVkaWVudC52MwAAAAAYYzJzaGW1N1Gp+TvJE2eLlBmv+CAAAABwY2JvcqNpZGM6Zm9ybWF0bWltYWdlL3N2Zyt4bWxqaW5zdGFuY2VJRHgseG1wOmlpZDpmY2VlZTkyYy1lMjBjLTQ2ZmItYmJiNi04YzljNzUyOTlmOTNscmVsYXRpb25zaGlwaHBhcmVudE9mAAAB4mp1bWIAAABBanVtZGNib3IAEQAQgAAAqgA4m3ETYzJwYS5hY3Rpb25zLnYyAAAAABhjMnNow0wif5LcEOryCFwr08H3/QAAAZljYm9yomdhY3Rpb25zgqJmYWN0aW9ua2MycGEub3BlbmVkanBhcmFtZXRlcnOha2luZ3JlZGllbnRzgaJjdXJseC1zZWxmI2p1bWJmPWMycGEuYXNzZXJ0aW9ucy9jMnBhLmluZ3JlZGllbnQudjNkaGFzaFgg/c2kI4L/G8VHZxeDpZt7N3vk0ccQ8GS2tXHdbCi4OwykZmFjdGlvbngdY29tLmFudGhyb3BpYy5jbGF1ZGUucHJvdmlkZWRqcGFyYW1ldGVyc6F4H2NvbS5hbnRocm9waWMub3JpZ2luLWNvbmZpZGVuY2VndW5rbm93bmtkZXNjcmlwdGlvbnhmQ2xhdWRlIHByb3ZpZGVkIHRoaXMgZmlsZSBhdCB0aGUgcmVxdWVzdCBvZiBhIHVzZXIgYW5kIG1heSBoYXZlIGNyZWF0ZWQgb3IgbW9kaWZpZWQgdGhlIGZpbGUgY29udGVudHMubXNvZnR3YXJlQWdlbnShZG5hbWVmQ2xhdWRlcmFsbEFjdGlvbnNJbmNsdWRlZPUAAADIanVtYgAAAEBqdW1kY2JvcgARABCAAACqADibcRNjMnBhLmhhc2guZGF0YQAAAAAYYzJzaKdPWkI/BkXluCSpEWuD7MoAAACAY2JvcqVjYWxnZnNoYTI1NmNwYWRMAAAAAAAAAAAAAAAAZGhhc2hYIF0P+i7cC5TgjhBrRlfoTQoPDbbUV2RphfMI2M7xoK2uZG5hbWVuanVtYmYgbWFuaWZlc3RqZXhjbHVzaW9uc4GiZXN0YXJ0GR3KZmxlbmd0aBkeBAAAAj5qdW1iAAAAJ2p1bWRjMmNsABEAEIAAAKoAOJtxA2MycGEuY2xhaW0udjIAAAACD2Nib3KlY2FsZ2ZzaGEyNTZpc2lnbmF0dXJleE1zZWxmI2p1bWJmPS9jMnBhL3VybjpjMnBhOmM3Nzk2ZWVhLTk1N2QtNDZmZi05N2Q5LTNjNGE4NjU4NDRiOC9jMnBhLnNpZ25hdHVyZWppbnN0YW5jZUlEeCx4bXA6aWlkOmM2MjhkNjcyLWIzYjYtNGZjYi1iNjI4LWVlMjQ4MTVjOWYyMHJjcmVhdGVkX2Fzc2VydGlvbnODomN1cmx4LXNlbGYjanVtYmY9YzJwYS5hc3NlcnRpb25zL2MycGEuaW5ncmVkaWVudC52M2RoYXNoWCD9zaQjgv8bxUdnF4Olm3s3e+TRxxDwZLa1cd1sKLg7DKJjdXJseCpzZWxmI2p1bWJmPWMycGEuYXNzZXJ0aW9ucy9jMnBhLmFjdGlvbnMudjJkaGFzaFgg43mhMN2ddbp1BJPSaGDGmhG6Bo9Q7a8hoHsM3PQapYeiY3VybHgpc2VsZiNqdW1iZj1jMnBhLmFzc2VydGlvbnMvYzJwYS5oYXNoLmRhdGFkaGFzaFggfbPTTBjUpqHfS1Kq5/FT77mBYkwkTRp9bxmClEnbj9B0Y2xhaW1fZ2VuZXJhdG9yX2luZm+jZG5hbWVvQW50aHJvcGljIEZpbGVzZ3ZlcnNpb25lMS4wLjBrc3BlY1ZlcnNpb25lMi40LjAAABA4anVtYgAAAChqdW1kYzJjcwARABCAAACqADibcQNjMnBhLnNpZ25hdHVyZQAAABAIY2JvctKEWQISogEmGCFZAgowggIGMIIBjaADAgECAhRA5aAK7sI50L64g/oGQgU9Z1UTADAKBggqhkjOPQQDAzBJMRcwFQYDVQQKEw5BbnRocm9waWMsIFBCQzEuMCwGA1UEAxMlQW50aHJvcGljIENvbnRlbnQgQ3JlZGVudGlhbHMgUm9vdCBDQTAeFw0yNjA4MDcxODQzNTZaFw0yODA4MDYxOTQzNTZaMEQxFzAVBgNVBAoTDkFudGhyb3BpYywgUEJDMSkwJwYDVQQDEyBBbnRocm9waWMgQ2xhdWRlIENvbnRlbnQgU2lnbmluZzBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABJh6CmvLUBgFFNU0vUKlOVtE6djd17L5SuwX0LemFisBM3dkd/3cyjxFA3Qo5S46fX0/ihY0VZ7mfb9KF703t5OjWDBWMA4GA1UdDwEB/wQEAwIHgDAVBgNVHSUEDjAMBgorBgEEAYPoXgIBMAwGA1UdEwEB/wQCMAAwHwYDVR0jBBgwFoAUzlHiBIFOZFsj+OPEz5o+nMHXXMIwCgYIKoZIzj0EAwMDZwAwZAIwMXMdFJ4BetLLVY7ORuE9noqbbAZOZn/aArXyTwFAZfKrPzxF2vPoJNf1+UCdg1XGAjBwX1zd9WGqYkqmL5SFqw1QySjr1zJfpJM9+1rdDwSPLMOPOjKuiXjoU/pUUeG9RwmhY3BhZFkNngAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPZYQFLyC/V8vkcKZ5gKZRbNM4P9zwat/pdOj3biZMYIr6Ic13reTITx+hZKsSQzgRrmZxmKllVaoI+Dv2F3ecimZBE=</c2pa:manifest>
+  </metadata>
+</svg>

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SPDX-FileCopyrightText: 2026 Cosinium -->
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!--
+  launchd job of the noirvpn client service in a macOS app bundle. Copy it to
+  Contents/Library/LaunchDaemons/noirvpn-service.plist and replace @BUNDLE_ID@
+  with the bundle identifier of the app. The desktop client registers it with
+  SMAppService; the user allows it once in System Settings (Login Items). launchd
+  then runs the daemon as root at each start of the Mac and starts it again if it
+  ends. With no arguments the daemon is a client service (service_default_args):
+  control sockets /var/run/noirvpn/desktop.{control,events}, open to root and to
+  the group admin. The daemon logs to standard error, so the job sends it to a file.
+-->
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>@BUNDLE_ID@.service</string>
+	<key>BundleProgram</key>
+	<string>Contents/MacOS/noirvpn</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>noirvpn</string>
+	</array>
+	<key>AssociatedBundleIdentifiers</key>
+	<array>
+		<string>@BUNDLE_ID@</string>
+	</array>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>KeepAlive</key>
+	<true/>
+	<key>StandardOutPath</key>
+	<string>/var/log/noirvpn-service.log</string>
+	<key>StandardErrorPath</key>
+	<string>/var/log/noirvpn-service.log</string>
+</dict>
+</plist>
