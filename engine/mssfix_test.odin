@@ -40,3 +40,26 @@ test_srv_mss_text :: proc(t: ^testing.T) {
 	// Link: no outer header, so one value.
 	testing.expect_value(t, srv_mss_text({.Link, 1400}, 1400, false, true), "1336 (IPv6 1316) (4 less with aead-epoch)")
 }
+
+@(test)
+test_mtu_fit_warning :: proc(t: ^testing.T) {
+	// The packets fit: no warning.
+	testing.expect_value(t, mtu_fit_warning(1400, false, true, 28), "")
+	testing.expect_value(t, mtu_fit_warning(1420, false, true, 28), "")
+	testing.expect_value(t, mtu_fit_warning(1424, false, true, 28), "")
+	testing.expect_value(t, mtu_fit_warning(1428, false, true, 24), "")
+	testing.expect_value(t, mtu_fit_warning(1428, false, false, 28), "")
+	// A TCP link has no packet limit.
+	testing.expect_value(t, mtu_fit_warning(1500, true, true, 30), "")
+	// 1428 with the epoch data format over IPv6 is 4 bytes over.
+	testing.expect_value(
+		t,
+		mtu_fit_warning(1428, false, true, 28),
+		"with tun-mtu 1428 a full tunnel packet is 1504 bytes on the wire over IPv6, which is more than a 1500-byte path allows, so large packets are split in two and the tunnel gets slow; set tun-mtu to 1424 or lower",
+	)
+	testing.expect_value(
+		t,
+		mtu_fit_warning(1500, false, false, 24),
+		"with tun-mtu 1500 a full tunnel packet is 1552 bytes on the wire over IPv4, which is more than a 1500-byte path allows, so large packets are split in two and the tunnel gets slow; set tun-mtu to 1448 or lower",
+	)
+}

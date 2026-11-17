@@ -48,10 +48,10 @@ test_guest_mtu_pushed_1500 :: proc(t: ^testing.T) {
 		return
 	}
 	defer client.plan_destroy(&plan)
-	testing.expect_value(t, plan.mtu, u32(1428))
+	testing.expect_value(t, plan.mtu, u32(1420))
 	n, text := lowered_notes(&plan)
 	testing.expect_value(t, n, 1)
-	testing.expect_value(t, text, "tun-mtu 1500 lowered to 1428 (the largest on mobile)")
+	testing.expect_value(t, text, "tun-mtu 1500 lowered to 1420 (the largest on mobile)")
 }
 
 @(test)
@@ -73,10 +73,10 @@ test_guest_mtu_profile_9000 :: proc(t: ^testing.T) {
 		return
 	}
 	defer client.plan_destroy(&plan)
-	testing.expect_value(t, plan.mtu, u32(1428))
+	testing.expect_value(t, plan.mtu, u32(1420))
 	n, text := lowered_notes(&plan)
 	testing.expect_value(t, n, 1)
-	testing.expect_value(t, text, "tun-mtu 9000 lowered to 1428 (the largest on mobile)")
+	testing.expect_value(t, text, "tun-mtu 9000 lowered to 1420 (the largest on mobile)")
 }
 
 // The engine default is 1400, which is below the cap: it stays.
@@ -95,7 +95,7 @@ test_guest_mtu_default :: proc(t: ^testing.T) {
 
 @(test)
 test_guest_mtu_pushed_1300 :: proc(t: ^testing.T) {
-	plan, ok := build(t, BASE + ",tun-mtu 1300", 1428)
+	plan, ok := build(t, BASE + ",tun-mtu 1300", 1420)
 	if !ok {
 		return
 	}
@@ -112,15 +112,15 @@ test_guest_mtu_pushed_wins_over_profile :: proc(t: ^testing.T) {
 		return
 	}
 	defer client.plan_destroy(&plan)
-	testing.expect_value(t, plan.mtu, u32(1428))
+	testing.expect_value(t, plan.mtu, u32(1420))
 }
 
 // The plan and the clamp read the same decision.
 @(test)
 test_guest_mtu_decision :: proc(t: ^testing.T) {
-	testing.expect_value(t, guest_mtu(1500, 0), Guest_Mtu{mtu = 1428, wanted = 1500, lowered = true})
-	testing.expect_value(t, guest_mtu(nil, 9000), Guest_Mtu{mtu = 1428, wanted = 9000, lowered = true})
-	testing.expect_value(t, guest_mtu(1428, 0), Guest_Mtu{mtu = 1428, wanted = 1428})
+	testing.expect_value(t, guest_mtu(1500, 0), Guest_Mtu{mtu = 1420, wanted = 1500, lowered = true})
+	testing.expect_value(t, guest_mtu(nil, 9000), Guest_Mtu{mtu = 1420, wanted = 9000, lowered = true})
+	testing.expect_value(t, guest_mtu(1420, 0), Guest_Mtu{mtu = 1420, wanted = 1420})
 	testing.expect_value(t, guest_mtu(1300, 1500), Guest_Mtu{mtu = 1300, wanted = 1300})
 	testing.expect_value(t, guest_mtu(nil, 0).mtu, DEFAULT_TUN_MTU)
 }
@@ -138,11 +138,11 @@ test_guest_mtu_mss_from_cap :: proc(t: ^testing.T) {
 	// A guest: the cap, and the clamp is computed from it.
 	g: Guest
 	d.guest = &g
-	testing.expect_value(t, client_tun_mtu(&d, &po), 1428)
+	testing.expect_value(t, client_tun_mtu(&d, &po), 1420)
 	overhead := 4 + 4 + 16
-	want := mss.mss_ipv4({}, 1428, false, false, overhead)
+	want := mss.mss_ipv4({}, 1420, false, false, overhead)
 	testing.expect_value(t, mss.mss_ipv4({}, client_tun_mtu(&d, &po), false, false, overhead), want)
-	testing.expect_value(t, want, 1428 - 40)
+	testing.expect_value(t, want, 1420 - 40)
 	// The daemon clamp for 1500 is the `mssfix 1492 mtu` form: a different value.
 	testing.expect(t, mss.mss_ipv4({}, 1500, false, false, overhead) != want)
 	po.tun_mtu = 1300

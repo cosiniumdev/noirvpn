@@ -24,6 +24,24 @@ V6_EXTRA :: 20
 @(private)
 INNER_HEADERS :: 40
 
+// The path MTU that the fit check assumes: an Ethernet path.
+PATH_MTU :: 1500
+
+@(private)
+UDP_HEADER :: 8
+
+// The size on the wire of the largest packet of a UDP link: a tunnel packet of
+// `tun_mtu` bytes, the data channel `overhead` (`session_seal_overhead`), the
+// UDP header and the IP header of the link.
+outer_packet :: proc "contextless" (tun_mtu: int, remote_v6: bool, overhead: int) -> int {
+	return tun_mtu + overhead + UDP_HEADER + (40 if remote_v6 else 20)
+}
+
+// The largest tun MTU of a UDP link whose packets fit in `PATH_MTU`.
+fit_tun_mtu :: proc "contextless" (remote_v6: bool, overhead: int) -> int {
+	return PATH_MTU - (40 if remote_v6 else 20) - UDP_HEADER - overhead
+}
+
 // TCP MSS to clamp to for IPv4 connections in the tunnel. 0 means no clamp. IPv6
 // uses `mss_ipv6` of this value.
 //

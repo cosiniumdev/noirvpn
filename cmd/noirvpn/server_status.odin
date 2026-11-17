@@ -48,6 +48,7 @@ srv_log_status :: proc(d: ^Srv, level: Level, what: string) {
 		s.drop_preauth, s.drop_seal, s.drop_tx_busy, s.drop_tcp_backlog, s.drop_tun_write, s.drop_block6_tx, s.drop_block6_rx, s.tcp_slow_closed,
 		s.tun_read_errors, s.sock_send_errors, s.sock_recv_errors, s.sock_blocked, s.tun_paused,
 	) // fmt: skip
+	srv_first_status(d, level, what)
 	srv_sync_off(d)
 	off_status_line(level, &d.off, what)
 	if d.wk != nil {

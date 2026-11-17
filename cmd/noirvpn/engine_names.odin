@@ -206,6 +206,7 @@ logf :: engine.logf
 MSS_NOT_APPLIED :: engine.MSS_NOT_APPLIED
 client_mss_line :: engine.client_mss_line
 mss_for_session :: engine.mss_for_session
+mtu_fit_warning :: engine.mtu_fit_warning
 srv_mss_text :: engine.srv_mss_text
 
 // offload.odin

@@ -8,8 +8,10 @@ import "noir:client"
 import "noir:proto/push"
 
 // Tunnel MTU of a guest. At 1500 the outer UDP packets exceed 1500 and are cut
-// on the way, so the library never goes above this cap. The daemon ignores it.
-GUEST_MAX_MTU :: 1428
+// on the way. 1420 plus 28 bytes of epoch data format overhead plus 8 (UDP) and
+// 40 (IPv6) is 1496, so the packets fit a 1500 byte path over IPv4 and IPv6.
+// The library never goes above this cap. The daemon ignores it.
+GUEST_MAX_MTU :: 1420
 
 Guest_Mtu :: struct {
 	mtu:     int, // the value to use

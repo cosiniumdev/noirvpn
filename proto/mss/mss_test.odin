@@ -71,3 +71,18 @@ test_mss_ipv6_value :: proc(t: ^testing.T) {
 	testing.expect_value(t, mss_ipv6(MIN_MSS), 80)
 	testing.expect_value(t, mss_ipv6(5), 1)
 }
+
+@(test)
+test_outer_packet_fit :: proc(t: ^testing.T) {
+	// Tun MTU 1428 fits the baseline format over IPv6 and is 4 bytes over with epoch keys.
+	testing.expect_value(t, outer_packet(1428, true, 24), 1500)
+	testing.expect_value(t, outer_packet(1428, true, 28), 1504)
+	testing.expect_value(t, outer_packet(1428, false, 28), 1484)
+	testing.expect_value(t, outer_packet(1420, true, 28), 1496)
+	// The largest tun MTU that fits is the one whose packet is exactly the path MTU.
+	testing.expect_value(t, fit_tun_mtu(true, 28), 1424)
+	testing.expect_value(t, fit_tun_mtu(true, 24), 1428)
+	testing.expect_value(t, fit_tun_mtu(false, 28), 1444)
+	testing.expect_value(t, outer_packet(fit_tun_mtu(true, 28), true, 28), PATH_MTU)
+	testing.expect_value(t, outer_packet(fit_tun_mtu(false, 24), false, 24), PATH_MTU)
+}

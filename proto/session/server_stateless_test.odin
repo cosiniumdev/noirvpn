@@ -918,3 +918,69 @@ stateless_vectors :: proc(t: ^testing.T) {
 	}
 	testing.expect(t, cases >= 6, "too few UDP vector cases")
 }
+
+// A tls-auth (SHA256) client against a server with no wrapping: the HMAC is
+// read as the ack array. Packets captured from a phone: one does not decode,
+// one decodes by chance and gets a reply it cannot read (marked odd).
+@(test)
+stateless_wrapped_client_on_plain_server :: proc(t: ^testing.T) {
+	no_decode := [54]u8 {
+		0x38, 0x02, 0x55, 0xe6, 0xe4, 0x71, 0xcd, 0x0e, 0xbf, 0x3d, 0x79, 0xa7, 0xfb, 0x74, 0x23, 0x92, 0x37, 0xc3,
+		0x20, 0xdf, 0xae, 0xb9, 0x4c, 0x16, 0x03, 0xb9, 0x03, 0x4b, 0x94, 0xdd, 0x68, 0xee, 0x4a, 0x92, 0xad, 0xa0,
+		0xbf, 0xf7, 0x4a, 0xda, 0x87, 0x00, 0x00, 0x00, 0x01, 0x6a, 0xfc, 0x4c, 0x65, 0x00, 0x00, 0x00, 0x00, 0x00,
+	}
+	decodes := [54]u8 {
+		0x38, 0x02, 0x55, 0xe6, 0xe4, 0x71, 0xcd, 0x0e, 0xbf, 0x02, 0xe5, 0x60, 0x9f, 0xae, 0x52, 0xe0, 0x16, 0xbb,
+		0xa8, 0x1d, 0xeb, 0x4c, 0x7d, 0x00, 0x69, 0x65, 0x61, 0x23, 0xca, 0xbb, 0xbd, 0x91, 0xa7, 0x30, 0x57, 0x4c,
+		0x50, 0x62, 0x4f, 0xf5, 0x0b, 0x00, 0x00, 0x00, 0x06, 0x6a, 0xfc, 0x4c, 0x65, 0x00, 0x00, 0x00, 0x00, 0x00,
+	}
+	d := stateless_duo(t, {mode = .None})
+	if d == nil {
+		return
+	}
+	defer duo_free(d)
+	from := d.peers[0].addr
+
+	res := first(d, no_decode[:], from, d.now)
+	testing.expect_value(t, res.kind, First_Kind.Drop)
+	testing.expect_value(t, res.reason, First_Drop.Decode)
+	testing.expect_value(t, d.sh.stats.by_reason[.Decode], u64(1))
+
+	res = first(d, decodes[:], from, d.now)
+	testing.expect_value(t, res.kind, First_Kind.Reply)
+	testing.expect(t, res.odd_reset, "a reset with acks is not marked odd")
+	testing.expect_value(t, d.sh.stats.odd_resets, u64(1))
+
+	// The reset of a real plain client is not odd.
+	f: Flight
+	if flight_make(t, d, &f) {
+		res = first(d, f.reset.b[:f.reset.n], f.from, f.now)
+		testing.expect_value(t, res.kind, First_Kind.Reply)
+		testing.expect(t, !res.odd_reset, "a plain reset is marked odd")
+	}
+}
+
+// A plain client against a tls-auth server: counted as an unwrap drop.
+@(test)
+stateless_plain_client_on_tls_auth_server :: proc(t: ^testing.T) {
+	plain := stateless_duo(t, {mode = .None})
+	if plain == nil {
+		return
+	}
+	defer duo_free(plain)
+	buf: [LINK_BUF_SIZE]u8
+	n := session_poll_tx(&plain.peers[0].c, buf[:], plain.now)
+	if !testing.expect(t, n > 0, "the client generated no first packet") {
+		return
+	}
+	d := stateless_duo(t, {mode = .Tls_Auth})
+	if d == nil {
+		return
+	}
+	defer duo_free(d)
+	res := first(d, buf[:n], d.peers[0].addr, d.now)
+	testing.expect_value(t, res.kind, First_Kind.Drop)
+	testing.expect_value(t, res.reason, First_Drop.Unwrap)
+	testing.expect_value(t, d.sh.stats.by_reason[.Unwrap], u64(1))
+	testing.expect_value(t, d.sh.stats.dropped, u64(1))
+}

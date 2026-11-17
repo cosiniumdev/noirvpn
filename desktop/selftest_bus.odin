@@ -590,14 +590,14 @@ selftest_link :: proc(base: ^App, failed: ^int, check: proc(name: string, ok: bo
 		conn_settings_clear(c)
 		fresh, _ := json.parse_string(
 			fmt.tprintf(
-				`{{"log_file":"C:\\ProgramData\\noirvpn\\desktop.log","bus":{{"run":"%s","seq":%d}},"client":{{"state":"up","vpn4":"10.8.0.2","settings":{{"ifconfig":{{"addr4":"10.8.0.2","gateway4":"10.8.0.1"}},"mtu":1428,"mss4":1388,"mss6":1368,"peer_id":7,"routes":[],"push":["route-gateway 10.8.0.1","topology subnet"]}}}}}}`,
+				`{{"log_file":"C:\\ProgramData\\noirvpn\\desktop.log","bus":{{"run":"%s","seq":%d}},"client":{{"state":"up","vpn4":"10.8.0.2","settings":{{"ifconfig":{{"addr4":"10.8.0.2","gateway4":"10.8.0.1"}},"mtu":1420,"mss4":1380,"mss6":1360,"peer_id":7,"routes":[],"push":["route-gateway 10.8.0.1","topology subnet"]}}}}}}`,
 				run2,
 				seq2,
 			),
 			allocator = context.temp_allocator,
 		)
 		apply_status(app, fresh, app.now)
-		check("link: the settings of status give the server address and the MSS", c.phase == .Up && c.settings_ok && c.peer4 == "10.8.0.1" && c.mss4 == 1388 && c.mss6 == 1368 && c.mtu == 1428 && c.peer_id == 7 && len(c.pushed) == 2, failed)
+		check("link: the settings of status give the server address and the MSS", c.phase == .Up && c.settings_ok && c.peer4 == "10.8.0.1" && c.mss4 == 1380 && c.mss6 == 1360 && c.mtu == 1420 && c.peer_id == 7 && len(c.pushed) == 2, failed)
 		check("link: status gives the log file", l.log_file == `C:\ProgramData\noirvpn\desktop.log`, failed)
 	}
 

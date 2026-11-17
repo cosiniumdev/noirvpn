@@ -1211,6 +1211,9 @@ handle_up_finish :: proc(d: ^Daemon, po: ^push.Pushed_Options) {
 		session.session_data_format_name(&d.s),
 	) // fmt: skip
 	logf(.Info, "TCP MSS clamp: %s", client_mss_line(d))
+	if text := client_mtu_fit_warning(d, po); text != "" {
+		logf(.Warn, "%s", text)
+	}
 	arm_limit_timer(d)
 	client_ev_tunnel_settings(d, po)
 	client_note_state(d)

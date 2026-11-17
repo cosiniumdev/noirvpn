@@ -571,3 +571,13 @@ wipe :: proc(b: []u8) {
 		mem.zero_explicit(raw_data(b), len(b))
 	}
 }
+
+// What a listening IPv6 socket does with IPv4. `udp6` and the other v6 names
+// on any address take IPv4 too, as in OpenVPN. Only an IPv6 host address makes
+// the socket IPv6 only.
+listen_v6_mode :: proc(l: config.Listen) -> net.V6_Mode {
+	if l.family == .V6 && l.host != "" {
+		return .V6_Only
+	}
+	return .Dual_Stack
+}

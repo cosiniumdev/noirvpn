@@ -13,6 +13,17 @@ licensed under Apache-2.0.
   <img src="docs/images/server-architecture.svg" alt="The noirvpn server: clients on raw UDP, raw TCP, TLS and WebSocket reach the listeners of the daemon; the daemon runs the control channel, talks to tools on the control bus, and can hand the data path to an optional userspace DCO service" width="100%">
 </p>
 
+## What's here
+
+The programs:
+
+| Program | Systems | Use |
+|---------|---------|-----|
+| `noirvpn` | Linux, macOS, Windows | The VPN daemon: client and server (server on Linux only). |
+| `noirvpnctl` | Linux, macOS, Windows | CLI to control a running daemon from the shell: status, peers, profiles, connect and disconnect. |
+| `noirvpn-hook` | Linux | Run commands on daemon events; does not need root. |
+| `noirvpn-desktop` | Linux, macOS, Windows | The graphical desktop app, using SDL3 rendering. It has a profile manager and interacts with `noirvpn` client. |
+
 ## What is different
 
 **Smaller surface.** Noir keeps the parts of OpenVPN that current
@@ -57,6 +68,10 @@ channel to the `ovpn` module of the Linux kernel (Linux 6.16 or later).
 passes the data channel to a separate userspace DCO service over a documented
 local socket protocol. noirvpn will handle the control channel while the service
 passes the packets.
+
+## Building
+
+See [build/README.md](build/README.md) for build instructions.
 
 ## Quick start
 
@@ -158,6 +173,22 @@ Follow the steps below to ensure that they are compatible.
 difference, and the [option reference](docs/options.md) gives the status of
 each OpenVPN option.
 
+## Source layout
+
+| Directory | Content |
+|--------|---------|
+| `cmd/` | The command-line programs. |
+| `desktop/` | The desktop app. |
+| `engine/` | The daemon core: sessions, data path, client service, tls transport. |
+| `client/`, `server/` | Client and server logic: routes, DNS, address pools, peer authentication. |
+| `proto/` | The OpenVPN protocol: config parser, packet formats, reliability layer, keys, TLS and data channel crypto. |
+| `bus/` | The control bus: JSON events and requests over nng (named pipes on Windows). |
+| `platform/` | System interfaces: tun devices, sockets, netlink, kernel DCO. |
+| `docs/` | Project and user documentation. |
+| `examples/` | A sample `auth-external` controller in Go and a script that makes a test key, its certificate and its `peer-keys` line. |
+| `build/`, `packaging/` | Build harness: Windows installer, Linux and macOS service files. |
+
+
 ## Documentation
 
 | Document | Content |
@@ -177,6 +208,10 @@ noirvpn runs on Linux. On Windows it runs as a client, in a console or as a serv
 ## License
 
 Copyright 2026 Cosinium. Licensed under Apache-2.0; see [LICENSE](LICENSE) and [NOTICE](NOTICE).
+
+The name _noirvpn_ is used for this product (noir meaning black, as the tunnel
+is a blackbox to an outsider); it has no association with any service
+that might use the same name.
 
 "OpenVPN" is a trademark of OpenVPN Inc. noirvpn is not affiliated with
 OpenVPN Inc. and uses the name only to describe protocol compatibility.

@@ -305,10 +305,12 @@ Server_Shared :: struct {
 
 // Counters of `server_first_packet` for telemetry and tests.
 First_Stats :: struct {
-	replies:  u64,
-	accepted: u64,
-	dropped:  u64,
-	rate_hit: u64,
+	replies:    u64,
+	accepted:   u64,
+	dropped:    u64,
+	rate_hit:   u64,
+	odd_resets: u64,
+	by_reason:  [First_Drop]u64,
 }
 
 // Sets up the shared state of a listening server.
@@ -758,6 +760,10 @@ First_Result :: struct {
 	reason: First_Drop,
 	// Reply: the length written to `out`.
 	n:      int,
+	// Reply: the reset acks something or has a msg id other than 0. A real
+	// reset has neither; on a server with no wrapping this is usually a client
+	// that wraps its packets (tls-auth or tls-crypt) and cannot read the reply.
+	odd_reset: bool,
 	// Accept
 	accept: Accept_Info,
 }
@@ -765,6 +771,7 @@ First_Result :: struct {
 @(private)
 first_drop :: proc(sh: ^Server_Shared, why: First_Drop) -> First_Result {
 	sh.stats.dropped += 1
+	sh.stats.by_reason[why] += 1
 	return {kind = .Drop, reason = why}
 }
 
@@ -909,18 +916,20 @@ server_first_packet :: proc(sh: ^Server_Shared, pkt: []u8, from: []u8, now: Time
 	}
 
 	// 5: by opcode.
+	// 3.2 does not check the ids of a reset; they only mark it as odd for the log.
+	odd := cp.ack_count != 0 || cp.packet_id != 0
 	#partial switch op {
 	case .Hard_Reset_Client_V2:
 		if why := take_initial(sh, from, now); why != .None {
 			return first_drop(sh, why)
 		}
-		return stateless_reply(sh, client_sid, from, now, unix_now, false, &reply_crypt, out)
+		return odd_reply(sh, stateless_reply(sh, client_sid, from, now, unix_now, false, &reply_crypt, out), odd)
 	case .Hard_Reset_Client_V3:
 		if why := take_initial(sh, from, now); why != .None {
 			return first_drop(sh, why)
 		}
 		if early {
-			return stateless_reply(sh, client_sid, from, now, unix_now, true, &reply_crypt, out)
+			return odd_reply(sh, stateless_reply(sh, client_sid, from, now, unix_now, true, &reply_crypt, out), odd)
 		}
 		if sh.force_cookie {
 			return first_drop(sh, .Force_Cookie)
@@ -953,6 +962,16 @@ server_first_packet :: proc(sh: ^Server_Shared, pkt: []u8, from: []u8, now: Time
 	}
 	sh.stats.accepted += 1
 	return {kind = .Accept, accept = {client_sid = client_sid, server_sid = cp.ack_remote_sid, cookie = true, from = copy_addr(from)}}
+}
+
+@(private)
+odd_reply :: proc(sh: ^Server_Shared, r: First_Result, odd: bool) -> First_Result {
+	r := r
+	if odd && r.kind == .Reply {
+		r.odd_reset = true
+		sh.stats.odd_resets += 1
+	}
+	return r
 }
 
 @(private)

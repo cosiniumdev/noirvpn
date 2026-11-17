@@ -578,6 +578,7 @@ srv_first_packet :: proc(d: ^Srv, ln: ^Listener, pkt: []u8, from: net.Endpoint, 
 	}
 	unix := unix_now()
 	res := session.server_first_packet(ln.sh, pkt, fb, now, unix, d.link[:])
+	srv_first_log(d, ln.sh, &res, from, fb)
 	switch res.kind {
 	case .Drop:
 		return

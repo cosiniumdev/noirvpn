@@ -229,6 +229,10 @@ Srv :: struct {
 
 	stats:      Srv_Stats,
 	agg:        session.Counters, // the counters of sessions that have ended
+	first_log:  First_Log, // server_first_log.odin
+	// The kinds of client that got the tunnel MTU warning (server_mss.odin).
+	mtu_warned:   [8]Mtu_Warned,
+	mtu_warned_n: int,
 
 	// The hash file check (server_password.odin).
 	pw:           Pw_State,
@@ -725,7 +729,7 @@ srv_listen :: proc(d: ^Srv, l: config.Listen) -> bool {
 		}
 		ep = eps[0]
 	}
-	v6_mode := net.V6_Mode.V6_Only if l.family == .V6 else net.V6_Mode.Dual_Stack
+	v6_mode := listen_v6_mode(l)
 	try_v6 := !have_host && l.family != .V4
 	if !have_host {
 		ep.port = port

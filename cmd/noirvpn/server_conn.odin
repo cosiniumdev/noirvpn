@@ -722,6 +722,7 @@ conn_on_up :: proc(d: ^Srv, c: ^Conn) {
 	c.cipher = session.session_cipher(&c.s)
 	c.data_format = session.session_data_format_name(&c.s)
 	c.mss4 = srv_mss(d, c)
+	srv_warn_mtu_fit(d, c)
 	if c.limit_secs > 0 {
 		c.limit_at = now + time.Duration(c.limit_secs) * time.Second
 	}

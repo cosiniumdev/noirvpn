@@ -284,7 +284,7 @@ conn_up :: proc(c: ^Conn, now: f64) {
 	for l in ([?]string{"route 10.0.0.0 255.0.0.0", "route 172.16.0.0 255.240.0.0", "dhcp-option DNS 10.8.0.1", "dhcp-option DOMAIN corp.example.com", "route-gateway 10.8.0.1", "topology subnet", "ping 10", "ping-restart 60", "ifconfig 10.8.0.6 255.255.255.0", "peer-id 3", "cipher AES-256-GCM"}) {
 		append(&c.pushed, strings.clone(l))
 	}
-	c.mtu, c.mss4, c.mss6, c.peer_id = 1500, 1388, 1368, 3
+	c.mtu, c.mss4, c.mss6, c.peer_id = 1500, 1380, 1360, 3
 	c.settings_ok = true
 	conn_push(c)
 }

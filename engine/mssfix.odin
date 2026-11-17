@@ -62,6 +62,34 @@ client_mss_line :: proc(d: ^Daemon) -> string {
 	return mss_text(d.mss4)
 }
 
+// The warning for a UDP link whose full tunnel packets are larger than a
+// 1500-byte path, or "" when they fit. Such packets are sent as two IP
+// fragments, which costs most of the throughput. A TCP link is a stream and
+// has no packet limit. `overhead` is `session_seal_overhead`.
+//
+// Example: tun MTU 1428, IPv6, epoch data format (28 bytes):
+//
+//	1428 + 28 + 8 (UDP) + 40 (IPv6) = 1504 > 1500
+mtu_fit_warning :: proc(tun_mtu: int, tcp, remote_v6: bool, overhead: int, allocator := context.temp_allocator) -> string {
+	if tcp {
+		return ""
+	}
+	outer := mss.outer_packet(tun_mtu, remote_v6, overhead)
+	if outer <= mss.PATH_MTU {
+		return ""
+	}
+	return fmt.aprintf(
+		"with tun-mtu %d a full tunnel packet is %d bytes on the wire over %s, which is more than a %d-byte path allows, so large packets are split in two and the tunnel gets slow; set tun-mtu to %d or lower",
+		tun_mtu, outer, "IPv6" if remote_v6 else "IPv4", mss.PATH_MTU, mss.fit_tun_mtu(remote_v6, overhead),
+		allocator = allocator,
+	) // fmt: skip
+}
+
+// The warning of `mtu_fit_warning` for the client's session that just came up.
+client_mtu_fit_warning :: proc(d: ^Daemon, po: ^push.Pushed_Options) -> string {
+	return mtu_fit_warning(client_tun_mtu(d, po), d.proto == .Tcp, is_v6(d.endpoint.address), session.session_seal_overhead(&d.s))
+}
+
 // The text of the line when the backend cannot clamp.
 MSS_NOT_APPLIED :: "not applied (the kernel data path does not clamp)"
 

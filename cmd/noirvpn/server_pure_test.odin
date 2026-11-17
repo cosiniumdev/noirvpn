@@ -727,3 +727,30 @@ test_iroutes_add_limit_and_gone_routes :: proc(t: ^testing.T) {
 	testing.expect_value(t, len(failures), 0)
 	testing.expect_value(t, len(held), 0)
 }
+
+@(test)
+listen_v6_mode_is_dual_stack_without_a_host :: proc(t: ^testing.T) {
+	testing.expect_value(t, listen_v6_mode({proto = .Udp, family = .V6}), net.V6_Mode.Dual_Stack)
+	testing.expect_value(t, listen_v6_mode({proto = .Tcp, family = .V6}), net.V6_Mode.Dual_Stack)
+	testing.expect_value(t, listen_v6_mode({proto = .Udp, family = .Any}), net.V6_Mode.Dual_Stack)
+	testing.expect_value(t, listen_v6_mode({host = "2001:db8::1", proto = .Udp, family = .V6}), net.V6_Mode.V6_Only)
+	testing.expect_value(t, listen_v6_mode({host = "2001:db8::1", proto = .Udp, family = .Any}), net.V6_Mode.Dual_Stack)
+}
+
+@(test)
+test_mtu_warned_take :: proc(t: ^testing.T) {
+	list: [2]Mtu_Warned
+	n := 0
+	v6_epoch := Mtu_Warned{v6 = true, overhead = 28}
+	// The first client of a kind warns, the next ones of that kind do not.
+	testing.expect(t, mtu_warned_take(list[:], &n, v6_epoch))
+	testing.expect(t, !mtu_warned_take(list[:], &n, v6_epoch))
+	// Another data format or address family is another kind.
+	testing.expect(t, mtu_warned_take(list[:], &n, {v6 = true, overhead = 24}))
+	testing.expect(t, !mtu_warned_take(list[:], &n, {v6 = true, overhead = 24}))
+	testing.expect_value(t, n, 2)
+	// A full list keeps no more kinds, so such a kind warns each time.
+	testing.expect(t, mtu_warned_take(list[:], &n, {v6 = false, overhead = 28}))
+	testing.expect(t, mtu_warned_take(list[:], &n, {v6 = false, overhead = 28}))
+	testing.expect_value(t, n, 2)
+}
