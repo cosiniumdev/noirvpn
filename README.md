@@ -9,6 +9,13 @@ and reads OpenVPN configuration files. It is an independent implementation,
 written from scratch in [Odin](https://odin-lang.org) and
 licensed under Apache-2.0.
 
+<div align="center">
+  <video src="https://github.com/user-attachments/assets/5f1f744e-5f10-4f3a-b96d-8dd30460d043" controls></video>
+  <p><em>noir client on Windows connecting to OpenVPN server and noir server</em></p>
+</div>
+
+## Architecture
+
 <p align="center">
   <img src="docs/images/server-architecture.svg" alt="The noirvpn server: clients on raw UDP, raw TCP, TLS and WebSocket reach the listeners of the daemon; the daemon runs the control channel, talks to tools on the control bus, and can hand the data path to an optional userspace DCO service" width="100%">
 </p>
