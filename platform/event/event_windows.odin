@@ -9,20 +9,33 @@ import win "core:sys/windows"
 import "core:time"
 
 // Event loop on WaitForMultipleObjects. One wait takes at most 64 objects:
-// the wake event, the timer and `MAX_REGISTRATIONS` registrations (enough for
-// a client).
+// the wake event, the timer, one event for all sockets and `MAX_HANDLES`
+// handles.
 //
-// Sockets: `add_fd` (SOCKET value as an i32), each with its own WSA event
-// through WSAEventSelect. Level triggering: before blocking and after waking,
-// the loop asks WSAPoll which sockets are ready, so a socket with data left is
-// reported again.
+// Sockets: `add_fd` (SOCKET value as an i32). All sockets of a loop use one
+// WSA event (WSAEventSelect). That event only ends the wait, so the number of
+// sockets has no fixed limit. Level triggering: before blocking and after
+// waking, the loop asks WSAPoll which sockets are ready, so a socket with
+// data left is reported again. That is one call for all sockets.
+//
+// The events that Winsock recorded for a socket (WSAEnumNetworkEvents) are
+// read only for an edge triggered socket and for a socket with write
+// interest. There they report a failed connect, which WSAPoll reports only
+// since Windows 10 2004. A socket that only waits for data costs no system
+// call of its own.
 //
 // Other objects (wintun read event, overlapped pipe event): `add_handle`,
 // reported when signaled. The wait resets an auto-reset event, so a handler
 // that stops before its source is empty calls `handle_again`.
 Loop :: struct {
 	allocator:  mem.Allocator,
-	regs:       [MAX_REGISTRATIONS]Registration,
+	hregs:      [MAX_HANDLES]Registration, // handles
+	socks:      [dynamic]Registration, // sockets; the free slots are a list through `fd`
+	sock_free:  i32, // first free slot of `socks`, -1 for none
+	by_fd:      map[i32]i32, // socket -> slot of `socks`
+	nsock:      int, // registered sockets
+	nenum:      int, // of them, sockets whose recorded events are read
+	sock_event: win.HANDLE, // manual-reset WSA event of all sockets
 	timers:     Timer_Heap,
 	now:        time.Duration, // cached clock
 	stop_flag:  bool, // set by `stop`, possibly from another thread
@@ -31,17 +44,23 @@ Loop :: struct {
 	gen:        u32,
 	// Scratch for one `wait`.
 	handles:    [MAXIMUM_WAIT_OBJECTS]win.HANDLE,
-	owners:     [MAXIMUM_WAIT_OBJECTS]i32, // registration index of each handle, -1 for none
-	polls:      [MAX_REGISTRATIONS]win.WSA_POLLFD,
-	poll_regs:  [MAX_REGISTRATIONS]i32,
-	ready:      [MAX_REGISTRATIONS]Pending,
+	owners:     [MAXIMUM_WAIT_OBJECTS]i32, // what each handle is: a slot of `hregs`, or a SIG value
+	polls:      [dynamic]win.WSA_POLLFD,
+	poll_regs:  [dynamic]i32,
+	ready:      [dynamic]Pending,
 }
 
 // The limit of WaitForMultipleObjects.
 MAXIMUM_WAIT_OBJECTS :: 64
 
-// The most registrations (sockets and handles together) in one loop.
-MAX_REGISTRATIONS :: MAXIMUM_WAIT_OBJECTS - 2
+// The most handles of `add_handle` in one loop. Sockets have no limit.
+MAX_HANDLES :: MAXIMUM_WAIT_OBJECTS - 3
+
+// What ended a wait, when it was not a handle of `hregs`.
+@(private)
+SIG_NONE :: -1 // the wake event, the timer or the timeout
+@(private)
+SIG_SOCKETS :: -2 // the event of the sockets
 
 // Called when a handle registered with `add_handle` is signaled.
 Handle_Handler :: proc(loop: ^Loop, handle: win.HANDLE, user: rawptr)
@@ -56,21 +75,23 @@ Reg_Kind :: enum u8 {
 @(private)
 Registration :: struct {
 	kind:     Reg_Kind,
-	fd:       i32, // Socket
-	object:   win.HANDLE, // what the loop waits on: the WSA event of a socket, or the caller's handle
+	fd:       i32, // Socket; in a free slot of `socks`, the next free slot or -1
+	object:   win.HANDLE, // Handle: the caller's handle
 	interest: Interest,
 	handler:  Fd_Handler,
 	hhandler: Handle_Handler,
 	user:     rawptr,
 	gen:      u32,
 	again:    bool, // Handle: report on the next wait without a signal
+	slot:     i32, // Socket: its entry of `ready` in the current collect, -1 for none
 }
 
 @(private)
 Pending :: struct {
-	index: i32,
-	gen:   u32,
-	ready: Ready,
+	index:  i32,
+	gen:    u32,
+	ready:  Ready,
+	handle: bool, // `index` is a slot of `hregs`; if not, of `socks`
 }
 
 @(private)
@@ -120,10 +141,17 @@ now :: proc "contextless" () -> time.Duration {
 init :: proc(loop: ^Loop, allocator := context.allocator) -> Error {
 	loop^ = {
 		allocator = allocator,
+		sock_free = -1,
 	}
+	loop.socks.allocator = allocator
+	loop.polls.allocator = allocator
+	loop.poll_regs.allocator = allocator
+	loop.ready.allocator = allocator
+	loop.by_fd.allocator = allocator
 	timers_init(loop, allocator)
 	loop.wake_event = win.CreateEventW(nil, false, false, nil)
-	if loop.wake_event == nil {
+	loop.sock_event = win.WSACreateEvent()
+	if loop.wake_event == nil || loop.sock_event == nil {
 		destroy(loop)
 		return .System
 	}
@@ -135,7 +163,7 @@ init :: proc(loop: ^Loop, allocator := context.allocator) -> Error {
 }
 
 destroy :: proc(loop: ^Loop) {
-	for &r in loop.regs {
+	for &r in loop.socks {
 		if r.kind == .Socket {
 			release_socket(&r)
 		}
@@ -143,10 +171,18 @@ destroy :: proc(loop: ^Loop) {
 	if loop.wake_event != nil {
 		win.CloseHandle(loop.wake_event)
 	}
+	if loop.sock_event != nil {
+		win.WSACloseEvent(loop.sock_event)
+	}
 	if loop.timer != nil {
 		win.CloseHandle(loop.timer)
 	}
 	heap_destroy(&loop.timers)
+	delete(loop.socks)
+	delete(loop.polls)
+	delete(loop.poll_regs)
+	delete(loop.ready)
+	delete(loop.by_fd)
 	loop^ = {}
 }
 
@@ -172,19 +208,15 @@ network_events :: proc "contextless" (interest: Interest) -> i32 {
 	return ev
 }
 
+// True for a socket whose recorded events the loop reads (see `Loop`).
 @(private)
-find_socket :: proc(loop: ^Loop, fd: i32) -> int {
-	for &r, i in loop.regs {
-		if r.kind == .Socket && r.fd == fd {
-			return i
-		}
-	}
-	return -1
+reads_events :: proc "contextless" (interest: Interest) -> bool {
+	return .Edge in interest || .Write in interest
 }
 
 @(private)
 find_handle :: proc(loop: ^Loop, h: win.HANDLE) -> int {
-	for &r, i in loop.regs {
+	for &r, i in loop.hregs {
 		if r.kind == .Handle && r.object == h {
 			return i
 		}
@@ -192,21 +224,32 @@ find_handle :: proc(loop: ^Loop, h: win.HANDLE) -> int {
 	return -1
 }
 
+// Takes a free slot of `socks`, or adds one. Returns -1 with no memory.
 @(private)
-free_slot_index :: proc(loop: ^Loop) -> int {
-	for &r, i in loop.regs {
-		if r.kind == .Free {
-			return i
-		}
+sock_slot_take :: proc(loop: ^Loop) -> i32 {
+	i := loop.sock_free
+	if i >= 0 {
+		loop.sock_free = loop.socks[i].fd
+		return i
 	}
-	return -1
+	if _, err := append(&loop.socks, Registration{}); err != nil {
+		return -1
+	}
+	return i32(len(loop.socks) - 1)
+}
+
+@(private)
+sock_slot_give :: proc(loop: ^Loop, i: i32) {
+	loop.socks[i] = {
+		fd = loop.sock_free,
+	}
+	loop.sock_free = i
 }
 
 @(private)
 release_socket :: proc(r: ^Registration) {
 	// Fails when the socket was closed already: nothing is left to undo then.
 	win.WSAEventSelect(socket_of(r.fd), nil, 0)
-	win.WSACloseEvent(r.object)
 }
 
 // Start watching a socket (`Socket.fd` of platform/net). The loop does not
@@ -216,43 +259,55 @@ add_fd :: proc(loop: ^Loop, fd: i32, interest: Interest, handler: Fd_Handler, us
 	if fd < 0 {
 		return .Bad_Fd
 	}
-	if find_socket(loop, fd) >= 0 {
+	if fd in loop.by_fd {
 		return .Exists
 	}
-	i := free_slot_index(loop)
+	i := sock_slot_take(loop)
 	if i < 0 {
-		return .Register_Failed
+		return .Out_Of_Memory
 	}
-	ev := win.WSACreateEvent()
-	if ev == nil {
-		return .System
+	loop.by_fd[fd] = i
+	if fd not_in loop.by_fd {
+		sock_slot_give(loop, i)
+		return .Out_Of_Memory
 	}
-	if win.WSAEventSelect(socket_of(fd), ev, network_events(interest)) != 0 {
-		win.WSACloseEvent(ev)
+	if win.WSAEventSelect(socket_of(fd), loop.sock_event, network_events(interest)) != 0 {
+		delete_key(&loop.by_fd, fd)
+		sock_slot_give(loop, i)
 		return .Register_Failed
 	}
 	loop.gen += 1
-	loop.regs[i] = {
+	loop.socks[i] = {
 		kind     = .Socket,
 		fd       = fd,
-		object   = ev,
 		interest = interest,
 		handler  = handler,
 		user     = user,
 		gen      = loop.gen,
+		slot     = -1,
+	}
+	loop.nsock += 1
+	if reads_events(interest) {
+		loop.nenum += 1
 	}
 	return .None
 }
 
 // Change what a registered socket is watched for.
 modify_fd :: proc(loop: ^Loop, fd: i32, interest: Interest) -> Error {
-	i := find_socket(loop, fd)
-	if i < 0 {
+	i, found := loop.by_fd[fd]
+	if !found {
 		return .Not_Found
 	}
-	r := &loop.regs[i]
-	if win.WSAEventSelect(socket_of(fd), r.object, network_events(interest)) != 0 {
+	r := &loop.socks[i]
+	if win.WSAEventSelect(socket_of(fd), loop.sock_event, network_events(interest)) != 0 {
 		return .Register_Failed
+	}
+	if reads_events(r.interest) {
+		loop.nenum -= 1
+	}
+	if reads_events(interest) {
+		loop.nenum += 1
 	}
 	r.interest = interest
 	return .None
@@ -261,18 +316,25 @@ modify_fd :: proc(loop: ^Loop, fd: i32, interest: Interest) -> Error {
 // Stop watching a socket. Events already collected for it in this `wait` are
 // dropped. It is fine to call this after the socket was closed.
 remove_fd :: proc(loop: ^Loop, fd: i32) -> Error {
-	i := find_socket(loop, fd)
-	if i < 0 {
+	i, found := loop.by_fd[fd]
+	if !found {
 		return .Not_Found
 	}
-	release_socket(&loop.regs[i])
-	loop.regs[i] = {}
+	r := &loop.socks[i]
+	release_socket(r)
+	if reads_events(r.interest) {
+		loop.nenum -= 1
+	}
+	loop.nsock -= 1
+	delete_key(&loop.by_fd, fd)
+	sock_slot_give(loop, i)
 	return .None
 }
 
 // Start watching a waitable handle (event, process, thread). The handler runs
 // when it is signaled. The loop does not own the handle. A manual-reset event
-// is reported on every `wait` while it stays set.
+// is reported on every `wait` while it stays set. A loop takes `MAX_HANDLES`
+// handles.
 add_handle :: proc(loop: ^Loop, h: win.HANDLE, handler: Handle_Handler, user: rawptr = nil) -> Error {
 	if h == nil || h == win.INVALID_HANDLE_VALUE {
 		return .Bad_Fd
@@ -280,12 +342,18 @@ add_handle :: proc(loop: ^Loop, h: win.HANDLE, handler: Handle_Handler, user: ra
 	if find_handle(loop, h) >= 0 {
 		return .Exists
 	}
-	i := free_slot_index(loop)
+	i := -1
+	for &r, k in loop.hregs {
+		if r.kind == .Free {
+			i = k
+			break
+		}
+	}
 	if i < 0 {
 		return .Register_Failed
 	}
 	loop.gen += 1
-	loop.regs[i] = {
+	loop.hregs[i] = {
 		kind     = .Handle,
 		object   = h,
 		hhandler = handler,
@@ -301,7 +369,7 @@ remove_handle :: proc(loop: ^Loop, h: win.HANDLE) -> Error {
 	if i < 0 {
 		return .Not_Found
 	}
-	loop.regs[i] = {}
+	loop.hregs[i] = {}
 	return .None
 }
 
@@ -313,39 +381,70 @@ handle_again :: proc(loop: ^Loop, h: win.HANDLE) -> Error {
 	if i < 0 {
 		return .Not_Found
 	}
-	loop.regs[i].again = true
+	loop.hregs[i].again = true
 	return .None
 }
 
-// Collect what is ready now, without blocking. `signaled`: the registration
-// whose handle the last wait returned, or -1. Returns the number of entries
+// Collect what is ready now, without blocking. `signaled`: what ended the
+// last wait (a slot of `hregs` or a SIG value). Returns the number of entries
 // in `loop.ready`.
 @(private)
 collect :: proc(loop: ^Loop, signaled: int) -> (n: int, err: Error) {
+	// The scratch lists grow here. A handler can call `add_fd`, and `wait`
+	// reads `ready` at that time.
+	if want := cap(loop.socks); len(loop.polls) < want {
+		if resize(&loop.ready, want + MAX_HANDLES) != nil || resize(&loop.poll_regs, want) != nil || resize(&loop.polls, want) != nil {
+			return 0, .Out_Of_Memory
+		}
+	}
+	if len(loop.ready) < MAX_HANDLES && resize(&loop.ready, MAX_HANDLES) != nil {
+		return 0, .Out_Of_Memory
+	}
+
+	for &r, i in loop.hregs {
+		if r.kind != .Handle {
+			continue
+		}
+		hit := r.again || i == signaled
+		if !hit {
+			hit = win.WaitForSingleObject(r.object, 0) == win.WAIT_OBJECT_0
+		}
+		if hit {
+			r.again = false
+			loop.ready[n] = {
+				index  = i32(i),
+				gen    = r.gen,
+				ready  = {.Read},
+				handle = true,
+			}
+			n += 1
+		}
+	}
+	if loop.nsock == 0 {
+		return n, .None
+	}
+
+	// `fresh`: Winsock recorded an event since the last reset. The reset
+	// comes before the reads, so an event that arrives later sets the event
+	// again and is not lost.
+	fresh := signaled == SIG_SOCKETS
+	if !fresh && loop.nenum > 0 {
+		fresh = win.WaitForSingleObject(loop.sock_event, 0) == win.WAIT_OBJECT_0
+	}
+	if fresh {
+		win.ResetEvent(loop.sock_event)
+	}
 	np := 0
-	for &r, i in loop.regs {
-		switch r.kind {
-		case .Free:
-		case .Handle:
-			hit := r.again || i == signaled
-			if !hit {
-				hit = win.WaitForSingleObject(r.object, 0) == win.WAIT_OBJECT_0
-			}
-			if hit {
-				r.again = false
-				loop.ready[n] = {
-					index = i32(i),
-					gen   = r.gen,
-					ready = {.Read},
-				}
-				n += 1
-			}
-		case .Socket:
+	for &r, i in loop.socks {
+		if r.kind != .Socket {
+			continue
+		}
+		r.slot = -1
+		if fresh && reads_events(r.interest) {
 			ne: win.WSANETWORKEVENTS
 			ready: Ready
-			// Resets the WSA event and returns the events recorded since the
-			// last call.
-			if win.WSAEnumNetworkEvents(socket_of(r.fd), r.object, &ne) == 0 {
+			// Returns the events recorded since the last call.
+			if win.WSAEnumNetworkEvents(socket_of(r.fd), nil, &ne) == 0 {
 				ev := ne.lNetworkEvents
 				if .Edge in r.interest {
 					if ev & (win.FD_READ | win.FD_ACCEPT) != 0 && .Read in r.interest {
@@ -375,6 +474,7 @@ collect :: proc(loop: ^Loop, signaled: int) -> (n: int, err: Error) {
 				ready += {.Error}
 			}
 			if ready != {} {
+				r.slot = i32(n)
 				loop.ready[n] = {
 					index = i32(i),
 					gen   = r.gen,
@@ -382,31 +482,42 @@ collect :: proc(loop: ^Loop, signaled: int) -> (n: int, err: Error) {
 				}
 				n += 1
 			}
-			if .Edge not_in r.interest {
-				events: i16
-				if .Read in r.interest {
-					events |= win.POLLRDNORM
-				}
-				if .Write in r.interest {
-					events |= win.POLLWRNORM
-				}
-				loop.polls[np] = {
-					fd     = socket_of(r.fd),
-					events = events,
-				}
-				loop.poll_regs[np] = i32(i)
-				np += 1
+		}
+		if .Edge not_in r.interest {
+			events: i16
+			if .Read in r.interest {
+				events |= win.POLLRDNORM
 			}
+			if .Write in r.interest {
+				events |= win.POLLWRNORM
+			}
+			loop.polls[np] = {
+				fd     = socket_of(r.fd),
+				events = events,
+			}
+			loop.poll_regs[np] = i32(i)
+			np += 1
 		}
 	}
 	if np == 0 {
 		return n, .None
 	}
 	if win.WSAPoll(&loop.polls[0], u32(np), 0) < 0 {
-		return n, .System
+		if win.WSAGetLastError() != win.WSAENOTSOCK {
+			return n, .System
+		}
+		// A socket of the list was closed before `remove_fd`. Ask for each
+		// socket alone, so that the others are still reported.
+		for &p in loop.polls[:np] {
+			p.revents = 0
+			if win.WSAPoll(&p, 1, 0) < 0 {
+				p.revents = 0
+			}
+		}
 	}
 	for p, k in loop.polls[:np] {
-		if p.revents == 0 {
+		// POLLNVAL: closed before `remove_fd`. Report nothing, as epoll does.
+		if p.revents == 0 || p.revents & win.POLLNVAL != 0 {
 			continue
 		}
 		ready: Ready
@@ -422,25 +533,17 @@ collect :: proc(loop: ^Loop, signaled: int) -> (n: int, err: Error) {
 		if p.revents & win.POLLHUP != 0 {
 			ready += {.Hangup}
 		}
-		if p.revents & win.POLLNVAL != 0 {
-			ready += {.Error}
-		}
 		if ready == {} {
 			continue
 		}
 		idx := loop.poll_regs[k]
-		merged := false
-		for &e in loop.ready[:n] {
-			if e.index == idx {
-				e.ready += ready
-				merged = true
-				break
-			}
-		}
-		if !merged {
+		r := &loop.socks[idx]
+		if r.slot >= 0 {
+			loop.ready[r.slot].ready += ready
+		} else {
 			loop.ready[n] = {
 				index = idx,
-				gen   = loop.regs[idx].gen,
+				gen   = r.gen,
 				ready = ready,
 			}
 			n += 1
@@ -455,21 +558,21 @@ FD_CONNECT_BIT :: 4
 @(private)
 FD_CLOSE_BIT :: 5
 
-// Block until a handle is signaled or `deadline` passes. Returns the
-// registration whose handle woke the wait, or -1.
+// Block until a handle is signaled or `deadline` passes. Returns what ended
+// the wait: a slot of `hregs`, or a SIG value.
 @(private)
 block :: proc(loop: ^Loop, deadline: time.Duration) -> (signaled: int, err: Error) {
 	for {
 		count := 0
 		loop.handles[count] = loop.wake_event
-		loop.owners[count] = -1
+		loop.owners[count] = SIG_NONE
 		count += 1
 		timer_slot := -1
 		timeout := win.INFINITE
 		t := now()
 		if deadline != FOREVER {
 			if deadline <= t {
-				return -1, .None
+				return SIG_NONE, .None
 			}
 			left := i64(deadline - t)
 			if loop.timer != nil {
@@ -478,7 +581,7 @@ block :: proc(loop: ^Loop, deadline: time.Duration) -> (signaled: int, err: Erro
 				if win.SetWaitableTimerEx(loop.timer, &due, 0, nil, nil, nil, 0) {
 					timer_slot = count
 					loop.handles[count] = loop.timer
-					loop.owners[count] = -1
+					loop.owners[count] = SIG_NONE
 					count += 1
 				}
 			}
@@ -488,8 +591,13 @@ block :: proc(loop: ^Loop, deadline: time.Duration) -> (signaled: int, err: Erro
 				timeout = win.DWORD(min(ms, i64(max(u32) - 1)))
 			}
 		}
-		for &r, i in loop.regs {
-			if r.kind != .Free {
+		if loop.nsock > 0 {
+			loop.handles[count] = loop.sock_event
+			loop.owners[count] = SIG_SOCKETS
+			count += 1
+		}
+		for &r, i in loop.hregs {
+			if r.kind == .Handle {
 				loop.handles[count] = r.object
 				loop.owners[count] = i32(i)
 				count += 1
@@ -497,21 +605,21 @@ block :: proc(loop: ^Loop, deadline: time.Duration) -> (signaled: int, err: Erro
 		}
 		res := win.WaitForMultipleObjects(win.DWORD(count), &loop.handles[0], false, timeout)
 		if res == win.WAIT_FAILED {
-			return -1, .System
+			return SIG_NONE, .System
 		}
 		if res == win.WAIT_TIMEOUT || int(res) == timer_slot {
 			if deadline != FOREVER && now() < deadline {
 				// Early by the tick rounding, or a stale timer signal.
 				continue
 			}
-			return -1, .None
+			return SIG_NONE, .None
 		}
 		if res >= win.WAIT_OBJECT_0 && res < win.WAIT_OBJECT_0 + win.DWORD(count) {
 			idx := int(res - win.WAIT_OBJECT_0)
 			return int(loop.owners[idx]), .None
 		}
 		// WAIT_ABANDONED_n: a mutex. Treat it as signaled.
-		return -1, .None
+		return SIG_NONE, .None
 	}
 }
 
@@ -529,25 +637,37 @@ wait :: proc(loop: ^Loop, until: time.Duration = FOREVER) -> (handled: int, err:
 		deadline = next
 	}
 
-	n := collect(loop, -1) or_return
+	n := collect(loop, SIG_NONE) or_return
 	if n == 0 && deadline > loop.now {
-		signaled := block(loop, deadline) or_return
-		n = collect(loop, signaled) or_return
+		for {
+			signaled := block(loop, deadline) or_return
+			n = collect(loop, signaled) or_return
+			// The event of the sockets can be set with nothing to report: an
+			// event that was reported before, or one that no socket is
+			// watched for. Wait again.
+			if n > 0 || signaled != SIG_SOCKETS {
+				break
+			}
+		}
 	}
 	loop.now = now()
 
-	for p in loop.ready[:n] {
-		r := loop.regs[p.index] // a copy: the handler may change the table
-		if r.gen != p.gen {
-			continue // removed, or the slot was reused, during this dispatch
-		}
-		switch r.kind {
-		case .Free:
-			continue
-		case .Socket:
-			r.handler(loop, r.fd, p.ready, r.user)
-		case .Handle:
+	for k in 0 ..< n {
+		p := loop.ready[k]
+		// A copy of the registration: the handler may change the tables. A
+		// different `gen`: removed, or the slot was reused, in this dispatch.
+		if p.handle {
+			r := loop.hregs[p.index]
+			if r.gen != p.gen || r.kind != .Handle {
+				continue
+			}
 			r.hhandler(loop, r.object, r.user)
+		} else {
+			r := loop.socks[p.index]
+			if r.gen != p.gen || r.kind != .Socket {
+				continue
+			}
+			r.handler(loop, r.fd, p.ready, r.user)
 		}
 		handled += 1
 	}

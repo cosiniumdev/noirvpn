@@ -57,6 +57,8 @@ Kind :: enum u8 {
 	Profile_Set,
 	Profile_Check,
 	Profile_Clear,
+	Rules,
+	Reload_Rules,
 }
 
 // Where a secret (password, challenge response) is read from. Never the
@@ -467,6 +469,12 @@ parse_sub :: proc(cmd: ^Command, sub: string, a: ^Args, was_plain: bool) -> Pars
 		return parse_events(cmd, a, &plain)
 	case "profile":
 		return parse_profile(cmd, a, &plain)
+	case "rules":
+		cmd.kind = .Rules
+		return parse_plain(cmd, a, &plain, 0, 0, "rules does not accept any arguments")
+	case "reload-rules":
+		cmd.kind = .Reload_Rules
+		return parse_plain(cmd, a, &plain, 0, 0, "reload-rules does not accept any arguments")
 	case:
 		return fmt.tprintf("unknown command '%s'", sub)
 	}
@@ -1064,6 +1072,9 @@ commands, client:
               [--key-pass-stdin | --key-pass-file FILE]
                                   respond to a request for credentials, a challenge,
                                   or the key passphrase of a service profile
+  rules                           show the allow-inbound and forward rules in force
+  reload-rules                    read the config file again and apply its
+                                  allow-inbound and forward lines
 
 commands, client service (a daemon with client-service):
   profile set FILE [--label NAME] [--sso webauth]

@@ -56,6 +56,12 @@ Fake :: struct {
 	need_login: bool, // a connect waits for a login
 	auth_kind:  string, // the kind of the wait: "credentials" or "key_pass"
 	got_key:    string,
+	config:     string, // the config file in status
+	acl_old:    bool, // a daemon without acl.get and acl.reload
+	acl_bad:    bool, // acl.reload finds a problem in the config file
+	acl_more:   bool, // the config file has the rule files.lan (after a reload)
+	acl_gets:   int,
+	acl_reloads: int,
 }
 
 // fake_wait_auth sets the fake to wait for the passphrase or for a login, and
@@ -205,7 +211,7 @@ fake_status :: proc(f: ^Fake, w: ^bus.Writer) {
 	bus.kv_str(w, "mode", f.server ? "server" : "client")
 	bus.kv_str(w, "name", "fake")
 	bus.kv_str(w, "version", "0")
-	bus.kv_null(w, "config")
+	bus.kv_str_or_null(w, "config", f.config, f.config != "")
 	bus.kv_obj(w, "bus")
 	bus.kv_str(w, "run", run)
 	bus.kv_int(w, "seq", i64(seq))
@@ -418,6 +424,46 @@ fake_serve :: proc(f: ^Fake) {
 			}
 			bus.begin_obj(&w)
 			bus.end(&w)
+		case "acl.get":
+			f.acl_gets += 1
+			if f.acl_old {
+				bus.reply_error(f.h, req, .Unknown_Op, "no such operation")
+				continue
+			}
+			fake_acl(f, &w)
+		case "acl.reload":
+			if f.acl_old {
+				bus.reply_error(f.h, req, .Unknown_Op, "no such operation")
+				continue
+			}
+			f.acl_reloads += 1
+			if f.config == "" {
+				bus.reply_error(f.h, req, .Conflict, "the daemon has no config file")
+				continue
+			}
+			if f.acl_bad {
+				details := `[{"line":7,"option":"allow-inbound","class":"invalid","reason":"'10.0.0.300' is not an address, a prefix or a host name"}]`
+				bus.reply_error_details(f.h, req, .Bad_Request, "the config file has problems", transmute([]byte)string(details))
+				continue
+			}
+			changed := !f.acl_more
+			f.acl_more = true
+			if changed {
+				bus.publish(f.h, "acl.rules", transmute([]byte)string(`{"filter":true,"source":"config","rules":3,"forwards":1,"pending":true}`))
+			}
+			bus.begin_obj(&w)
+			bus.kv_bool(&w, "changed", changed)
+			bus.kv_bool(&w, "filter", true)
+			bus.kv_int(&w, "rules", 3)
+			bus.kv_int(&w, "forwards", 1)
+			bus.kv_bool(&w, "pending", changed)
+			bus.kv_int(&w, "closed", 0)
+			bus.kv_arr(&w, "ignored")
+			if changed {
+				bus.val_str(&w, "acl-max-flows")
+			}
+			bus.end(&w)
+			bus.end(&w)
 		case "disconnect":
 			f.web_active = false
 			fake_publish_state(f, "stopped", "user_request")
@@ -431,6 +477,36 @@ fake_serve :: proc(f: ^Fake) {
 		}
 		bus.reply_ok(f.h, req, bus.writer_bytes(&w))
 	}
+}
+
+// fake_acl writes the result of acl.get: two rules from the config file,
+// one more after a reload, and a forward.
+fake_acl :: proc(f: ^Fake, w: ^bus.Writer) {
+	rules := `[{"dest":":22","protos":["tcp"],"source":"config"},{"dest":"nas.lan:445","protos":["tcp","udp"],"source":"config","addresses":["192.168.50.10","fd00:50::10"]}]`
+	if f.acl_more {
+		rules = `[{"dest":":22","protos":["tcp"],"source":"config"},{"dest":"nas.lan:445","protos":["tcp","udp"],"source":"config","addresses":["192.168.50.10","fd00:50::10"]},{"dest":"files.lan","protos":["tcp","udp","icmp","other"],"source":"config","addresses":[]}]`
+	}
+	text := fmt.tprintf(`{{"filter":true,"source":"config","profile_ignored":%d,"pending":%v,"denied":5,"rules":%s,"forwards":[{{"port":8080,"protos":["tcp"],"target":"127.0.0.1:80"}}]}}`, f.loaded ? 1 : 0, f.acl_more, rules)
+	bus.writer_init(w, context.temp_allocator)
+	append(&w.buf, text)
+}
+
+// fake_publish_deny publishes acl.deny as the filter of a daemon does.
+fake_publish_deny :: proc(f: ^Fake, proto, src, dst: string, dport: int) {
+	w: bus.Writer
+	bus.writer_init(&w, context.temp_allocator)
+	bus.begin_obj(&w)
+	bus.kv_str(&w, "reason", "no_rule")
+	bus.kv_str(&w, "proto", proto)
+	bus.kv_str(&w, "src", src)
+	bus.kv_str(&w, "dst", dst)
+	if dport > 0 {
+		bus.kv_int(&w, "sport", 40000)
+		bus.kv_int(&w, "dport", i64(dport))
+	}
+	bus.kv_int(&w, "skipped", 0)
+	bus.end(&w)
+	bus.publish(f.h, "acl.deny", bus.writer_bytes(&w))
 }
 
 Pump_Cond :: #type proc(app: ^App, f: ^Fake) -> bool

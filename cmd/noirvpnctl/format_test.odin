@@ -320,3 +320,40 @@ format_problems_table :: proc(t: ^testing.T) {
 	format_problems(&empty, json.Null{})
 	testing.expect_value(t, strings.to_string(empty), "")
 }
+
+// ---- the rules ----
+
+@(test)
+rules_output :: proc(t: ^testing.T) {
+	v := view_of(
+		t,
+		`{"filter":true,"source":"config","profile_ignored":0,"pending":false,"denied":12,"rules":[{"dest":":22","protos":["tcp"],"source":"config"},{"dest":"nas.lan:445","protos":["tcp","udp"],"source":"config","addresses":["192.168.50.10"]},{"dest":"printer.lan","protos":["tcp","udp","icmp","other"],"source":"config","addresses":[]}],"forwards":[{"port":8080,"protos":["tcp"],"target":"127.0.0.1:80"}]}`,
+	)
+	b := strings.builder_make(context.temp_allocator)
+	format_rules(&b, v)
+	want := `filter   true
+source   config
+pending  false
+denied   12
+
+DESTINATION  PROTOCOLS           SOURCE  ADDRESSES
+:22          tcp                 config  -
+nas.lan:445  tcp,udp             config  192.168.50.10
+printer.lan  tcp,udp,icmp,other  config  (not looked up yet)
+
+FORWARD PORT  PROTOCOLS  TARGET
+8080          tcp        127.0.0.1:80
+`
+	testing.expect_value(t, strings.to_string(b), want)
+
+	off := view_of(t, `{"filter":false,"source":null,"profile_ignored":2,"pending":false,"denied":null,"rules":[],"forwards":[]}`)
+	strings.builder_reset(&b)
+	format_rules(&b, off)
+	want = `filter           false
+source           -
+pending          false
+denied           -
+profile_ignored  2
+`
+	testing.expect_value(t, strings.to_string(b), want)
+}

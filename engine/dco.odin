@@ -1186,6 +1186,10 @@ dco_client_init :: proc(d: ^Daemon) -> bool {
 	if mode == .Userspace {
 		return true
 	}
+	if len(d.cfg.allow_inbound) > 0 {
+		logf(.Notice, "datapath %s: allow-inbound filters packets in this process, so the data path will run here", dco_mode_name(d))
+		return true
+	}
 	when ODIN_OS != .Linux {
 		if mode != .Auto {
 			logf(
@@ -1403,6 +1407,11 @@ dco_for_attempt :: proc(d: ^Daemon, proto: config.Proto, tls: bool) -> bool {
 	}
 	if c.skip {
 		c.skip = false
+		return false
+	}
+	if len(d.cfg.allow_inbound) > 0 {
+		// A service profile or a rule reload: the start check did not see these rules.
+		logf(.Info, "allow-inbound filters packets in this process, so the data path of this connection will run here")
 		return false
 	}
 	if tls {

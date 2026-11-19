@@ -21,7 +21,7 @@ run_command :: proc(c: ^Command, io: ^Io, found: []bus.Found, stop: ^Stop) -> Ex
 	case .None:
 		err_line(io, "no command was given")
 		return .Usage
-	case .Status, .Stats, .Peers, .Peer, .Kick, .Reload_Peers, .Reload_Passwords, .Log_Level, .Auth_Allow, .Auth_Deny, .Auth_Pending, .Auth_Credentials, .Reload, .Shutdown, .Connect, .Disconnect, .Auth_Supply, .Events, .Profile_Set, .Profile_Check, .Profile_Clear:
+	case .Status, .Stats, .Peers, .Peer, .Kick, .Reload_Peers, .Reload_Passwords, .Log_Level, .Auth_Allow, .Auth_Deny, .Auth_Pending, .Auth_Credentials, .Reload, .Shutdown, .Connect, .Disconnect, .Auth_Supply, .Events, .Profile_Set, .Profile_Check, .Profile_Clear, .Rules, .Reload_Rules:
 	}
 
 	t, terr, detail := resolve_target(c, found)
@@ -44,7 +44,7 @@ run_command :: proc(c: ^Command, io: ^Io, found: []bus.Found, stop: ^Stop) -> Ex
 		}
 	case .Peers:
 		return run_peers(c, t, io)
-	case .Help, .Version, .None, .Status, .Stats, .Peer, .Kick, .Reload_Peers, .Reload_Passwords, .Log_Level, .Auth_Allow, .Auth_Deny, .Auth_Pending, .Auth_Credentials, .Reload, .Shutdown, .Disconnect, .Auth_Supply, .Profile_Set, .Profile_Check, .Profile_Clear:
+	case .Help, .Version, .None, .Status, .Stats, .Peer, .Kick, .Reload_Peers, .Reload_Passwords, .Log_Level, .Auth_Allow, .Auth_Deny, .Auth_Pending, .Auth_Credentials, .Reload, .Shutdown, .Disconnect, .Auth_Supply, .Profile_Set, .Profile_Check, .Profile_Clear, .Rules, .Reload_Rules:
 	}
 
 	// The profile file is sent as it is. It holds keys: the copy is overwritten at the end.
@@ -185,6 +185,8 @@ report_reply :: proc(c: ^Command, io: ^Io, reply: ^bus.Reply) -> Exit {
 		format_status(&b, result)
 	case .Profile_Set, .Profile_Check:
 		format_profile(&b, result)
+	case .Rules:
+		format_rules(&b, result)
 	case:
 		format_flat(&b, result)
 	}

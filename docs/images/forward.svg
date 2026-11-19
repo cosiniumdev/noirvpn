@@ -1,0 +1,371 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="1040"
+   height="420"
+   viewBox="0 0 1040 420"
+   role="img"
+   aria-labelledby="title desc"
+   version="1.1"
+   id="svg28"
+   sodipodi:docname="forward.svg"
+   inkscape:version="1.4.4 (dcaf3e7, 2026-05-05)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview28"
+     pagecolor="#ffffff"
+     bordercolor="#cccccc"
+     borderopacity="1"
+     inkscape:showpageshadow="0"
+     inkscape:pageopacity="1"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:current-layer="svg28" />
+  <title
+     id="title">forward</title>
+  <desc
+     id="desc">A tunnel peer connects to port 8080 of the tunnel address of the client. The client opens a second connection to the web server 192.168.1.20 port 80 on its local network and copies the bytes between the two connections. In the same way, port 2222 of the tunnel address goes to the SSH server of the client host at 127.0.0.1 port 22.</desc>
+  <style
+     id="style1">
+text{font-family:-apple-system,BlinkMacSystemFont,&quot;Segoe UI&quot;,&quot;Noto Sans&quot;,Helvetica,Arial,sans-serif;fill:#1f2328}
+.mono,.monom,.code{font-family:ui-monospace,SFMono-Regular,&quot;SF Mono&quot;,Menlo,Consolas,&quot;Liberation Mono&quot;,monospace}
+.bg{fill:#ffffff}
+.host{fill:#f6f8fa;stroke:none}
+.net{fill:#f1f8ff;stroke:none}
+.panel{fill:#ffffff;stroke:#d0d7de;stroke-width:1.2}
+.note{fill:#fbf7e6;stroke:none}
+.h2{font-size:13px;font-weight:600}
+.lab{font-size:12px;font-weight:600;letter-spacing:.04em}
+.b{font-size:11px}
+.m{font-size:11px;fill:#59636e}
+.s{font-size:10px;fill:#59636e}
+.mono{font-size:10px}
+.monom{font-size:11px;fill:#59636e}
+.code{font-size:10.5px}
+.tunnel{fill:#8250df;fill-opacity:.08;stroke:#8250df;stroke-opacity:.35;stroke-width:1}
+.f-ok{fill:#1a7f37} .l-ok{fill:none;stroke:#1a7f37;stroke-width:1.6} .t-ok{fill:#1a7f37} .c-ok{fill:#ffffff;stroke:#1a7f37;stroke-width:1.2}
+.f-out{fill:#0969da} .l-out{fill:none;stroke:#0969da;stroke-width:1.6} .t-out{fill:#0969da} .c-out{fill:#ffffff;stroke:#0969da;stroke-width:1.2}
+.f-bad{fill:#cf222e} .l-bad{fill:none;stroke:#cf222e;stroke-width:1.6} .t-bad{fill:#cf222e} .c-bad{fill:#ffffff;stroke:#cf222e;stroke-width:1.2}
+.dash{stroke-dasharray:5 4}
+</style>
+  <defs
+     id="defs3">
+    <marker
+       id="ah-ok"
+       viewBox="0 0 10 10"
+       refX="9"
+       refY="5"
+       markerWidth="7"
+       markerHeight="7"
+       orient="auto-start-reverse">
+      <path
+         d="M0 0 L10 5 L0 10 z"
+         class="f-ok"
+         id="path1" />
+    </marker>
+    <marker
+       id="ah-out"
+       viewBox="0 0 10 10"
+       refX="9"
+       refY="5"
+       markerWidth="7"
+       markerHeight="7"
+       orient="auto-start-reverse">
+      <path
+         d="M0 0 L10 5 L0 10 z"
+         class="f-out"
+         id="path2" />
+    </marker>
+    <marker
+       id="ah-bad"
+       viewBox="0 0 10 10"
+       refX="9"
+       refY="5"
+       markerWidth="7"
+       markerHeight="7"
+       orient="auto-start-reverse">
+      <path
+         d="M0 0 L10 5 L0 10 z"
+         class="f-bad"
+         id="path3" />
+    </marker>
+  </defs>
+  <rect
+     x="0"
+     y="0"
+     width="1040"
+     height="420"
+     class="bg"
+     id="rect3" />
+  <rect
+     x="16"
+     y="20"
+     width="200"
+     height="336"
+     rx="14"
+     class="net"
+     id="rect4" />
+  <text
+     x="32"
+     y="42"
+     class="lab"
+     text-anchor="start"
+     id="text4">VPN</text>
+  <rect
+     x="318"
+     y="20"
+     width="434"
+     height="336"
+     rx="14"
+     class="host"
+     id="rect5" />
+  <text
+     x="334"
+     y="42"
+     class="lab"
+     text-anchor="start"
+     id="text5">CLIENT HOST</text>
+  <rect
+     x="766"
+     y="20"
+     width="258"
+     height="336"
+     rx="14"
+     class="net"
+     id="rect6" />
+  <text
+     x="782"
+     y="42"
+     class="lab"
+     text-anchor="start"
+     id="text6">LOCAL NETWORK</text>
+  <rect
+     x="208.26506"
+     y="112"
+     width="118.09638"
+     height="214"
+     rx="6"
+     class="tunnel"
+     id="rect7"
+     style="fill:#60fa8c;fill-opacity:0.447059;stroke:#52c767;stroke-opacity:0.34902" />
+  <text
+     x="267"
+     y="128"
+     class="m"
+     text-anchor="middle"
+     id="text7"><tspan
+       style="font-weight:bold"
+       id="tspan28">tunnel</tspan></text>
+  <rect
+     x="30"
+     y="56"
+     width="172"
+     height="284"
+     rx="8"
+     class="panel"
+     id="rect8" />
+  <text
+     x="116"
+     y="80"
+     class="h2"
+     text-anchor="middle"
+     id="text8">tunnel peer</text>
+  <text
+     x="116"
+     y="98"
+     class="monom"
+     text-anchor="middle"
+     id="text9">10.8.0.9</text>
+  <rect
+     x="332"
+     y="56"
+     width="190"
+     height="284"
+     rx="8"
+     class="panel"
+     id="rect9" />
+  <text
+     x="427"
+     y="80"
+     class="h2"
+     text-anchor="middle"
+     id="text10">noirvpn client</text>
+  <text
+     x="427"
+     y="98"
+     class="monom"
+     text-anchor="middle"
+     id="text11">tunnel address 10.8.0.2</text>
+  <rect
+     x="790"
+     y="132"
+     width="210"
+     height="50"
+     rx="8"
+     class="panel"
+     id="rect11" />
+  <text
+     x="895"
+     y="153"
+     class="h2"
+     text-anchor="middle"
+     id="text12">web server</text>
+  <text
+     x="895"
+     y="171"
+     class="monom"
+     text-anchor="middle"
+     id="text13">192.168.1.20:80</text>
+  <text
+     x="895"
+     y="200"
+     class="s"
+     text-anchor="middle"
+     id="text14">a host on the network of the client</text>
+  <path
+     d="M202 157 L337 157"
+     class="l-ok"
+     marker-end="url(#ah-ok)"
+     id="path14" />
+  <text
+     x="267"
+     y="150"
+     class="code"
+     text-anchor="middle"
+     id="text15">10.8.0.2:8080</text>
+  <path
+     d="M412 157 L522 157"
+     class="l-out dash"
+     id="path15" />
+  <path
+     d="M522 157 L789 157"
+     class="l-out"
+     marker-end="url(#ah-out)"
+     id="path16" />
+  <rect
+     x="339"
+     y="145"
+     width="74"
+     height="24"
+     rx="12"
+     class="c-ok"
+     id="rect16" />
+  <text
+     x="376"
+     y="161"
+     class="code t-ok"
+     text-anchor="middle"
+     id="text16">:8080</text>
+  <text
+     x="656"
+     y="150"
+     class="code"
+     text-anchor="middle"
+     id="text17">second connection</text>
+  <text
+     x="656"
+     y="172"
+     class="s"
+     text-anchor="middle"
+     id="text18">from the client host</text>
+  <text
+     x="427"
+     y="190"
+     class="mono"
+     text-anchor="middle"
+     id="text19">forward 8080 to</text>
+  <text
+     x="427"
+     y="203"
+     class="mono"
+     text-anchor="middle"
+     id="text20">192.168.1.20:80</text>
+  <rect
+     x="612"
+     y="252"
+     width="126"
+     height="50"
+     rx="8"
+     class="panel"
+     id="rect20" />
+  <text
+     x="675"
+     y="273"
+     class="h2"
+     text-anchor="middle"
+     id="text21">SSH server</text>
+  <text
+     x="675"
+     y="291"
+     class="monom"
+     text-anchor="middle"
+     id="text22">127.0.0.1:22</text>
+  <text
+     x="675"
+     y="320"
+     class="s"
+     text-anchor="middle"
+     id="text23">a service of the client host</text>
+  <path
+     d="M202 277 L337 277"
+     class="l-ok"
+     marker-end="url(#ah-ok)"
+     id="path23" />
+  <text
+     x="267"
+     y="270"
+     class="code"
+     text-anchor="middle"
+     id="text24">10.8.0.2:2222</text>
+  <path
+     d="M412 277 L522 277"
+     class="l-out dash"
+     id="path24" />
+  <path
+     d="M522 277 L611 277"
+     class="l-out"
+     marker-end="url(#ah-out)"
+     id="path25" />
+  <rect
+     x="339"
+     y="265"
+     width="74"
+     height="24"
+     rx="12"
+     class="c-ok"
+     id="rect25" />
+  <text
+     x="376"
+     y="281"
+     class="code t-ok"
+     text-anchor="middle"
+     id="text25">:2222</text>
+  <text
+     x="427"
+     y="310"
+     class="mono"
+     text-anchor="middle"
+     id="text26">forward 2222 to</text>
+  <text
+     x="427"
+     y="323"
+     class="mono"
+     text-anchor="middle"
+     id="text27">127.0.0.1:22</text>
+  <rect
+     x="318"
+     y="370"
+     width="706"
+     height="36"
+     rx="8"
+     class="note"
+     id="rect27" />
+  <text
+     x="332"
+     y="392"
+     class="s"
+     text-anchor="start"
+     id="text28">The client copies the packets between two connections; no host IP forwarding or NAT rule.</text>
+</svg>

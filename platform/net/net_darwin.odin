@@ -33,6 +33,8 @@ SO_ERROR :: 0x1007
 @(private)
 SO_NOSIGPIPE :: 0x1022
 @(private)
+SO_KEEPALIVE :: 0x0008
+@(private)
 IPPROTO_TCP :: 6
 @(private)
 IPPROTO_IPV6 :: 41
@@ -40,6 +42,13 @@ IPPROTO_IPV6 :: 41
 TCP_NODELAY :: 1
 // Odin's posix package has no name for these two.
 TCP_NOTSENT_LOWAT :: 0x201
+// The idle time before the first probe (seconds).
+@(private)
+TCP_KEEPALIVE :: 0x10
+@(private)
+TCP_KEEPINTVL :: 0x101
+@(private)
+TCP_KEEPCNT :: 0x102
 @(private)
 IPV6_V6ONLY :: 27
 
@@ -480,6 +489,9 @@ tcp_connect_setup :: proc(s: Socket, ep: Endpoint, opts: TCP_Options) -> (in_pro
 	if opts.notsent_lowat {
 		tcp_set_notsent_lowat(s)
 	}
+	if opts.keepalive {
+		tcp_set_keepalive(s)
+	}
 	if opts.recv_buffer > 0 || opts.send_buffer > 0 {
 		_, _ = set_buffer_sizes(s, opts.recv_buffer, opts.send_buffer) or_return
 	}
@@ -523,7 +535,10 @@ tcp_connect_finish :: proc(s: Socket) -> Error {
 }
 
 // A listening TCP socket (for tests, and for a server).
-tcp_listen :: proc(ep: Endpoint, backlog: i32 = 128, v6_mode := V6_Mode.Dual_Stack) -> (s: Socket, err: Error) {
+tcp_listen :: proc(ep: Endpoint, backlog: i32 = 128, v6_mode := V6_Mode.Dual_Stack, device := "") -> (s: Socket, err: Error) {
+	if device != "" {
+		return INVALID_SOCKET, .Unsupported
+	}
 	sock := open_socket(family_of(ep), .STREAM, .TCP) or_return
 	if serr := tcp_listen_setup(sock, ep, backlog, v6_mode); serr != .None {
 		close(sock)
@@ -547,15 +562,29 @@ tcp_listen_setup :: proc(s: Socket, ep: Endpoint, backlog: i32, v6_mode: V6_Mode
 	return .None
 }
 
+// Only Linux can limit a socket to one network device here.
+bind_device :: proc "contextless" (s: Socket, device: string) -> Error {
+	return .Unsupported
+}
+
 // Limits the bytes the system holds unsent in a TCP socket (see the Linux file
 // for why). A system that refuses it is not an error.
 tcp_set_notsent_lowat :: proc "contextless" (s: Socket) {
 	set_int_opt(s.fd, IPPROTO_TCP, TCP_NOTSENT_LOWAT, NOTSENT_LOWAT)
 }
 
+// Switches on TCP keepalive probes with the `KEEPALIVE_*` timing. The probe
+// timing is best effort: a system that refuses it keeps its own timing.
+tcp_set_keepalive :: proc "contextless" (s: Socket) {
+	set_int_opt(s.fd, SOL_SOCKET, SO_KEEPALIVE, 1)
+	set_int_opt(s.fd, IPPROTO_TCP, TCP_KEEPALIVE, KEEPALIVE_IDLE)
+	set_int_opt(s.fd, IPPROTO_TCP, TCP_KEEPINTVL, KEEPALIVE_INTERVAL)
+	set_int_opt(s.fd, IPPROTO_TCP, TCP_KEEPCNT, KEEPALIVE_PROBES)
+}
+
 // Accept one connection. The new socket is non-blocking, with TCP_NODELAY
-// (unless `opts.nagle`) and TCP_NOTSENT_LOWAT (if `opts.notsent_lowat`). Other
-// `opts` fields do not apply.
+// (unless `opts.nagle`), TCP_NOTSENT_LOWAT (if `opts.notsent_lowat`) and
+// keepalive (if `opts.keepalive`). Other `opts` fields do not apply.
 tcp_accept :: proc(listener: Socket, opts: TCP_Options = {}) -> (s: Socket, from: Endpoint, err: Error) {
 	sa: Sock_Addr
 	for {
@@ -581,6 +610,9 @@ tcp_accept :: proc(listener: Socket, opts: TCP_Options = {}) -> (s: Socket, from
 		}
 		if opts.notsent_lowat {
 			tcp_set_notsent_lowat(s)
+		}
+		if opts.keepalive {
+			tcp_set_keepalive(s)
 		}
 		from, _ = from_sockaddr(&sa)
 		return s, from, .None

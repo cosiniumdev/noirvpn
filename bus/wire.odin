@@ -140,6 +140,9 @@ OPS := [?]Op_Info {
 	{"profile.set", .Operator, true, .Client, true, true},
 	{"profile.check", .Operator, false, .Client, true, true},
 	{"profile.clear", .Operator, true, .Client, false, false},
+	// The allow-inbound and forward rules.
+	{"acl.get", .Read, false, .Client, false, false},
+	{"acl.reload", .Operator, true, .Client, false, false},
 }
 
 op_lookup :: proc(name: string) -> (info: ^Op_Info, ok: bool) {

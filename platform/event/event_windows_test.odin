@@ -302,14 +302,23 @@ auto_reset_event_once_then_handle_again :: proc(t: ^testing.T) {
 	testing.expect(t, now() - start < ms(500), "handle_again must not wait")
 }
 
+// With a socket in the loop the wait list is full: the wake event, the timer,
+// the event of the sockets and `MAX_HANDLES` handles.
 @(test)
-registrations_are_limited :: proc(t: ^testing.T) {
+handles_are_limited :: proc(t: ^testing.T) {
+	p, ok := udp_pair(t)
+	if !ok {
+		return
+	}
+	defer pair_close(p)
 	loop, lok := new_win_loop(t)
 	if !lok {
 		return
 	}
 	defer destroy(&loop)
-	events: [MAX_REGISTRATIONS + 1]win.HANDLE
+	c: Count
+	testing.expect_value(t, add_fd(&loop, p.rx, {.Read}, read_one, &c), Error.None)
+	events: [MAX_HANDLES + 1]win.HANDLE
 	for &e in events {
 		e = win.CreateEventW(nil, true, false, nil)
 	}
@@ -317,16 +326,346 @@ registrations_are_limited :: proc(t: ^testing.T) {
 		win.CloseHandle(e)
 	}
 	calls := 0
-	for e in events[:MAX_REGISTRATIONS] {
+	for e in events[:MAX_HANDLES] {
 		testing.expect_value(t, add_handle(&loop, e, count_handle, &calls), Error.None)
 	}
-	testing.expect_value(t, add_handle(&loop, events[MAX_REGISTRATIONS], count_handle, &calls), Error.Register_Failed)
+	testing.expect_value(t, add_handle(&loop, events[MAX_HANDLES], count_handle, &calls), Error.Register_Failed)
 
 	// The last one in the wait list is seen.
-	win.SetEvent(events[MAX_REGISTRATIONS - 1])
+	win.SetEvent(events[MAX_HANDLES - 1])
 	n, _ := wait(&loop, now() + time.Second)
 	testing.expect_value(t, n, 1)
+	testing.expect_value(t, calls, 1)
+	testing.expect_value(t, c.n, 0)
 	testing.expect_value(t, add_handle(&loop, nil, count_handle, &calls), Error.Bad_Fd)
+
+	// The socket is seen with every handle slot in use.
+	win.ResetEvent(events[MAX_HANDLES - 1])
+	testing.expect(t, send_one(p))
+	deadline := now() + 2 * time.Second
+	for c.n == 0 && now() < deadline {
+		wait(&loop, deadline)
+	}
+	testing.expect_value(t, c.n, 1)
+	testing.expect_value(t, calls, 1)
+}
+
+// More sockets than one wait takes objects. Each one is reported.
+@(test)
+many_sockets_in_one_loop :: proc(t: ^testing.T) {
+	N :: 200
+	loop, lok := new_win_loop(t)
+	if !lok {
+		return
+	}
+	defer destroy(&loop)
+	pairs: [N]Udp_Pair
+	counts: [N]Count
+	made := 0
+	defer for p in pairs[:made] {
+		pair_close(p)
+	}
+	for i in 0 ..< N {
+		p, ok := udp_pair(t)
+		if !ok {
+			return
+		}
+		pairs[i] = p
+		made += 1
+		testing.expect_value(t, add_fd(&loop, p.rx, {.Read}, read_one, &counts[i]), Error.None)
+	}
+	testing.expect_value(t, loop.nsock, N)
+	n, _ := wait(&loop, now() + ms(30))
+	testing.expect_value(t, n, 0)
+
+	// The first, one in the middle and the last.
+	some := [3]int{0, N / 2, N - 1}
+	for i in some {
+		testing.expect(t, send_one(pairs[i]))
+	}
+	got := 0
+	deadline := now() + 2 * time.Second
+	for got < len(some) && now() < deadline {
+		k, _ := wait(&loop, deadline)
+		got += k
+	}
+	testing.expect_value(t, got, len(some))
+	for i in some {
+		testing.expect_value(t, counts[i].n, 1)
+		testing.expect_value(t, counts[i].fds[0], pairs[i].rx)
+	}
+
+	// All at one time.
+	for p in pairs {
+		testing.expect(t, send_one(p))
+	}
+	got = 0
+	deadline = now() + 2 * time.Second
+	for got < N && now() < deadline {
+		k, _ := wait(&loop, deadline)
+		got += k
+	}
+	testing.expect_value(t, got, N)
+	for i in 0 ..< N {
+		want := 2 if i == 0 || i == N / 2 || i == N - 1 else 1
+		testing.expect_value(t, counts[i].n, want)
+	}
+	n, _ = wait(&loop, now() + ms(30))
+	testing.expect_value(t, n, 0)
+
+	// A removed socket is not reported, the others are.
+	testing.expect_value(t, remove_fd(&loop, pairs[1].rx), Error.None)
+	testing.expect(t, send_one(pairs[1]))
+	testing.expect(t, send_one(pairs[2]))
+	deadline = now() + 2 * time.Second
+	for counts[2].n < 2 && now() < deadline {
+		wait(&loop, deadline)
+	}
+	testing.expect_value(t, counts[2].n, 2)
+	testing.expect_value(t, counts[1].n, 1)
+}
+
+// The table does not grow when sockets come and go.
+@(test)
+socket_slots_are_reused :: proc(t: ^testing.T) {
+	a, ok := udp_pair(t)
+	if !ok {
+		return
+	}
+	defer pair_close(a)
+	b, ok2 := udp_pair(t)
+	if !ok2 {
+		return
+	}
+	defer pair_close(b)
+	loop, lok := new_win_loop(t)
+	if !lok {
+		return
+	}
+	defer destroy(&loop)
+	c: Count
+	for _ in 0 ..< 500 {
+		testing.expect_value(t, add_fd(&loop, a.rx, {.Read}, read_one, &c), Error.None)
+		testing.expect_value(t, add_fd(&loop, b.rx, {.Read, .Write}, read_one, &c), Error.None)
+		testing.expect_value(t, remove_fd(&loop, a.rx), Error.None)
+		testing.expect_value(t, remove_fd(&loop, b.rx), Error.None)
+	}
+	testing.expect(t, len(loop.socks) <= 2)
+	testing.expect_value(t, loop.nsock, 0)
+	testing.expect_value(t, loop.nenum, 0)
+
+	testing.expect_value(t, add_fd(&loop, a.rx, {.Read}, read_one, &c), Error.None)
+	testing.expect_value(t, modify_fd(&loop, a.rx, {.Read, .Write}), Error.None)
+	testing.expect_value(t, loop.nenum, 1)
+	testing.expect_value(t, modify_fd(&loop, a.rx, {.Read}), Error.None)
+	testing.expect_value(t, loop.nenum, 0)
+	testing.expect_value(t, modify_fd(&loop, b.rx, {.Read}), Error.Not_Found)
+	testing.expect(t, send_one(a))
+	testing.expect(t, send_one(b))
+	deadline := now() + 2 * time.Second
+	for c.n == 0 && now() < deadline {
+		wait(&loop, deadline)
+	}
+	n, _ := wait(&loop, now() + ms(30))
+	testing.expect_value(t, n, 0)
+	testing.expect_value(t, c.n, 1)
+	testing.expect_value(t, c.fds[0], a.rx)
+}
+
+// Edge triggered: data that the handler does not read is not reported again.
+@(test)
+edge_read_is_reported_once :: proc(t: ^testing.T) {
+	p, ok := udp_pair(t)
+	if !ok {
+		return
+	}
+	defer pair_close(p)
+	loop, lok := new_win_loop(t)
+	if !lok {
+		return
+	}
+	defer destroy(&loop)
+	c: Count
+	testing.expect_value(t, add_fd(&loop, p.rx, {.Read, .Edge}, note_write, &c), Error.None)
+	testing.expect(t, send_one(p))
+	deadline := now() + 2 * time.Second
+	for c.n == 0 && now() < deadline {
+		wait(&loop, deadline)
+	}
+	testing.expect_value(t, c.n, 1)
+	testing.expect(t, .Read in c.ready)
+	n, _ := wait(&loop, now() + ms(50))
+	testing.expect_value(t, n, 0)
+	testing.expect_value(t, c.n, 1)
+
+	// After a read, new data is a new report.
+	buf: [64]u8
+	testing.expect_value(t, win.recv(sk(p.rx), &buf[0], len(buf), 0), 3)
+	testing.expect(t, send_one(p))
+	deadline = now() + 2 * time.Second
+	for c.n < 2 && now() < deadline {
+		wait(&loop, deadline)
+	}
+	testing.expect_value(t, c.n, 2)
+}
+
+// A connect to a port with no listener is reported as an error, with other
+// sockets in the loop.
+@(test)
+failed_connect_is_reported :: proc(t: ^testing.T) {
+	testing.set_fail_timeout(t, 60 * time.Second)
+	// A port that was free a moment ago.
+	sa: win.SOCKADDR_STORAGE_LH
+	sin := (^win.sockaddr_in)(&sa)
+	sin.sin_family = u16(win.AF_INET)
+	sin.sin_addr.s_addr = transmute(u32)[4]u8{127, 0, 0, 1}
+	probe := win.socket(win.AF_INET, win.SOCK_STREAM, win.IPPROTO_TCP)
+	if !testing.expect_value(t, win.bind(probe, &sa, size_of(win.sockaddr_in)), 0) {
+		return
+	}
+	n := i32(size_of(sa))
+	win.getsockname(probe, &sa, &n)
+	win.closesocket(probe)
+
+	p, ok := udp_pair(t)
+	if !ok {
+		return
+	}
+	defer pair_close(p)
+	loop, lok := new_win_loop(t)
+	if !lok {
+		return
+	}
+	defer destroy(&loop)
+	idle, c: Count
+	testing.expect_value(t, add_fd(&loop, p.rx, {.Read}, read_one, &idle), Error.None)
+
+	s := win.socket(win.AF_INET, win.SOCK_STREAM, win.IPPROTO_TCP)
+	defer win.closesocket(s)
+	on := u32(1)
+	win.ioctlsocket(s, transmute(i32)u32(win.FIONBIO), &on)
+	fd := i32(u32(uintptr(s)))
+	// In progress: the result comes through the loop.
+	win.connect(s, &sa, size_of(win.sockaddr_in))
+	testing.expect_value(t, add_fd(&loop, fd, {.Read, .Write}, note_write, &c), Error.None)
+	deadline := now() + 20 * time.Second
+	for c.n == 0 && now() < deadline {
+		wait(&loop, deadline)
+	}
+	testing.expect(t, c.n > 0, "the failed connect was not reported")
+	testing.expect(t, .Error in c.ready)
+	testing.expect_value(t, idle.n, 0)
+	testing.expect_value(t, remove_fd(&loop, fd), Error.None)
+}
+
+@(private = "file")
+Tcp_Pair :: struct {
+	listener, client, server: win.SOCKET,
+}
+
+// A connected TCP pair on loopback, accepted through the loop: the waiting
+// connection is a read report of the listener.
+@(private = "file")
+tcp_pair :: proc(t: ^testing.T, loop: ^Loop) -> (p: Tcp_Pair, ok: bool) {
+	p.client, p.server = win.INVALID_SOCKET, win.INVALID_SOCKET
+	sa: win.SOCKADDR_STORAGE_LH
+	sin := (^win.sockaddr_in)(&sa)
+	sin.sin_family = u16(win.AF_INET)
+	sin.sin_addr.s_addr = transmute(u32)[4]u8{127, 0, 0, 1}
+	p.listener = win.socket(win.AF_INET, win.SOCK_STREAM, win.IPPROTO_TCP)
+	if !testing.expect_value(t, win.bind(p.listener, &sa, size_of(win.sockaddr_in)), 0) {
+		return
+	}
+	win.listen(p.listener, 4)
+	n := i32(size_of(sa))
+	win.getsockname(p.listener, &sa, &n)
+	lfd := i32(u32(uintptr(p.listener)))
+	c: Count
+	// The listener leaves the loop before `c` goes away.
+	testing.expect_value(t, add_fd(loop, lfd, {.Read}, note_write, rawptr(&c)), Error.None)
+	k, _ := wait(loop, now() + ms(30))
+	testing.expect_value(t, k, 0)
+
+	p.client = win.socket(win.AF_INET, win.SOCK_STREAM, win.IPPROTO_TCP)
+	if !testing.expect_value(t, win.connect(p.client, &sa, size_of(win.sockaddr_in)), 0) {
+		return
+	}
+	deadline := now() + 2 * time.Second
+	for c.n == 0 && now() < deadline {
+		wait(loop, deadline)
+	}
+	testing.expect(t, .Read in c.ready, "the waiting connection was not reported")
+	p.server = win.accept(p.listener, nil, nil)
+	testing.expect_value(t, remove_fd(loop, lfd), Error.None)
+	return p, testing.expect(t, p.server != win.INVALID_SOCKET)
+}
+
+@(private = "file")
+tcp_pair_close :: proc(p: Tcp_Pair) {
+	for s in ([3]win.SOCKET{p.listener, p.client, p.server}) {
+		if s != win.INVALID_SOCKET {
+			win.closesocket(s)
+		}
+	}
+}
+
+// A socket that is watched for data only: the close of the peer and a reset
+// are reported, and nothing is reported while the connection is idle.
+@(test)
+peer_close_is_reported :: proc(t: ^testing.T) {
+	for reset in ([2]bool{false, true}) {
+		loop, lok := new_win_loop(t)
+		if !lok {
+			return
+		}
+		defer destroy(&loop)
+		p, ok := tcp_pair(t, &loop)
+		if !ok {
+			tcp_pair_close(p)
+			return
+		}
+		sfd := i32(u32(uintptr(p.server)))
+		c: Count
+		testing.expect_value(t, add_fd(&loop, sfd, {.Read}, note_write, &c), Error.None)
+		n, _ := wait(&loop, now() + ms(30))
+		testing.expect_value(t, n, 0)
+
+		msg := [3]u8{1, 2, 3}
+		testing.expect_value(t, win.send(p.client, &msg[0], 3, 0), 3)
+		deadline := now() + 2 * time.Second
+		for c.n == 0 && now() < deadline {
+			wait(&loop, deadline)
+		}
+		testing.expect(t, .Read in c.ready)
+		buf: [64]u8
+		testing.expect_value(t, win.recv(p.server, &buf[0], len(buf), 0), 3)
+		c = {}
+		n, _ = wait(&loop, now() + ms(30))
+		testing.expect_value(t, n, 0)
+
+		if reset {
+			// No wait at close: the peer gets a reset.
+			lg := win.LINGER {
+				l_onoff = 1,
+			}
+			win.setsockopt(p.client, win.SOL_SOCKET, win.SO_LINGER, &lg, size_of(lg))
+		}
+		win.closesocket(p.client)
+		p.client = win.INVALID_SOCKET
+		deadline = now() + 2 * time.Second
+		for c.n == 0 && now() < deadline {
+			wait(&loop, deadline)
+		}
+		testing.expect(t, c.ready & {.Read, .Hangup, .Error} != {}, "the end of the connection was not reported")
+		got := win.recv(p.server, &buf[0], len(buf), 0)
+		if reset {
+			testing.expect(t, got < 0, "no error after a reset")
+		} else {
+			testing.expect_value(t, got, 0)
+		}
+		testing.expect_value(t, remove_fd(&loop, sfd), Error.None)
+		tcp_pair_close(p)
+	}
 }
 
 @(test)

@@ -223,6 +223,7 @@ Srv :: struct {
 	rx_local:   net.Local, // the local address of that datagram (UDP)
 	rx_copied:  int, // bytes of the copy area of `rx_buf` in use
 	taken:      u64, // data packets the workers took
+	rx_seen:    Srv_Ref, // the conn whose data packets wait for a look (`srv_rx_seen`)
 	rx_running: bool, // `srv_rx_run` is running
 	link:       [session.LINK_BUF_SIZE]u8,
 	areq:       session.Auth_Request,
@@ -421,6 +422,7 @@ srv_init :: proc(d: ^Srv) -> (ok: bool) {
 	}
 
 	// Buffers.
+	d.rx_seen.cidx = NO_CONN
 	d.rx_msgs, d.rx_slot = off_rx_layout()
 	d.rx_buf = make([]u8, d.rx_msgs * d.rx_slot)
 	if OFF.tun {

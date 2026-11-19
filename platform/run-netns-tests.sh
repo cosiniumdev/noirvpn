@@ -82,6 +82,7 @@ common=(
 	-vet -strict-style
 	-define:NOIR_NETNS_TESTS=true
 	-define:ODIN_TEST_THREADS=1
+	$("$repo/build/microarch.sh")
 )
 
 if [[ $musl -eq 0 ]]; then

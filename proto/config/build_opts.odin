@@ -17,7 +17,7 @@ handle :: proc(b: ^Build, d: ^Directive, ls: ^Link_State, blk: ^Block) {
 	if handle_link(b, d, ls, blk) {
 		return
 	}
-	if handle_tls(b, d) || handle_common(b, d) || handle_client(b, d) || handle_server(b, d) {
+	if handle_tls(b, d) || handle_common(b, d) || handle_client(b, d) || handle_acl(b, d) || handle_server(b, d) {
 		return
 	}
 	gerr(b, d, "internal error: option '%s' has no handler", d.name)

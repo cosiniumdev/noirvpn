@@ -105,7 +105,58 @@ Link :: struct {
 	prev_out:     u64,
 	prev_t:       f64,
 	have_prev:    bool,
+	acl:          Acl, // the inbound rules of the service (view_rules.odin)
 	impl:         ^Bus_Impl,
+}
+
+ACL_EVERY :: 3.0 // seconds between acl.get reads while the Inbound rules view is shown
+ACL_BLOCKED_MAX :: 10 // acl.deny events kept for the view
+
+// One destination of acl.get.
+Acl_Rule :: struct {
+	dest:      string, // as the config writes it: `:22`, `nas.lan:445`
+	protos:    string, // for the user: "Any", "TCP, UDP"
+	host:      bool, // a host name: addresses is its last lookup
+	addresses: string, // joined with ", "; "" before the first lookup
+}
+
+Acl_Forward :: struct {
+	port:   int,
+	protos: string,
+	target: string,
+}
+
+// One acl.deny event.
+Acl_Block :: struct {
+	proto: string, // tcp, udp, icmp or other
+	src:   string,
+	dst:   string,
+	dport: int, // 0 when the protocol has no ports
+	at:    i64, // Unix seconds when it came
+}
+
+// What the service says about its allow-inbound and forward rules.
+Acl :: struct {
+	known:           bool, // acl.get answered, or the simulation
+	old:             bool, // the service has no acl.get
+	filter:          bool, // allow-inbound is in force
+	source:          string, // "config", "profile" or ""
+	profile_ignored: int,
+	pending:         bool, // the rules apply at the next connection (DCO)
+	denied:          i64, // packets the filter dropped, -1 when no filter runs
+	rules:           [dynamic]Acl_Rule,
+	forwards:        [dynamic]Acl_Forward,
+	busy:            bool, // acl.get is on its way
+	again:           bool, // read again when the current read ends
+	stale:           bool, // a read is due when the window is shown again
+	next:            f64, // the next read while the view is shown
+	blocked:         [ACL_BLOCKED_MAX]Acl_Block, // newest first
+	n_blocked:       int,
+	skipped:         int, // acl.deny events that the service did not send
+	reload_wait:     int, // acl.reload requests on their way
+	reload_msg:      string,
+	reload_error:    bool,
+	reload_note:     string, // what the last reload needs from the user, or ""
 }
 
 // OWNER_TEXT is the user text for the owner rule of the service: another
@@ -198,6 +249,14 @@ link_tick :: proc(app: ^App) {
 		if !app.hidden && now >= l.next_status {
 			link_refresh(app)
 		}
+		if !app.hidden && l.acl.stale {
+			acl_read(app)
+		}
+		if !app.hidden && current_view(app) == .Rules && now >= l.acl.next {
+			// The addresses of host rules change: read them again while shown.
+			l.acl.next = now + ACL_EVERY
+			acl_read(app)
+		}
 		if l.svc == .Up && !app.hidden && now >= l.next_stats && !l.stats_busy {
 			l.next_stats = now + STATS_EVERY
 			l.stats_busy = true
@@ -219,12 +278,52 @@ link_wake :: proc(app: ^App) -> f64 {
 		if app.hidden {
 			return 0
 		}
+		wake := l.next_status
 		if l.svc == .Up {
-			return min(l.next_status, l.next_stats)
+			wake = min(wake, l.next_stats)
 		}
-		return l.next_status
+		if current_view(app) == .Rules && l.acl.next > 0 {
+			wake = min(wake, l.acl.next)
+		}
+		return wake
 	}
 	return 0
+}
+
+// acl_read reads acl.get. A call during a read queues one more read after it.
+// A hidden window reads when it is shown again.
+acl_read :: proc(app: ^App) {
+	l := &app.link
+	a := &l.acl
+	if l.kind != .Bus || l.state != .Up || a.old {
+		return
+	}
+	if app.hidden {
+		a.stale = true
+		return
+	}
+	a.stale = false
+	if a.busy {
+		a.again = true
+		return
+	}
+	a.busy = true
+	bus_request(app, .Acl_Get)
+}
+
+// acl_reload asks the service to read its config file again (Check and
+// reload). The simulation has no service.
+acl_reload :: proc(app: ^App) {
+	a := &app.link.acl
+	set_text(&a.reload_note, "")
+	a.reload_error = false
+	if app.link.kind == .Sim {
+		set_text(&a.reload_msg, "Reloaded. Nothing changed.")
+		return
+	}
+	a.reload_wait += 1
+	set_text(&a.reload_msg, "Checking the config file…")
+	bus_request(app, .Acl_Reload)
 }
 
 // link_refresh reads status again. A call during a read queues one more read
@@ -360,6 +459,11 @@ apply_status :: proc(app: ^App, result: json.Value, now: f64) {
 		l.status_again = true
 		return
 	}
+	if jstr(b, "run") != l.run {
+		// Another run of the daemon may have other rules, or acl.get.
+		l.acl.old = false
+		l.acl.stale = true
+	}
 	set_text(&l.run, jstr(b, "run"))
 	l.seq = u64(jint(b, "seq"))
 	l.based = true
@@ -473,6 +577,8 @@ apply_event :: proc(app: ^App, topic, run: string, seq: u64, data: json.Value) -
 		if l.svc == .Up || l.svc == .Stopped {
 			// The address, the start time and the device are in status only.
 			link_refresh(app)
+			// The data path of the new state can change the rules in force.
+			acl_read(app)
 		}
 		rows_sync(app)
 		use_tick(app)
@@ -504,10 +610,205 @@ apply_event :: proc(app: ^App, topic, run: string, seq: u64, data: json.Value) -
 		set_text(&l.loaded_label, jstr(data, "label"))
 		set_text(&l.loaded_sha, jstr(data, "sha256"))
 		rows_sync(app)
+		// The rules of a profile apply when the service config has none.
+		acl_read(app)
+	case "acl.rules":
+		acl_read(app)
+	case "acl.deny":
+		acl_block_add(&l.acl, data)
 	case "daemon.stop":
 		l.svc = .Unknown
 	}
 	return true
+}
+
+// acl_got takes the reply of acl.get. A service that does not know the
+// operation does not report its rules.
+acl_got :: proc(app: ^App, ok: bool, code: string, result: json.Value) {
+	a := &app.link.acl
+	a.busy = false
+	switch {
+	case ok:
+		acl_apply(a, result)
+	case code == "unknown_op":
+		acl_clear(a)
+		a.known = false
+		a.old = true
+		a.again = false
+	}
+	if a.again {
+		a.again = false
+		acl_read(app)
+	}
+}
+
+// acl_apply takes the result of acl.get.
+acl_apply :: proc(a: ^Acl, result: json.Value) {
+	acl_clear(a)
+	a.known = true
+	a.filter = jbool(result, "filter")
+	set_text(&a.source, jstr(result, "source"))
+	a.profile_ignored = int(jint(result, "profile_ignored"))
+	a.pending = jbool(result, "pending")
+	a.denied = -1
+	if o, is_obj := result.(json.Object); is_obj {
+		#partial switch n in o["denied"] {
+		case json.Integer:
+			a.denied = n
+		case json.Float:
+			a.denied = i64(n)
+		}
+	}
+	if arr, ok := jarr(result, "rules"); ok {
+		for r in arr {
+			dest := jstr(r, "dest")
+			if dest == "" {
+				continue
+			}
+			rule := Acl_Rule {
+				dest   = strings.clone(dest),
+				protos = strings.clone(acl_protos_text(r)),
+			}
+			if addrs, has := jarr(r, "addresses"); has {
+				rule.host = true
+				rule.addresses = strings.clone(acl_join(addrs))
+			}
+			append(&a.rules, rule)
+		}
+	}
+	if arr, ok := jarr(result, "forwards"); ok {
+		for f in arr {
+			append(&a.forwards, Acl_Forward{port = int(jint(f, "port")), protos = strings.clone(acl_protos_text(f)), target = strings.clone(jstr(f, "target"))})
+		}
+	}
+}
+
+// acl_clear forgets the rules and the forwards.
+acl_clear :: proc(a: ^Acl) {
+	for r in a.rules {
+		delete(r.dest)
+		delete(r.protos)
+		delete(r.addresses)
+	}
+	for f in a.forwards {
+		delete(f.protos)
+		delete(f.target)
+	}
+	clear(&a.rules)
+	clear(&a.forwards)
+	a.known, a.filter, a.pending = false, false, false
+	set_text(&a.source, "")
+	a.profile_ignored = 0
+	a.denied = -1
+}
+
+// acl_blocked_clear forgets the acl.deny events.
+acl_blocked_clear :: proc(a: ^Acl) {
+	for &b in a.blocked[:a.n_blocked] {
+		acl_block_free(&b)
+	}
+	a.n_blocked = 0
+	a.skipped = 0
+}
+
+@(private = "file")
+acl_block_free :: proc(b: ^Acl_Block) {
+	delete(b.proto)
+	delete(b.src)
+	delete(b.dst)
+	b^ = {}
+}
+
+// acl_block_add keeps one acl.deny event, newest first. An event may hold
+// only the count of the events that the service did not send.
+acl_block_add :: proc(a: ^Acl, data: json.Value) {
+	a.skipped += max(int(jint(data, "skipped")), 0)
+	if jstr(data, "src") == "" || jstr(data, "dst") == "" {
+		return
+	}
+	acl_block_push(a, jstr(data, "proto"), jstr(data, "src"), jstr(data, "dst"), int(jint(data, "dport")), time.time_to_unix(time.now()))
+}
+
+acl_block_push :: proc(a: ^Acl, proto, src, dst: string, dport: int, at: i64) {
+	if a.n_blocked == ACL_BLOCKED_MAX {
+		acl_block_free(&a.blocked[ACL_BLOCKED_MAX - 1])
+	} else {
+		a.n_blocked += 1
+	}
+	copy(a.blocked[1:a.n_blocked], a.blocked[:a.n_blocked - 1])
+	a.blocked[0] = Acl_Block {
+		proto = strings.clone(proto),
+		src   = strings.clone(src),
+		dst   = strings.clone(dst),
+		dport = max(dport, 0),
+		at    = at,
+	}
+}
+
+// acl_protos_text is the `protos` array of a rule or a forward for the user,
+// in the temp allocator.
+acl_protos_text :: proc(v: json.Value) -> string {
+	has: [4]bool
+	words := [4]string{"tcp", "udp", "icmp", "other"}
+	labels := [4]string{"TCP", "UDP", "ICMP", "Other"}
+	if arr, ok := jarr(v, "protos"); ok {
+		for p in arr {
+			s, _ := p.(json.String)
+			for w, i in words {
+				has[i] ||= s == w
+			}
+		}
+	}
+	if has == {true, true, true, true} || has == {} {
+		return "Any"
+	}
+	out := make([dynamic]string, 0, 4, context.temp_allocator)
+	for l, i in labels {
+		if has[i] {
+			append(&out, l)
+		}
+	}
+	return strings.join(out[:], ", ", context.temp_allocator)
+}
+
+// acl_join joins an array of strings with ", ", in the temp allocator.
+acl_join :: proc(arr: json.Array) -> string {
+	out := make([dynamic]string, 0, len(arr), context.temp_allocator)
+	for v in arr {
+		if s, ok := v.(json.String); ok && s != "" {
+			append(&out, s)
+		}
+	}
+	return strings.join(out[:], ", ", context.temp_allocator)
+}
+
+ACL_PENDING_TEXT :: "The tunnel uses DCO, so the new rules apply when you reconnect."
+
+// count_text is "1 rule", "3 rules", or `none` for 0.
+count_text :: proc(n: int, one, many, none: string) -> string {
+	switch n {
+	case 0:
+		return none
+	case 1:
+		return tprint("1 %s", one)
+	}
+	return tprint("%d %s", n, many)
+}
+
+// sentence starts a message of the service with a capital letter and ends it
+// with a full stop.
+sentence :: proc(s: string) -> string {
+	if s == "" {
+		return s
+	}
+	out := s
+	if c := s[0]; c >= 'a' && c <= 'z' {
+		out = tprint("%c%s", rune(c - 32), s[1:])
+	}
+	if l := out[len(out) - 1]; l != '.' && l != '!' && l != '?' {
+		out = tprint("%s.", out)
+	}
+	return out
 }
 
 // apply_tunnel_settings takes the data of client.tunnel_settings.
@@ -575,6 +876,8 @@ link_lost :: proc(app: ^App) {
 	l.loaded = false
 	l.pending_step = .None
 	set_text(&l.pending_id, "")
+	acl_clear(&l.acl)
+	l.acl.old, l.acl.stale = false, false
 	l.next_search = app.now + SEARCH_EVERY
 	app.conn.phase = .Disconnected
 	attach_enter(app)

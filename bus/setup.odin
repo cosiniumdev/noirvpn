@@ -41,6 +41,42 @@ setup_error_string :: proc(e: Setup_Error) -> string {
 	return "?"
 }
 
+// The `--allow-user` and `--allow-group` flags of the daemon: one user and
+// one group that may use the sockets, with the role `operator`. "" for none.
+// They are added to the config for this run only.
+Access :: struct {
+	user:  string,
+	group: string,
+}
+
+// The `bus-allow` rules of the config and the rules of `a`, in the temp
+// allocator.
+access_rules :: proc(allow: []config.Bus_Allow, a: Access) -> []config.Bus_Allow {
+	out := make([dynamic]config.Bus_Allow, 0, len(allow) + 2, context.temp_allocator)
+	append(&out, ..allow)
+	if a.user != "" {
+		append(&out, config.Bus_Allow{kind = .Uid, name = a.user, roles = {.Operator}})
+	}
+	if a.group != "" {
+		append(&out, config.Bus_Allow{kind = .Gid, name = a.group, roles = {.Operator}})
+	}
+	return out[:]
+}
+
+// Gives the sockets to the user and the group of `a`: owner user with mode
+// 0600, group with mode 0660, or both with mode 0660.
+@(private = "file")
+access_endpoint :: proc(ep: ^Endpoint, a: Access) {
+	if a.user != "" {
+		ep.owner = a.user
+		ep.mode = 0o600
+	}
+	if a.group != "" {
+		ep.group = a.group
+		ep.mode = 0o660
+	}
+}
+
 // Everything `host_open` needs, built from the config.
 Setup :: struct {
 	opts:       Host_Options,
@@ -67,6 +103,7 @@ setup_from_config :: proc(
 	mode: Daemon_Mode,
 	name: string,
 	allocator := context.allocator,
+	access := Access{},
 ) -> (
 	s: Setup,
 	err: Setup_Error,
@@ -92,6 +129,8 @@ setup_from_config :: proc(
 	if !ctl_ok {
 		return s, .Bad_Control_Path
 	}
+	access_endpoint(&events, access)
+	access_endpoint(&control, access)
 	if ev_on {
 		events.path = own(&s, strings.clone(events.path, allocator))
 		s.events = events.path
@@ -103,9 +142,10 @@ setup_from_config :: proc(
 		s.opts.control = control
 	}
 
-	s.policy, s.unresolved = policy_from_config(c.bus_allow, uid, default_resolver, allocator)
+	s.policy, s.unresolved = policy_from_config(access_rules(c.bus_allow, access), uid, default_resolver, allocator)
 	s.opts.policy = s.policy
 	s.opts.mode = mode
+	s.opts.open_dir = access.user != "" || access.group != ""
 	s.opts.allocator = allocator
 	if len(s.unresolved) > 0 {
 		return s, .Unknown_Name

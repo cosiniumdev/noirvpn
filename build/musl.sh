@@ -18,6 +18,8 @@
 #   NOIR_CRYPTO=openssl|awslc   which crypto backend to compile and link
 #                               (default: openssl)
 #   NOIR_STATIC_PIE=1           link with -static-pie (ASLR) and not -static
+#   NOIR_MICROARCH=LEVEL        the CPU level, when it is not the default of
+#                               build/microarch.sh (amd64: x86-64-v3)
 #   NOIR_MUSL_MOUNT=DIR[:DIR]   host folders mounted read-only in the container
 #                               at the same path, for an extra library that the
 #                               flags name (for example -collection:x=DIR)
@@ -119,6 +121,7 @@ echo "musl.sh: building $pkg_rel -> out/musl/$name (crypto: ${NOIR_CRYPTO:-opens
 	-out:"/out/$name" \
 	-extra-linker-flags:"$static $ldpaths $strip" \
 	-define:NOIR_CRYPTO="${NOIR_CRYPTO:-openssl}" \
+	$("$here/microarch.sh") \
 	"$@"
 
 bin="$repo/out/musl/$name"

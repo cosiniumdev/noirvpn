@@ -193,6 +193,92 @@ block-ipv6
 
 The kernel data path cannot drop IPv6. With `block-ipv6`, the client does not use `datapath dco`. A DCO service drops IPv6 only if it has the capability for it. Otherwise the data path runs in the client process.
 
+## Inbound connections (`allow-inbound`)
+
+With no `allow-inbound` line, the client passes every packet from the tunnel. The server and the other clients of the VPN can then connect to each service of the client host. With `allow-inbound`, a tunnel peer can start a connection only to the destinations of the list. Every other new connection is dropped from the tunnel.
+
+![A new connection from a tunnel peer passes only when its destination is in the allow-inbound list; a connection that the client starts, and its replies, always pass](images/allow-inbound.svg)
+
+```
+client
+remote vpn.example.com 1194 udp
+allow-inbound :22 tcp
+allow-inbound 192.168.10.0/24 nas.example.com:445
+allow-inbound 10.8.0.2 icmp
+```
+
+A line has one or more destinations, then optional protocol words:
+
+| Destination | Meaning |
+|---|---|
+| `:PORT` | A port of the tunnel addresses of the client. |
+| `ADDRESS`, `ADDRESS/BITS` | An IPv4 or IPv6 address or network, with all its ports. |
+| `ADDRESS:PORT` | A port of an address. Put an IPv6 address in brackets: `[fd00::5]:443`. |
+| `HOST`, `HOST:PORT` | The addresses of a host name. |
+
+- A port can be a range: `:8000-8099`.
+- The words `tcp`, `udp` and `icmp` apply to all destinations of the line. With no word, a destination with a port is TCP and UDP, and a destination with no port is every protocol.
+- `icmp` and a destination with a port cannot be on the same line.
+- An address other than the tunnel address is for a client host that routes a network behind it.
+
+Rules:
+
+- Connections that the client initiates are permitted.
+- The client drops a refused packet with no reply. The peer gets a timeout.
+- The client looks up a host name after the tunnel is up, and again every `acl-resolve-interval` seconds (default 300). A name with no address yet matches nothing. After a failed lookup, the last addresses stay.
+- The filter keeps a table of the open connections. `acl-max-flows` is its size (default 16384). When the table is full, the client drops new inbound connections. A new connection from the client replaces an idle one.
+- An idle TCP connection stays in the table for 24 hours, and a UDP exchange for 180 seconds. A later packet from the peer is a new connection, and the list decides again.
+- The options are local. If the server pushes one of them, the client ignores it and logs a warning.
+- `allow-inbound` needs the data path in the client process. `datapath dco` and `datapath udco` change to `userspace`, and the client logs the change.
+
+The control bus has the counters of the filter in `stats.get` (`acl_*`), and the event `acl.deny` for dropped packets. See [management.md](management.md#events).
+
+## Port forwards (`forward`)
+
+`forward` opens a port on the tunnel address of the client. The client relays each connection to that port to a target: the client host, a host on its network, or a host that it can reach.
+
+![A peer connects to a port of the tunnel address of the client; the client opens a second connection to the target and copies the bytes between the two](images/forward.svg)
+
+```
+forward 8080 to 192.168.1.20:80
+forward 2222 to 127.0.0.1:22
+forward 5353 udp to 192.168.1.1:53
+forward 8443 tcp udp to [fd00::10]:443
+```
+
+The syntax is `forward PORT [tcp] [udp] to HOST:PORT`. With no protocol word, the port is TCP.
+
+- The relay is in the client process. It doesn't need IP forwarding or a NAT rule on the host, and it works with every `datapath`.
+- The target gets the connection from the client host so it doesn't see the address of the peer; the event `acl.forward` has it.
+- The ports are open while the tunnel is up. They listen on the tunnel addresses only.
+- Linux: the ports accept only what arrives through the tunnel device. A host on another network of the client cannot use them.
+- The client looks up a target host name when a connection arrives, and uses the result for 30 seconds.
+- `forward-max-conns` is the limit of TCP connections at one time (default 256). The client closes a connection above the limit at once. UDP has the same limit for its sessions; a new session then replaces the most idle one.
+- A UDP session ends after 60 seconds with no traffic.
+- With `allow-inbound`, each forward port is in the list automatically. With no `allow-inbound` line, `forward` will have its ports added but does not start the filter.
+- Linux: with the `user` option, a port below 1024 cannot be opened, and the client logs a warning. Use a port from 1024.
+- Windows and macOS: the system firewall can block the port. Permit `noirvpn` there if peers cannot connect.
+
+The control bus has the counters of the relay in `stats.get` (`fwd_*`), and the event `acl.forward` for each connection. See [management.md](management.md#events).
+
+## Change the rules while the client runs
+
+Edit the config file, then run `noirvpnctl reload-rules`. The client reads the file again and applies only its `allow-inbound` and `forward` lines and their limits. `noirvpnctl rules` shows the rules in force, with the addresses of each host name.
+
+- The client checks the file first. A file with an error changes nothing, and the command shows the line and the problem.
+- Connections that exist stay open. New connections see the new rules.
+- When the `forward` lines change, the connections of the port forwards close.
+- A change of `acl-max-flows` needs a restart.
+- If the connection uses DCO when the first `allow-inbound` line comes, the rules apply from the next connection.
+- `noirvpnctl reload` applies the same lines, with the other options that can change.
+- In a client service, the lines are in the base config. While a profile is loaded, only the user who loaded it, or an administrator, can reload them.
+
+The line that blocks every new connection from the tunnel and lets ping in:
+
+```
+allow-inbound 0.0.0.0/0 ::/0 icmp
+```
+
 ## The data path
 
 | `datapath` | Meaning |
@@ -224,6 +310,8 @@ Rules:
 - A DCO service is any program that implements [dco-interface.md](dco-interface.md).
 
 The environment variable `NOIRVPN_NO_OFFLOAD` turns off the segmentation offloads of the in-process data path. Its value is a comma list of `tun`, `gso` and `gro`, or `all`.
+
+UDP GRO also needs GRO on the network device. A VMware guest with the `vmxnet3` driver joins no UDP datagrams while LRO is on. `ethtool -K DEVICE lro off` turns LRO off, and downloads through the tunnel get faster.
 
 ## Transports
 
@@ -285,7 +373,13 @@ bus-allow uid 0 admin
 bus-allow gid noirvpn operator
 ```
 
-Add the users to the group `noirvpn` to let them load profiles.
+Add the users to the group `noirvpn` to let them load profiles. Without that group, only root can use the sockets. For a quick start without a config, give one user or one group access for this run:
+
+```
+sudo noirvpn --allow-user alice
+```
+
+See [management.md](management.md#let-a-user-in-without-a-config).
 
 A profile is a client config in one file, with each certificate and key inline (`<ca>`, `<cert>`, `<key>`). Load and use it:
 
@@ -302,6 +396,7 @@ Rules:
 - The service keeps the profile in memory only. Load it again after a restart of the service.
 - `profile set` and `profile clear` work only in the state `stopped`.
 - A profile cannot set service settings (`datapath`, `workers`, `bus-*`, `verb` and others), options that specify a file or a program, or server options.
+- `forward`, `forward-max-conns`, `acl-max-flows` and `acl-resolve-interval` are service settings. A profile can have `allow-inbound` lines only when the base config has none; else the service ignores the lines of the profile and logs a warning.
 - `auth-user-pass FILE` and `askpass FILE` are accepted. The service does not open the file; the desktop app reads it for you when you own it and only you can read it (mode 600).
 - A profile cannot touch the local networks: a pushed route that is equal to or inside a network of the computer is dropped. Local ports below 1024 and the routing tables 253 and 255 are refused.
 - Without `dev`, the device is `noir0`, `noir1` and so on.
@@ -338,7 +433,7 @@ noirvpnctl --name desktop connect
 
 ## macOS
 
-On macOS, noirvpn is a client only and uses the userspace data path. It creates its own utun interface. It is not a Network Extension, so it needs no app, entitlement or signature.
+On macOS, noirvpn is a client only and uses the userspace data path. It creates its own utun interface, rather than be a Network Extension as used in iOS apps.
 
 - It needs root: `sudo noirvpn --config FILE`.
 - It needs OpenSSL from Homebrew (`brew install openssl`).
@@ -365,7 +460,7 @@ On macOS, noirvpn is a client only and uses the userspace data path. It creates 
 | DNS | Plain DNS only. Each `dhcp-option DOMAIN` is a search domain. |
 | `fragment`, `shaper`, `tls-verify` | Rejected. |
 | Platforms | Linux; Windows and macOS as a client only. The Windows options of OpenVPN (`allow-nonadmin`, `win-sys`, ...) are rejected. |
-| New options | `client-service`, `datapath`, `dco-socket`, `workers`, `pq-mode`, `bus-*`, `stats-interval`, `tls-transport-*`. |
+| New options | `client-service`, `datapath`, `dco-socket`, `workers`, `pq-mode`, `bus-*`, `stats-interval`, `tls-transport-*`, `allow-inbound`, `forward`. |
 
 [options.md](options.md) lists every option that noirvpn refuses, with the reason and the replacement.
 

@@ -104,9 +104,11 @@ view_connection :: proc(app: ^App) {
 		web_panel(app)
 	case .Up:
 		telemetry(app)
+		inbound_card(app, CARD_GAP)
 		more_cards(app, true)
 		tunnel_cards(app)
 	case .Connecting, .Handshake, .Disconnected, .Stopped, .Failed, .Closing:
+		inbound_card(app, 0)
 		more_cards(app, false)
 	}
 	gap(app, 24)

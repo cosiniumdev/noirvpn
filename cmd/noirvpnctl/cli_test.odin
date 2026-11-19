@@ -597,6 +597,19 @@ profile_commands_parse :: proc(t: ^testing.T) {
 }
 
 @(test)
+rules_commands :: proc(t: ^testing.T) {
+	get := parse_ok(t, "rules")
+	defer command_destroy(&get)
+	testing.expect_value(t, get.kind, Kind.Rules)
+	re := parse_ok(t, "reload-rules", "--json")
+	defer command_destroy(&re)
+	testing.expect_value(t, re.kind, Kind.Reload_Rules)
+	testing.expect(t, re.json)
+	expect_usage(t, "does not accept any arguments", "rules", "x")
+	expect_usage(t, "does not accept any arguments", "reload-rules", "x")
+}
+
+@(test)
 profile_command_errors :: proc(t: ^testing.T) {
 	expect_usage(t, "subcommand", "profile")
 	expect_usage(t, "unknown profile subcommand", "profile", "load", "x")

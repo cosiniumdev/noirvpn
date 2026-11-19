@@ -118,10 +118,12 @@ selftest :: proc() -> int {
 	selftest_matrix(&failed, check)
 	selftest_settings_file(&failed, check)
 	selftest_position(&failed, check)
+	selftest_rules(app, &failed, check)
 	when BUS_LINK {
 		selftest_link(app, &failed, check)
 		selftest_service(app, &failed, check)
 		selftest_web(app, &failed, check)
+		selftest_rules_link(app, &failed, check)
 		when KEYGEN {
 			selftest_create_service(app, &failed, check)
 		}

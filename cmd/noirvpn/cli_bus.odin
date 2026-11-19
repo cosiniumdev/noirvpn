@@ -5,6 +5,7 @@ package main
 
 import "noir:bus"
 import "noir:platform/event"
+import "noir:proto/config"
 
 // The daemon's side of the client operations: takes a request from the control
 // bus, parses the arguments, gives the caller as plain data, and sends the
@@ -87,6 +88,11 @@ cli_bus_request :: proc(req: ^bus.Request) {
 		r := bus_reply_of(req)
 		c := bus_caller_of(req)
 		op_profile_clear(d, &r, &c)
+	case "acl.get":
+		r := bus_reply_of(req)
+		op_acl_get(d, &r)
+	case "acl.reload":
+		cli_op_acl_reload(d, req)
 	case:
 		bus_err(req, .Unknown_Op, "no such operation")
 	}
@@ -106,6 +112,7 @@ cli_op_reload :: proc(d: ^Daemon, req: ^bus.Request) {
 	}
 	reloaded := make([dynamic]string, context.temp_allocator)
 	reload_apply_common(&plan, &reloaded)
+	acl_change_names(acl_reload(d, &plan.cfg.client), &reloaded)
 	if d.stats_secs != plan.cfg.client.stats_interval {
 		B.stats_secs = plan.cfg.client.stats_interval
 		d.stats_secs = plan.cfg.client.stats_interval
@@ -117,6 +124,37 @@ cli_op_reload :: proc(d: ^Daemon, req: ^bus.Request) {
 	}
 	logf(.Notice, "reload: applied %v", reloaded[:])
 	bus_reload_report(req, reloaded[:], plan.ignored[:], "")
+}
+
+// `acl.reload`: the rule lines of the config file, and nothing else of it.
+cli_op_acl_reload :: proc(d: ^Daemon, req: ^bus.Request) {
+	r := bus_reply_of(req)
+	c := bus_caller_of(req)
+	if cli_stopping(d) {
+		reply_err(&r, .Busy, "the daemon is shutting down")
+		return
+	}
+	if service_denied(d, &r, &c) {
+		return
+	}
+	if B.config_path == "" {
+		reply_err(&r, .Conflict, "the daemon has no config file")
+		return
+	}
+	plan: Reload_Plan
+	defer reload_plan_destroy(&plan)
+	if err := reload_prepare(&plan); err != "" {
+		logf(.Warn, "acl.reload: %s", err)
+		diags: []config.Diagnostic
+		if plan.cfg_ok {
+			diags = plan.cfg.diags[:]
+		}
+		reply_err_details(&r, .Bad_Request, "the config file has problems", acl_config_details(diags, err))
+		return
+	}
+	ch := acl_reload(d, &plan.cfg.client)
+	acl_write_reload(r.w, d, ch)
+	reply_ok(&r)
 }
 
 cli_op_shutdown :: proc(d: ^Daemon, req: ^bus.Request) {

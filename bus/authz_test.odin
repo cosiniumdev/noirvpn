@@ -81,6 +81,8 @@ op_table_matches_design :: proc(t: ^testing.T) {
 		{"profile.set", .Operator, true, .Client},
 		{"profile.check", .Operator, false, .Client},
 		{"profile.clear", .Operator, true, .Client},
+		{"acl.get", .Read, false, .Client},
+		{"acl.reload", .Operator, true, .Client},
 	}
 	testing.expect_value(t, len(OPS), len(want))
 	for w in want {

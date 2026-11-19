@@ -12,6 +12,7 @@
 #   from res/noirvpn-icon.png).
 # macOS: nng 1.x is linked statically (build/macos-nng.sh builds it in
 #   out/macos/nng); SDL3 and OpenSSL come from Homebrew (brew install sdl3 openssl).
+# The CPU level is the level of build/microarch.sh (amd64: x86-64-v3).
 # Usage: desktop/build.sh [extra odin build options]
 # Set ODIN to the compiler when odin is not on the PATH.
 set -eu
@@ -37,7 +38,7 @@ if $windows; then
 	set -- -extra-linker-flags:"/LIBPATH:$(cygpath -w "$lib")" -resource:"$(cygpath -w "$here/res/noirvpn.rc")" "$@"
 fi
 version=$(sed -n 's/^VERSION_NUMBER :: "\(.*\)"$/\1/p' "$here/../cmd/noirvpn/cli.odin")
-"$odin" build "$here" -collection:noir="$here/.." -vet -strict-style -define:BUILD_DATE="$(date +%Y-%m-%d)" -define:VERSION_NUMBER="$version" -out:"$out" "$@"
+"$odin" build "$here" -collection:noir="$here/.." -vet -strict-style -define:BUILD_DATE="$(date +%Y-%m-%d)" -define:VERSION_NUMBER="$version" $("$here/../build/microarch.sh") -out:"$out" "$@"
 if $windows; then
 	cp -f "$lib"/*.dll "$here/bin/"
 	dll="$("$odin" root)/vendor/sdl3/SDL3.dll"

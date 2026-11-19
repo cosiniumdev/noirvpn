@@ -507,6 +507,30 @@ srv_read_udp :: proc(d: ^Srv, ln: ^Listener) {
 	}
 }
 
+// A data packet of `c` was received. The session of a client is looked at once
+// for each run of its data packets, when the next client comes or at the end of
+// the round (`srv_rx_look`).
+srv_rx_seen :: proc(d: ^Srv, c: ^Conn) {
+	ref := Srv_Ref{u32(c.slot), c.sess}
+	if ref == d.rx_seen {
+		return
+	}
+	srv_rx_look(d)
+	d.rx_seen = ref
+}
+
+// Looks at the session of the client that `srv_rx_seen` noted.
+srv_rx_look :: proc(d: ^Srv) {
+	ref := d.rx_seen
+	if ref.cidx == NO_CONN {
+		return
+	}
+	d.rx_seen.cidx = NO_CONN
+	if c := conn_alive(d, ref.cidx, ref.sess); c != nil {
+		conn_pump(d, c, false)
+	}
+}
+
 // One datagram: the demultiplexer.
 //   data packet    - found by the peer-id in its header (or by source address
 //                    if it has none)
@@ -546,9 +570,12 @@ srv_input :: proc(d: ^Srv, ln: ^Listener, pkt: []u8, from: net.Endpoint, local: 
 		if len(r.tunnel) > 0 {
 			srv_on_tunnel(d, c, r.tunnel)
 		}
-		if d.taken == before || c.release {
-			// A packet that waits for its worker is looked at when it is done.
+		// The session is looked at later: at the end of this client's run of
+		// packets, or when the worker is done with a packet that it took.
+		if c.release {
 			conn_pump(d, c, false)
+		} else if d.taken == before {
+			srv_rx_seen(d, c)
 		}
 		return
 	}

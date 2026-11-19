@@ -14,6 +14,13 @@ import "noir:engine"
 
 OFF := &engine.OFF
 
+// acl_rules.odin
+acl_change_names :: engine.acl_change_names
+acl_config_details :: engine.acl_config_details
+acl_reload :: engine.acl_reload
+acl_write_reload :: engine.acl_write_reload
+op_acl_get :: engine.op_acl_get
+
 // block6.odin
 is_ipv6 :: engine.is_ipv6
 
@@ -180,6 +187,8 @@ Caller :: engine.Caller
 Host :: engine.Host
 Reply :: engine.Reply
 Sys_Hooks :: engine.Sys_Hooks
+reply_err :: engine.reply_err
+reply_err_details :: engine.reply_err_details
 reply_ok :: engine.reply_ok
 
 // keys_unlock.odin

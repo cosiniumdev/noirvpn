@@ -10,8 +10,11 @@ package config
 //odinfmt: disable
 @(rodata)
 OPTIONS := [?]Option {
+	{"acl-max-flows", .New, .Client, 1, 1, {}, "noirvpn", "size of the flow table of allow-inbound (default 16384); when it is full, new inbound connections are dropped"},
+	{"acl-resolve-interval", .New, .Client, 1, 1, {}, "noirvpn", "seconds between lookups of the host names in allow-inbound (default 300)"},
 	{"allow-compression", .Supported, .Both, 1, 1, {}, "protocol", "only the value no is accepted because compression has been removed"},
 	{"allow-deprecated-insecure-static-crypto", .Rejected, .Both, 0, 0, {}, "protocol", "static-key mode has been removed; use TLS"},
+	{"allow-inbound", .New, .Client, 1, -1, {}, "noirvpn", "tunnel peers can start connections only to these destinations: address, CIDR, host name, address:port, host:port or :port (a port of the tunnel address), then optional tcp, udp or icmp; replies to connections from this client always pass"},
 	{"allow-nonadmin", .Rejected, .Both, 0, 1, {}, "windows", "the service decides who may connect (bus-allow sid)"},
 	{"allow-pull-fqdn", .Ignored, .Client, 0, 0, {}, "client", "pushed host names are not resolved; push IP addresses"},
 	{"allow-recursive-routing", .Ignored, .Client, 0, 0, {}, "client", "no effect"},
@@ -96,6 +99,8 @@ OPTIONS := [?]Option {
 	{"fast-io", .Ignored, .Both, 0, 0, {}, "removed", "no effect"},
 	{"float", .Supported, .Both, 0, 0, {.Connection}, "link", "accept authenticated packets from a new peer address (server); a client shows a warning that it is not applied"},
 	{"force-tls-key-material-export", .Ignored, .Server, 0, 0, {}, "protocol", "the TLS exporter is always used"},
+	{"forward", .New, .Client, 3, 5, {}, "noirvpn", "forward PORT [tcp] [udp] to HOST:PORT: a connection to this port of the tunnel address is relayed to the target (default tcp)"},
+	{"forward-max-conns", .New, .Client, 1, 1, {}, "noirvpn", "the most forward connections at one time (default 256)"},
 	{"fragment", .Rejected, .Both, 1, 2, {.Connection}, "link", "internal fragmentation has been removed; use mssfix and tun-mtu"},
 	{"genkey", .Rejected, .Both, 1, 3, {}, "encryption", "not a daemon option, and noirvpn does not generate keys; use your PKI tools, or openvpn --genkey for static and tls-crypt keys"},
 	{"group", .Supported, .Both, 1, 1, {}, "generic", "switch to this group after start-up (Linux only)"},

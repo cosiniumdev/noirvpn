@@ -659,6 +659,18 @@ test_service_config_refuses_profile_options :: proc(t: ^testing.T) {
 }
 
 @(test)
+test_service_config_holds_the_rules :: proc(t: ^testing.T) {
+	cfg := load("client-service\nallow-inbound :22 tcp\nforward 8080 to 127.0.0.1:80\nforward-max-conns 9\nacl-max-flows 512\nacl-resolve-interval 60\n")
+	defer destroy(&cfg)
+	testing.expectf(t, ok(&cfg), "%s", format_diagnostics(cfg.diags, context.temp_allocator))
+	testing.expect_value(t, len(cfg.client.allow_inbound), 1)
+	testing.expect_value(t, len(cfg.client.forwards), 1)
+	testing.expect_value(t, cfg.client.forward_max_conns, 9)
+	testing.expect_value(t, cfg.client.acl_max_flows, 512)
+	testing.expect_value(t, cfg.client.acl_resolve_interval, 60)
+}
+
+@(test)
 test_service_config_with_server_directive :: proc(t: ^testing.T) {
 	cfg := load("client-service\nserver 10.8.0.0 255.255.255.0\n")
 	defer destroy(&cfg)

@@ -320,6 +320,11 @@ For the `tls-server` options, WebSocket and the nginx recipes, see [tls-transpor
 
 By default the daemon does all the work in one process. It uses the tun offloads, UDP GSO and UDP GRO when the kernel has them. The environment variable `NOIRVPN_NO_OFFLOAD` (`tun`, `gso`, `gro` or `all`) turns them off.
 
+UDP GRO also needs GRO on the network device that receives the tunnel:
+
+- The status block (`SIGUSR2`, and when the daemon stops) has an `offload` line. If `coalesced` is 0 in that line after a large upload from a client, the device joined no datagrams.
+- A VMware guest with the `vmxnet3` driver joins no UDP datagrams while LRO is on. `ethtool -K DEVICE lro off` turns LRO off, and the receive rate of the daemon goes up.
+
 `workers N` (0 to 64, default 0) starts `N` threads that seal and open data packets. Each client stays on one worker. Use workers when you have many clients.
 
 | `datapath` | Meaning |

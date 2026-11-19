@@ -25,6 +25,14 @@ SIO_UDP_CONNRESET :: 0x9800000C
 
 @(private)
 WSAEDESTADDRREQ :: 10039
+// Keepalive tuning (ws2ipdef.h), Windows 10 1709 and later; the idle time and
+// the interval are in seconds.
+@(private)
+TCP_KEEPIDLE :: 3
+@(private)
+TCP_KEEPCNT :: 16
+@(private)
+TCP_KEEPINTVL :: 17
 
 @(init, private)
 winsock_init :: proc "contextless" () {
@@ -413,6 +421,9 @@ tcp_connect_setup :: proc(s: Socket, ep: Endpoint, opts: TCP_Options) -> (in_pro
 	if !opts.nagle {
 		set_int_opt(s, win.IPPROTO_TCP, win.TCP_NODELAY, 1) or_return
 	}
+	if opts.keepalive {
+		tcp_set_keepalive(s)
+	}
 	if opts.recv_buffer > 0 || opts.send_buffer > 0 {
 		_, _ = set_buffer_sizes(s, opts.recv_buffer, opts.send_buffer) or_return
 	}
@@ -454,7 +465,10 @@ tcp_connect_finish :: proc(s: Socket) -> Error {
 }
 
 // A listening TCP socket (for tests, and for a local service).
-tcp_listen :: proc(ep: Endpoint, backlog: i32 = 128, v6_mode := V6_Mode.Dual_Stack) -> (s: Socket, err: Error) {
+tcp_listen :: proc(ep: Endpoint, backlog: i32 = 128, v6_mode := V6_Mode.Dual_Stack, device := "") -> (s: Socket, err: Error) {
+	if device != "" {
+		return INVALID_SOCKET, .Unsupported
+	}
 	s = open_socket(family_of(ep), win.SOCK_STREAM, win.IPPROTO_TCP) or_return
 	if serr := tcp_listen_setup(s, ep, backlog, v6_mode); serr != .None {
 		close(s)
@@ -476,12 +490,27 @@ tcp_listen_setup :: proc(s: Socket, ep: Endpoint, backlog: i32, v6_mode: V6_Mode
 	return .None
 }
 
+// Only Linux can limit a socket to one network device here.
+bind_device :: proc "contextless" (s: Socket, device: string) -> Error {
+	return .Unsupported
+}
+
 // Windows has no TCP_NOTSENT_LOWAT. The socket works as before.
 tcp_set_notsent_lowat :: proc "contextless" (s: Socket) {
 }
 
+// Switches on TCP keepalive probes with the `KEEPALIVE_*` timing. The probe
+// timing needs Windows 10 1709 or later; an older system keeps its own timing.
+tcp_set_keepalive :: proc "contextless" (s: Socket) {
+	set_int_opt(s, win.SOL_SOCKET, win.SO_KEEPALIVE, 1)
+	set_int_opt(s, win.IPPROTO_TCP, TCP_KEEPIDLE, KEEPALIVE_IDLE)
+	set_int_opt(s, win.IPPROTO_TCP, TCP_KEEPCNT, KEEPALIVE_PROBES)
+	set_int_opt(s, win.IPPROTO_TCP, TCP_KEEPINTVL, KEEPALIVE_INTERVAL)
+}
+
 // Accept one connection. The new socket is non-blocking, with TCP_NODELAY
-// (unless `opts.nagle`). The other fields of `opts` do not apply here.
+// (unless `opts.nagle`) and keepalive (if `opts.keepalive`). The other fields
+// of `opts` do not apply here.
 tcp_accept :: proc(listener: Socket, opts: TCP_Options = {}) -> (s: Socket, from: Endpoint, err: Error) {
 	sa: win.SOCKADDR_STORAGE_LH
 	n := i32(size_of(sa))
@@ -500,6 +529,9 @@ tcp_accept :: proc(listener: Socket, opts: TCP_Options = {}) -> (s: Socket, from
 	win.ioctlsocket(h, transmute(i32)u32(win.FIONBIO), &on)
 	if !opts.nagle {
 		set_int_opt(s, win.IPPROTO_TCP, win.TCP_NODELAY, 1)
+	}
+	if opts.keepalive {
+		tcp_set_keepalive(s)
 	}
 	from, _ = from_sockaddr(&sa)
 	return s, from, .None

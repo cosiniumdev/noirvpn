@@ -13,6 +13,7 @@ import net "noir:platform/net"
 import "noir:platform/sysnet"
 import "noir:platform/tlslink"
 import "noir:platform/tun"
+import "noir:proto/acl"
 import "noir:proto/config"
 import "noir:proto/ossl"
 import "noir:proto/push"
@@ -30,8 +31,9 @@ import "noir:proto/session"
 
 RX_BATCH :: 32
 // Datagrams in one `sendmmsg`: the longest burst on the wire. UDP GSO does not
-// change it (one GSO entry holds at most this many datagrams).
-TX_BATCH :: 32
+// change it (one GSO entry holds at most this many datagrams). The packets of
+// one large tun read (up to 48 for an MTU of 1400) fit one call.
+TX_BATCH :: 64
 RX_SLOT :: 2304
 TCP_TX_SIZE :: 256 * 1024
 TCP_TX_RESERVE :: 64 * 1024
@@ -76,6 +78,7 @@ Stats :: struct {
 	drop_source:      u64, // datagrams from another address than the server's (unconnected socket)
 	drop_block6_tx:   u64, // IPv6 packets read from the tun device and dropped (block-ipv6)
 	drop_block6_rx:   u64, // IPv6 packets from the tunnel dropped before the tun device (block-ipv6)
+	drop_acl:         u64, // packets from the tunnel that allow-inbound dropped
 	tun_read_errors:  u64,
 	sock_send_errors: u64,
 	sock_recv_errors: u64,
@@ -130,6 +133,9 @@ Daemon :: struct {
 	prof_sha:        string, // owned: the hash of the profile text
 	prof_sso:        bool, // `profile.set` asked for web sign-in (`sso`)
 	owner:           Maybe(u32), // the uid that set the profile
+	// The profile's own allow-inbound lines; `acl_merge` (acl_rules.odin) chooses them or the base lines.
+	prof_allow:      []acl.Rule,
+	prof_acl_hosts:  []string,
 	owner_sid:       bus.Sid, // Windows: the user SID that set the profile
 	clear_pending:   bool, // `profile.clear` came while the connection closed: the profile goes at its end
 	fatal_code:      Exit, // the code of the last `fatal`, for the reason (a service does not exit with it)
@@ -175,6 +181,12 @@ Daemon :: struct {
 	mss4:         int,
 	// `block-ipv6` is in force for this connection: set in the config, or pushed. Set at the tunnel-up.
 	block6:       bool,
+	// `allow-inbound` (acl.odin): nil when the config has none.
+	acl:          ^Acl_State,
+	// The base lines of the last rule reload (acl_rules.odin).
+	acl_own:      Acl_Own,
+	// `forward` (forward.odin): nil when the config has none.
+	fwd:          ^Fwd,
 	// The `tls` transport (tls_transport.odin): the TCP stream runs inside an outer TLS stream.
 	tls:          bool, // this attempt is a tls link
 	tls_ctx:      ossl.Tls_Ctx, // the settings of the outer TLS, created at start if some remote is tls
@@ -394,6 +406,8 @@ profile_attach :: proc(d: ^Daemon) -> bool {
 		logf(.Error, "out of memory")
 		return false
 	}
+	acl_attach(d)
+	forward_attach(d)
 	return true
 }
 
@@ -413,6 +427,8 @@ profile_detach :: proc(d: ^Daemon) {
 		ws_client_destroy(d)
 		d.tls_ctx_ok = false
 	}
+	forward_detach(d)
+	acl_detach(d)
 	d.persist_cfg, d.persist = false, false
 }
 
@@ -429,6 +445,7 @@ daemon_destroy :: proc(d: ^Daemon) {
 	}
 	cred_wipe(&d.creds)
 	dco_client_destroy(d)
+	acl_own_destroy(&d.acl_own)
 	if d.ev_w_ok {
 		bus.writer_destroy(&d.ev_w)
 		d.ev_w_ok = false
@@ -1113,6 +1130,7 @@ handle_up :: proc(d: ^Daemon) {
 	d.mss4 = client_mss(d, po)
 	d.block6 = d.cfg.block_ipv6 || po.block_ipv6
 	d.dco.pushed_block6 = po.block_ipv6
+	acl_set_tunnel(d, po)
 	if d.dco.active && d.block6 && !dco_filter_ok(&d.dco.link) {
 		// Only a push gets here: a block-ipv6 of the config is known when the attempt is chosen.
 		dco_filter_warn(d, true)
@@ -1214,6 +1232,7 @@ handle_up_finish :: proc(d: ^Daemon, po: ^push.Pushed_Options) {
 	if text := client_mtu_fit_warning(d, po); text != "" {
 		logf(.Warn, "%s", text)
 	}
+	forward_up(d, po)
 	arm_limit_timer(d)
 	client_ev_tunnel_settings(d, po)
 	client_note_state(d)
@@ -1379,6 +1398,7 @@ revert_dns :: proc(d: ^Daemon) {
 // Takes the DNS settings, routes and addresses away. With `close_tun` the tun
 // device goes too.
 teardown_network :: proc(d: ^Daemon, close_tun: bool) {
+	forward_down(d)
 	if d.guest != nil {
 		guest_teardown(d)
 	}
@@ -1481,6 +1501,7 @@ finish_connection :: proc(d: ^Daemon) {
 		d.wkr = nil
 	}
 	d.up = false
+	forward_down(d)
 	web_clear(d)
 	d.state = .Idle
 	d.end = {}

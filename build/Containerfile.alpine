@@ -18,8 +18,8 @@
 ARG ALPINE_VERSION=3.24
 
 # Odin commit that matches the dev machine:
-#   `odin version` -> dev-2026-11-nightly:9a69916 (tag dev-2026-11a)
-ARG ODIN_COMMIT=9a6991685ddf663956d9836602eb421e141fc443
+#   `odin version` -> dev-2026-11-nightly:ece728c (nightly build of 2026-11-15)
+ARG ODIN_COMMIT=ece728cb96f67000e7d6e7105e70e26d11c26186
 
 # LLVM major version. 22 is the version Odin suggests in build_odin.sh and
 # the default LLVM of Alpine 3.24.

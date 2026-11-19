@@ -172,6 +172,9 @@ Endpoint :: struct {
 	// Group name or number to give the socket file; "" keeps the daemon's.
 	// Not used on Windows.
 	group: string,
+	// User name or number to give the socket file; "" keeps the daemon's.
+	// Not used on Windows.
+	owner: string,
 }
 
 // Turn a `bus-events` or `bus-control` setting into an endpoint.

@@ -91,6 +91,9 @@ read_tun_plain :: proc(d: ^Daemon) -> (got: int, stop: bool) {
 	if d.mss4 != 0 {
 		mss.clamp_syn(room[:n], d.mss4)
 	}
+	if d.acl != nil {
+		acl_out(d, room[:n])
+	}
 	slot.n = n
 	ring_commit(&d.ring)
 	return 1, false
@@ -126,6 +129,10 @@ read_tun_vnet :: proc(d: ^Daemon) -> (got: int, stop: bool) {
 		// A SYN is never a GSO packet; one that is not is left alone. With a partial
 		// checksum the split completes it later, so the field is not touched.
 		mss.clamp_syn(pkt, d.mss4, hdr.flags & offload.F_NEEDS_CSUM == 0)
+	}
+	if d.acl != nil {
+		// One flow for the whole read: the cut gives the same 5-tuple to each segment.
+		acl_out(d, pkt)
 	}
 	sp: offload.Split
 	if serr := offload.split_init(&sp, hdr, pkt, MAX_TUN_PACKET); serr != .None {
@@ -608,6 +615,9 @@ feed :: proc(d: ^Daemon, data: []u8) {
 write_tun :: proc(d: ^Daemon, pkt: []u8) {
 	if d.block6 && is_ipv6(pkt) {
 		d.stats.drop_block6_rx += 1
+		return
+	}
+	if d.acl != nil && !acl_in(d, pkt) {
 		return
 	}
 	if d.guest != nil && !d.tun_open && d.guest.h.tun_write != nil {

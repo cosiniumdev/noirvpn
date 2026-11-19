@@ -8,6 +8,7 @@ package main
 import "core:fmt"
 import "core:os"
 import "core:strings"
+import _ "noir:platform/cpu"
 import "noir:platform/dco"
 import "noir:proto/config"
 
@@ -64,6 +65,10 @@ run :: proc(argv: []string) -> Exit {
 	}
 	if cli.name_missing {
 		eprint("noirvpn: the --name option requires a value (the instance name of the control bus)")
+		return .Usage
+	}
+	if why := bus_access_check(&cli); why != "" {
+		eprint("noirvpn: %s", why)
 		return .Usage
 	}
 

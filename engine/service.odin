@@ -392,6 +392,7 @@ service_unload :: proc(d: ^Daemon) {
 	d.owner = nil
 	d.owner_sid = {}
 	d.prof_loaded = false
+	d.prof_allow, d.prof_acl_hosts = nil, nil
 	d.clear_pending = false
 	timer_clear(d, &d.t_clear)
 	d.dco.name = ""
@@ -424,8 +425,15 @@ service_install :: proc(d: ^Daemon, c: ^Profile_Check, label: string, sso: bool,
 	cl.datapath, cl.dco_socket = base.datapath, base.dco_socket
 	cl.bus_events, cl.bus_control, cl.bus_allow = base.bus_events, base.bus_control, base.bus_allow
 	cl.stats_interval = base.stats_interval
+	// The ACL of the base config wins; a profile can set allow-inbound only when the base has none.
+	if len(base.allow_inbound) > 0 && len(cl.allow_inbound) > 0 {
+		logf(.Warn, "the profile's allow-inbound lines are ignored: the service config sets allow-inbound")
+	}
+	d.prof_allow, d.prof_acl_hosts = cl.allow_inbound, cl.acl_hosts
+	cl.acl_max_flows = base.acl_max_flows
 	cl.service = true
 	d.cfg = cl
+	acl_merge(d)
 
 	if !profile_attach(d) {
 		service_unload(d)

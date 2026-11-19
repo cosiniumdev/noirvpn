@@ -172,6 +172,10 @@ UDP_Options :: struct {
 // The most unsent bytes a TCP socket may hold in the kernel (TCP_NOTSENT_LOWAT).
 NOTSENT_LOWAT :: 128 * 1024
 
+KEEPALIVE_IDLE :: 600
+KEEPALIVE_INTERVAL :: 60
+KEEPALIVE_PROBES :: 5
+
 TCP_Options :: struct {
 	// Leave Nagle's algorithm on. Off by default (TCP_NODELAY is set): tunnel
 	// packets must not wait for more data.
@@ -179,6 +183,11 @@ TCP_Options :: struct {
 	// Set TCP_NOTSENT_LOWAT (`NOTSENT_LOWAT` bytes): the kernel keeps a short
 	// send queue. Off by default; the outer TLS stream of a `tls` link sets it.
 	notsent_lowat:    bool,
+	// Set SO_KEEPALIVE, with probes after `KEEPALIVE_IDLE` seconds of silence, one
+	// each `KEEPALIVE_INTERVAL` seconds, `KEEPALIVE_PROBES` times. A peer that
+	// went away without a FIN ends the connection (a read fails with
+	// `.Timed_Out`). Off by default. The tuning is best effort on each system.
+	keepalive:        bool,
 	// Bind to this local address (and port) before connecting.
 	local:            Maybe(Endpoint),
 	recv_buffer:      int,

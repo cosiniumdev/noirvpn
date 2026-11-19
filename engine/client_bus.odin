@@ -358,6 +358,8 @@ client_write_stats :: proc(w: ^bus.Writer, d: ^Daemon) {
 	if d.guest != nil {
 		guest_write_stats(w, d.guest)
 	}
+	acl_write_stats(w, d)
+	forward_write_stats(w, d)
 	off_sync_batches(&d.off, &d.rx_batch, {&d.tx_batch})
 	write_u64_fields(w, &d.off)
 	if d.s_ok {

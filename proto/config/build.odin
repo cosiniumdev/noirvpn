@@ -5,6 +5,7 @@ package config
 
 import "core:fmt"
 import "core:mem"
+import "noir:proto/acl"
 import "core:strings"
 
 // Where a directive is read: the main config (global), or a per-client file.
@@ -96,6 +97,9 @@ Build :: struct {
 	iroutes:          [dynamic]Iroute,
 	iroutes6:         [dynamic]Iroute6,
 	push_remove:      [dynamic]string,
+	acl_rules:        [dynamic]acl.Rule,
+	acl_hosts:        [dynamic]string,
+	forwards:         [dynamic]Forward,
 	// First directive of some kinds, for cross-checks at the end.
 	first:            map[string]^Directive,
 	ignore_unknown:   [dynamic]string,
@@ -173,6 +177,9 @@ service_option_ok :: proc(name: string) -> bool {
 	case "client-service", "bus-allow", "bus-control", "bus-events", "verb", "stats-interval",
 	     "workers", "datapath", "dco-socket", "disable-dco", "writepid", "config", "cd":
 		return true
+	case "allow-inbound", "forward", "acl-max-flows", "acl-resolve-interval", "forward-max-conns":
+		// The rules of the service: they win over those of a profile.
+		return true
 	}
 	return option_find(name) == nil
 }
@@ -230,6 +237,9 @@ new_build :: proc(store: ^Store, parse_diags: []Diagnostic) -> (b: Build) {
 	b.iroutes.allocator = a
 	b.iroutes6.allocator = a
 	b.push_remove.allocator = a
+	b.acl_rules.allocator = a
+	b.acl_hosts.allocator = a
+	b.forwards.allocator = a
 	b.ignore_unknown.allocator = a
 	b.first = make(map[string]^Directive, 16, a)
 

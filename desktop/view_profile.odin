@@ -75,6 +75,7 @@ Edit :: struct {
 	login_inline:   bool, // the profile holds its user name and password
 	request:        bool, // a key request waits for its certificate
 	request_at:     mu.Rect, // Open of the key request, set by the view for the tests
+	rules_at:       mu.Rect, // Open of INBOUND RULES, set by the view for the tests
 	// The profile file (store) and the files of its secrets (secret_file.odin).
 	path:           string, // the profile text in the store, "" for none
 	login_file:     string, // auth-user-pass FILE
@@ -599,7 +600,7 @@ view_profile :: proc(app: ^App) {
 		gap(app, 12)
 		group_line(app)
 		gap(app, 12)
-		list_editor(app, .Server, "Own DNS servers", "Asked first, before the server's DNS servers.", "10.0.0.53", "Add server")
+		list_editor(app, .Server, "Own DNS servers", "Queried first, before the server's DNS servers.", "10.0.0.53", "Add server")
 		gap(app, 12)
 		group_line(app)
 		gap(app, 12)
@@ -622,6 +623,9 @@ view_profile :: proc(app: ^App) {
 
 	if !e.created && e.path != "" {
 		profile_file_group(app)
+	}
+	if !e.created {
+		profile_rules_group(app)
 	}
 
 	// Advanced.
@@ -940,7 +944,7 @@ setting_row :: proc(app: ^App, label: string, on: ^bool, enabled := true) -> mu.
 // Linux only. -define:DCO_UI=true shows them elsewhere, for the screenshots.
 DCO_UI :: ODIN_OS == .Linux || #config(DCO_UI, false)
 
-DCO_CAPTION :: "Data channel offload: the kernel or the DCO service handles packet transmission."
+DCO_CAPTION :: "Data channel offload uses the kernel or DCO service for packet transmission."
 
 // dco_row is the Use DCO switch of the overrides. Off adds disable-dco after the
 // profile text (data path in the service process). On uses DCO if the service
@@ -1006,3 +1010,34 @@ dco_note :: proc(app: ^App) -> string {
 	return "DCO is not available for this connection. See service log for why."
 }
 
+// profile_rules_group is the count of the allow-inbound and forward lines of
+// the profile, and the way to the Inbound rules view.
+profile_rules_group :: proc(app: ^App) {
+	u := &app.u
+	e := &app.edit
+	section(app, "INBOUND RULES")
+	gr := row(app, 0)
+	y0 := app.cy
+	g := ui.group_begin(u, {gr.x, y0, gr.w, 0})
+	gap(app, 1 + GROUP_PAD_Y)
+	rr := inner(app, 35)
+	ow := i32(math.ceil(ui.button_width(u, "Open", .Secondary)))
+	n := pf.acl_line_count(e.lines[:])
+	text := count_text(n, "rule line", "rule lines", "No rule lines")
+	th := i32(ui.line_height(ui.ST_BODY))
+	ui.text(u, ui.ST_BODY, rr.x, rr.y + (35 - th) / 2, ui.fit_text(u, ui.ST_BODY, text, f32(rr.w - ow - 12)), ui.TEXT)
+	e.rules_at = {rr.x + rr.w - ow, rr.y, ow, 35}
+	mu.push_id(&u.ctx, "inbound-rules")
+	defer mu.pop_id(&u.ctx)
+	if ui.button(u, e.rules_at, "Open", .Secondary, true, ui.SURFACE) {
+		// Back to the Inbound rules view when it opened this view.
+		if view_below(app) == .Rules {
+			pop_view(app)
+		} else {
+			rules_open(app, e.index)
+		}
+	}
+	gap(app, GROUP_PAD_Y + 1)
+	ui.group_end(u, g, app.cy - y0)
+	gap(app, 18)
+}

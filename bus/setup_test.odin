@@ -133,3 +133,32 @@ setup_daemon_is_found_by_discover :: proc(t: ^testing.T) {
 	}
 	testing.expect(t, ok, "daemon not found")
 }
+
+@(test)
+setup_with_access :: proc(t: ^testing.T) {
+	c := config.Common_Config {
+		bus_allow = {{kind = .Uid, id = 0, roles = {.Admin}}},
+	}
+	s, err := setup_from_config(&c, .Client, "desktop", access = {user = "1000", group = "1001"})
+	defer setup_destroy(&s)
+	testing.expect_value(t, err, Setup_Error.None)
+	ctl := s.opts.control.?
+	ev := s.opts.events.?
+	testing.expect_value(t, ctl.owner, "1000")
+	testing.expect_value(t, ctl.group, "1001")
+	testing.expect_value(t, ctl.mode, 0o660)
+	testing.expect_value(t, ev.owner, "1000")
+	testing.expect_value(t, len(s.policy.rules), 3)
+	testing.expect(t, s.opts.open_dir)
+
+	only_user, _ := setup_from_config(&c, .Client, "desktop", access = {user = "1000"})
+	defer setup_destroy(&only_user)
+	testing.expect_value(t, only_user.opts.control.?.mode, 0o600)
+	testing.expect_value(t, only_user.opts.control.?.group, "")
+
+	rules := access_rules(c.bus_allow, {group = "1001"})
+	testing.expect_value(t, len(rules), 2)
+	testing.expect_value(t, rules[1].kind, config.Bus_Id_Kind.Gid)
+	testing.expect_value(t, rules[1].roles, config.Bus_Roles{.Operator})
+	testing.expect_value(t, len(access_rules(c.bus_allow, {})), 1)
+}

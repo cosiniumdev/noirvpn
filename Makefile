@@ -5,6 +5,9 @@ ODIN      ?= odin
 COLL      := -collection:noir=$(CURDIR)
 TESTFLAGS ?= -vet -strict-style
 TESTOUT   := out/test
+# The CPU level of the build: x86-64-v3 on amd64. NOIR_MICROARCH selects
+# another level (see build/microarch.sh).
+ARCHFLAGS := $(shell build/microarch.sh)
 
 # macOS: nng 1.x is built by build/macos-nng.sh into out/macos/nng (Homebrew has
 # only nng 2.x) and bus/nng links that file by its path. OpenSSL comes from Homebrew.
@@ -31,10 +34,10 @@ TEST_PKGS := $(filter-out $(NOT_ON_THIS_OS),$(sort $(dir $(shell find $(TEST_ROO
 test: $(TEST_DEPS)
 ifdef PKG
 	@mkdir -p $(TESTOUT)
-	$(ODIN) test $(PKG) $(COLL) $(TESTFLAGS) $(LINKFLAGS) -out:$(TESTOUT)/$(subst /,_,$(patsubst %/,%,$(PKG))).bin
+	$(ODIN) test $(PKG) $(COLL) $(TESTFLAGS) $(ARCHFLAGS) $(LINKFLAGS) -out:$(TESTOUT)/$(subst /,_,$(patsubst %/,%,$(PKG))).bin
 else
 	@mkdir -p $(TESTOUT); set -e; for p in $(TEST_PKGS); do echo "== $$p"; \
-		$(ODIN) test $$p $(COLL) $(TESTFLAGS) $(LINKFLAGS) -out:$(TESTOUT)/$$(echo $${p%/} | tr / _).bin; done
+		$(ODIN) test $$p $(COLL) $(TESTFLAGS) $(ARCHFLAGS) $(LINKFLAGS) -out:$(TESTOUT)/$$(echo $${p%/} | tr / _).bin; done
 ifneq ($(TEST_EXTRA),)
 	@$(MAKE) --no-print-directory $(TEST_EXTRA)
 endif

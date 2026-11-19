@@ -155,9 +155,11 @@ off_sock :: proc(s: net.Socket) -> net.Socket {
 // The size of one message of the receive buffer when UDP GRO may be on: the
 // kernel can give up to 64 KiB (many datagrams) in one message.
 UDP_GRO_SLOT :: 65536
-// Messages one `recvmmsg` takes when GRO may be on (a message holds many
-// datagrams, so fewer are needed).
-RX_MSGS_GRO :: 16
+// Messages one `recvmmsg` takes when GRO may be on. A message can hold many
+// datagrams, and then `rx_vlen` asks for few. On a link device that does not
+// join datagrams each message holds one, and a read needs this many to give
+// the tun write a full run of segments.
+RX_MSGS_GRO :: 64
 
 // The layout of the receive buffer: messages per call and bytes per message.
 off_rx_layout :: proc() -> (msgs, slot: int) {

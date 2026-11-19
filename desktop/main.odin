@@ -11,6 +11,7 @@ import "core:fmt"
 import "core:math"
 import "core:os"
 import "core:time"
+import _ "noir:platform/cpu"
 import sdl "vendor:sdl3"
 import pf "profiles"
 import "ui"
@@ -21,7 +22,8 @@ options:
   --socket PATH   connect to the client daemon at this control socket
   --simulate      show simulated data instead of using a service
   --screens DIR   render every view to PNG files in DIR (no window), at 1x and 2x
-  --open VIEW     simulated, start in a view: list, connecting, credentials, up, profile, attach, settings
+  --open VIEW     simulated, start in a view: list, connecting, credentials, up, profile, attach,
+                  settings, rules
   --scale SIZE    size of the UI for this run: auto, or 100 to 300 in steps of 25 (percent)
   --renderer R    how the window is drawn: auto, gpu or cpu (auto: gpu on Windows, cpu
                   on other systems). If the cpu renderer cannot start, gpu is used instead
@@ -225,6 +227,9 @@ open_by_name :: proc(app: ^App, name: string) {
 		app.stack[0] = .Attach
 	case "settings":
 		push_view(app, .Settings)
+	case "rules":
+		start_connection(app, 0)
+		rules_open(app)
 	}
 }
 

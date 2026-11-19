@@ -71,6 +71,26 @@ bus-allow uid 0 admin
 bus-allow gid noirvpn read
 ```
 
+### Let a user in without a config
+
+Linux and macOS. Two flags of the daemon give one user or one group the role
+`operator` for this run. They are not written to a config file.
+
+```
+sudo noirvpn --allow-user alice
+sudo noirvpn --allow-group vpnusers
+```
+
+- `--allow-user NAME`: both sockets belong to the user, with mode `0600`.
+- `--allow-group NAME`: both sockets get the group, with mode `0660`.
+- With both, the sockets belong to the user and the group, with mode `0660`.
+- The socket folder gets mode `0755`, so that the user or the group can enter
+  it. The socket modes keep other users out.
+- Each flag can be given once. A name that does not exist stops the start.
+- `daemon.reload` keeps them.
+- A daemon that runs as root, with sockets that only root can use, logs a line
+  that names these flags.
+
 **Protect the events socket.** `bus-allow` does not apply to it. Every process
 that can connect to it receives every event, including user names, key pins
 and addresses. Use `mode` and `group`.
@@ -190,6 +210,9 @@ A client publishes these:
 | `client.state` | The connection state changed. | `state`, `prev`, `reason`, `remote`, `attempt`, `datapath` |
 | `client.tunnel_settings` | The pushed settings, once per connection, before `up`. | `peer_id`, `cipher`, `ifconfig`, `mtu`, `routes`, `dns_servers`, `dns_domains`, `redirect_gateway`, `push` |
 | `client.auth_needed` | The daemon needs credentials. Respond with `auth.supply`. | `kind` (`credentials` or `key_pass`), `reason`, `username` |
+| `acl.deny` | The inbound filter (`allow-inbound`) dropped a packet. At most 10 each second. | `reason`, `proto`, `src`, `dst`, `sport`, `dport`, `skipped` |
+| `acl.forward` | A connection of a port forward (`forward`) opened or closed. At most 20 each second. | `what` (`open` or `close`), `proto`, `port`, `peer`, `peer_port`, `target`; on `close` also `bytes_in`, `bytes_out`
+| `acl.rules` | A reload changed the `allow-inbound` or `forward` rules. | `filter`, `source`, `rules`, `forwards`, `pending` |, `reason` |
 
 The client states are `waiting`, `connecting`, `handshake`, `up`, `closing` and
 `stopped`. The `dns_servers` and `dns_domains` fields let a helper that runs
@@ -253,6 +276,33 @@ Apply events as updates keyed by `session`.
 | `connect` | operator | client | Connects now and skips the back-off. | none |
 | `disconnect` | operator | client | Disconnects and stays disconnected until `connect`. | none |
 | `auth.supply` | operator | client | Responds to `client.auth_needed`. | `username`, `password`, `key_pass` |
+| `acl.get` | read | client | The `allow-inbound` and `forward` rules in force, and where they come from. | none |
+| `acl.reload` | operator | client | Reads the config file again and applies only its `allow-inbound` and `forward` lines. | none |
+
+`acl.get` returns:
+
+- `filter`: true when `allow-inbound` is in force. Then a new connection from
+  the tunnel passes only when a rule lets it in.
+- `source`: `config`, or `profile` for the rules of a profile that a client
+  service holds. null when `filter` is false.
+- `rules`: one object for each destination, with `dest` (as the config writes
+  it, such as `:22` or `nas.lan:445`), `protos`, `source`, and for a host name
+  `addresses` (the addresses of the last lookup).
+- `forwards`: `port`, `protos` and `target`.
+- `denied`: the inbound packets that the filter dropped, or null.
+- `pending`: true when the connection runs on DCO. The rules apply at the next
+  connection.
+- `profile_ignored`: the destinations of the profile that the service config
+  overrides.
+
+`acl.reload` changes the rules in place: connections that exist stay open, and
+new connections see the new rules. When the `forward` lines change, the
+connections of the port forwards close. A config file with an error changes
+nothing; the reply is `bad_request` with the problems in `details` (`line`,
+`option`, `reason`). The result has `changed`, `filter`, `rules`, `forwards`,
+`pending`, `closed` (forward connections that closed) and `ignored`
+(`acl-max-flows` needs a restart). In a client service, only the user who loaded
+the profile can reload, as for `connect`. `daemon.reload` applies the same lines.
 
 <a id="peerkick"></a>`peer.kick` with `halt` `true` tells the client not to reconnect. Without it,
 the client gets a restart notice. `reason` (up to 128 characters) goes to the
@@ -420,6 +470,8 @@ noirvpnctl [--name NAME | --socket PATH] [--json] [--timeout SECONDS] COMMAND [a
 | `auth credentials SESSION` | server | Shows the password that a waiting client sent. Once only. |
 | `connect`, `disconnect` | client | Connects now, or disconnects and stays down. |
 | `auth-supply [--username U] [--password-stdin \| --password-file FILE] [--key-pass-stdin \| --key-pass-file FILE]` | client | Supplies credentials or a key passphrase. |
+| `rules` | client | Shows the `allow-inbound` and `forward` rules in force. |
+| `reload-rules` | client | Reads the config file again and applies its `allow-inbound` and `forward` lines. |
 
 A password never comes from the command line. Examples:
 

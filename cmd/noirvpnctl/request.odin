@@ -183,6 +183,12 @@ build_request :: proc(
 	case .Profile_Clear:
 		r.op = "profile.clear"
 		has_args = false
+	case .Rules:
+		r.op = "acl.get"
+		has_args = false
+	case .Reload_Rules:
+		r.op = "acl.reload"
+		has_args = false
 	case .Auth_Supply:
 		r.op = "auth.supply"
 		if c.has_username {

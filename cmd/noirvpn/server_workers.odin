@@ -42,6 +42,9 @@ Srv_Ref :: struct {
 	sess: u64,
 }
 
+// The `cidx` of a reference to no conn.
+NO_CONN :: max(u32)
+
 // The conn of a table slot, if it is still the session `sess`.
 conn_alive :: proc(d: ^Srv, cidx: u32, sess: u64) -> ^Conn {
 	if int(cidx) >= len(d.conns) {
@@ -183,7 +186,7 @@ srv_rx_run :: proc(d: ^Srv, nested: bool) {
 	}
 	d.rx_running = true
 	lane_run(d.wk, .Rx)
-	prev := Srv_Ref{cidx = max(u32)}
+	prev := Srv_Ref{cidx = NO_CONN}
 	for i in 0 ..< len(d.recs) {
 		rec := &d.recs[i]
 		c := conn_alive(d, rec.cidx, rec.sess)
@@ -206,13 +209,13 @@ srv_rx_run :: proc(d: ^Srv, nested: bool) {
 		ref := Srv_Ref{rec.cidx, rec.sess}
 		if ref != prev {
 			// The conn before this one is done for now.
-			if prev.cidx != max(u32) {
+			if prev.cidx != NO_CONN {
 				srv_note_conn(d, prev, nested)
 			}
 			prev = ref
 		}
 	}
-	if prev.cidx != max(u32) {
+	if prev.cidx != NO_CONN {
 		srv_note_conn(d, prev, nested)
 	}
 	clear(&d.recs)
@@ -250,6 +253,7 @@ srv_pump_later :: proc(d: ^Srv) {
 // The end of a round of reading: finish the jobs, look at the conns, write what
 // is joined.
 srv_rx_flush :: proc(d: ^Srv) {
+	srv_rx_look(d)
 	if d.wk != nil {
 		srv_rx_run(d, false)
 		if len(d.later) > 0 {

@@ -149,6 +149,9 @@ Host_Options :: struct {
 	// nil turns the socket off.
 	events:        Maybe(Endpoint),
 	control:       Maybe(Endpoint),
+	// The socket folder gets mode 0755, also when it exists, so the user or
+	// group of `Access` can enter it. The socket modes keep others out.
+	open_dir:      bool,
 	// The host keeps its own copy.
 	policy:        Policy,
 	// Says if a user is a member of a group, for the `gid` rules. nil: the
@@ -177,6 +180,7 @@ Open_Error :: enum u8 {
 	No_Memory,
 	Wake_Failed,
 	Bad_Group,
+	Bad_Owner,
 	// The directory exists but is not safe (wrong owner or writable by others),
 	// or could not be created.
 	Dir_Not_Safe,
@@ -201,6 +205,8 @@ open_error_string :: proc(e: Open_Error) -> string {
 		return "cannot create the wake-up descriptor"
 	case .Bad_Group:
 		return "the group set for a bus socket does not exist"
+	case .Bad_Owner:
+		return "the user set for a bus socket does not exist"
 	case .Dir_Not_Safe:
 		return "the socket directory is not safe (it has the wrong owner, or other users can write to it)"
 	case .Dir_Create_Failed:

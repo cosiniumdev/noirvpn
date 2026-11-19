@@ -20,6 +20,12 @@ TCP_NODELAY :: 1
 TCP_NOTSENT_LOWAT :: 25
 @(private)
 IPV6_V6ONLY :: 26
+@(private)
+TCP_KEEPIDLE :: 4
+@(private)
+TCP_KEEPINTVL :: 5
+@(private)
+TCP_KEEPCNT :: 6
 // Packet info (ip(7), ipv6(7)): the option on an IPv4 socket, the options and
 // the control message type on an IPv6 socket.
 @(private)
@@ -501,6 +507,9 @@ tcp_connect_setup :: proc(s: Socket, ep: Endpoint, opts: TCP_Options) -> (in_pro
 	if opts.notsent_lowat {
 		tcp_set_notsent_lowat(s)
 	}
+	if opts.keepalive {
+		tcp_set_keepalive(s)
+	}
 	if opts.recv_buffer > 0 || opts.send_buffer > 0 {
 		_, _ = set_buffer_sizes(s, opts.recv_buffer, opts.send_buffer) or_return
 	}
@@ -542,7 +551,7 @@ tcp_connect_finish :: proc(s: Socket) -> Error {
 }
 
 // A listening TCP socket (for a server, and for tests).
-tcp_listen :: proc(ep: Endpoint, backlog: i32 = 128, v6_mode := V6_Mode.Dual_Stack) -> (s: Socket, err: Error) {
+tcp_listen :: proc(ep: Endpoint, backlog: i32 = 128, v6_mode := V6_Mode.Dual_Stack, device := "") -> (s: Socket, err: Error) {
 	family := family_of(ep)
 	af: linux.Address_Family = .INET if family == .V4 else .INET6
 	fd, e := linux.socket(af, .STREAM, {.NONBLOCK, .CLOEXEC}, .TCP)
@@ -553,7 +562,7 @@ tcp_listen :: proc(ep: Endpoint, backlog: i32 = 128, v6_mode := V6_Mode.Dual_Sta
 		fd     = i32(fd),
 		family = family,
 	}
-	if serr := tcp_listen_setup(sock, ep, backlog, v6_mode); serr != .None {
+	if serr := tcp_listen_setup(sock, ep, backlog, v6_mode, device); serr != .None {
 		close(sock)
 		return INVALID_SOCKET, serr
 	}
@@ -561,12 +570,15 @@ tcp_listen :: proc(ep: Endpoint, backlog: i32 = 128, v6_mode := V6_Mode.Dual_Sta
 }
 
 @(private)
-tcp_listen_setup :: proc(s: Socket, ep: Endpoint, backlog: i32, v6_mode: V6_Mode) -> Error {
+tcp_listen_setup :: proc(s: Socket, ep: Endpoint, backlog: i32, v6_mode: V6_Mode, device: string) -> Error {
 	if s.family == .V6 {
 		apply_v6_mode(s.fd, v6_mode) or_return
 	}
 	if oe := set_int_opt(s.fd, SOL_SOCKET, int(linux.Socket_Option.REUSEADDR), 1); oe != .NONE {
 		return map_errno(oe)
+	}
+	if device != "" {
+		bind_device(s, device) or_return
 	}
 	bind(s, ep) or_return
 	if le := linux.listen(linux.Fd(s.fd), backlog); le != .NONE {
@@ -582,13 +594,39 @@ tcp_listen_setup :: proc(s: Socket, ep: Endpoint, backlog: i32, v6_mode: V6_Mode
 // Set on `tls` link sockets (at connect, or after the server tells TLS from
 // raw). The raw TCP transport and sockets to the DCO service keep the kernel
 // default.
+// Limits a socket to one network device (SO_BINDTODEVICE): it takes only
+// packets that arrive on `device` and sends only through it. Connections
+// that a listener accepts have the same limit. Call it before `bind`. Since
+// Linux 5.7 a process with no capability can set it once for a socket; an
+// older kernel needs CAP_NET_RAW.
+bind_device :: proc "contextless" (s: Socket, device: string) -> Error {
+	name: [16]u8 // IFNAMSIZ, with the 0 at the end
+	if len(device) == 0 || len(device) >= len(name) {
+		return .Invalid
+	}
+	copy(name[:], device)
+	if e := linux.setsockopt_base(linux.Fd(s.fd), SOL_SOCKET, int(linux.Socket_Option.BINDTODEVICE), &name); e != .NONE {
+		return map_errno(e)
+	}
+	return .None
+}
+
 tcp_set_notsent_lowat :: proc "contextless" (s: Socket) {
 	set_int_opt(s.fd, IPPROTO_TCP, TCP_NOTSENT_LOWAT, NOTSENT_LOWAT)
 }
 
+// Switches on TCP keepalive probes with the `KEEPALIVE_*` timing. The probe
+// timing is best effort: a system that refuses it keeps its own timing.
+tcp_set_keepalive :: proc "contextless" (s: Socket) {
+	set_int_opt(s.fd, SOL_SOCKET, int(linux.Socket_Option.KEEPALIVE), 1)
+	set_int_opt(s.fd, IPPROTO_TCP, TCP_KEEPIDLE, KEEPALIVE_IDLE)
+	set_int_opt(s.fd, IPPROTO_TCP, TCP_KEEPINTVL, KEEPALIVE_INTERVAL)
+	set_int_opt(s.fd, IPPROTO_TCP, TCP_KEEPCNT, KEEPALIVE_PROBES)
+}
+
 // Accept one connection. The new socket is non-blocking, with TCP_NODELAY
-// (unless `opts.nagle`) and TCP_NOTSENT_LOWAT (if `opts.notsent_lowat`). Other
-// `opts` fields do not apply.
+// (unless `opts.nagle`), TCP_NOTSENT_LOWAT (if `opts.notsent_lowat`) and
+// keepalive (if `opts.keepalive`). Other `opts` fields do not apply.
 tcp_accept :: proc(listener: Socket, opts: TCP_Options = {}) -> (s: Socket, from: Endpoint, err: Error) {
 	sa: linux.Sock_Addr_Any
 	for {
@@ -608,6 +646,9 @@ tcp_accept :: proc(listener: Socket, opts: TCP_Options = {}) -> (s: Socket, from
 		}
 		if opts.notsent_lowat {
 			tcp_set_notsent_lowat(s)
+		}
+		if opts.keepalive {
+			tcp_set_keepalive(s)
 		}
 		from, _ = from_sockaddr(&sa)
 		return s, from, .None

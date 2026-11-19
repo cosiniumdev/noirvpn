@@ -35,6 +35,29 @@ test_cli_flags :: proc(t: ^testing.T) {
 }
 
 @(test)
+test_cli_allow :: proc(t: ^testing.T) {
+	c := cli_split({"--allow-user", "alice", "--verb", "3", "--allow-group", "vpn"})
+	defer delete(c.args)
+	testing.expect_value(t, c.allow_user, "alice")
+	testing.expect_value(t, c.allow_group, "vpn")
+	testing.expect_value(t, c.allow_error, "")
+	testing.expect_value(t, len(c.args), 2)
+
+	twice := cli_split({"--allow-user", "a", "--allow-user", "b"})
+	defer delete(twice.args)
+	testing.expect_value(t, twice.allow_error, "--allow-user can be given only once")
+
+	missing := cli_split({"--allow-group", "--verb", "3"})
+	defer delete(missing.args)
+	testing.expect_value(t, missing.allow_error, "--allow-group requires a name")
+
+	unknown := cli_split({"--allow-user", "no-such-user-xyz"})
+	defer delete(unknown.args)
+	testing.expect_value(t, bus_access_check(&unknown), "--allow-user: 'no-such-user-xyz' is not a user on this host")
+	BUS_ACCESS = {}
+}
+
+@(test)
 test_cli_name :: proc(t: ^testing.T) {
 	// `--name` is the daemon's own flag: it and its value are not config arguments.
 	c := cli_split({"--config", "a.conf", "--name", "vpn1", "--verb", "3"})

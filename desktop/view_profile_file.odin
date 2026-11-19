@@ -17,9 +17,9 @@ import "ui"
 
 // SECRET_HELP is the help of the sign-in group of an imported profile.
 when ODIN_OS == .Windows {
-	SECRET_HELP :: "To read them from a file, add auth-user-pass FILE (the user name and the password on two lines) or askpass FILE (the passphrase on the first line) to the profile, with the full path. The app will read the file when you connect and apply it to the service. Windows: ensure that the file is in your own folder where no other user can access it."
+	SECRET_HELP :: "To read them from a file, add auth-user-pass FILE (containing the user name and the password on two lines) or askpass FILE (the passphrase on the first line) to the profile, with the full path. The app will read the file when you connect and apply it to the service. Windows: ensure that the file is in your own folder where no other user can access it."
 } else {
-	SECRET_HELP :: "To read them from a file, add auth-user-pass FILE (the user name and the password on two lines) or askpass FILE (the passphrase on the first line) to the profile, with the full path. The file must have restricted permissions (chmod 600). The app will read the file when you connect and apply it to the service."
+	SECRET_HELP :: "To read them from a file, add auth-user-pass FILE (containing the user name and the password on two lines) or askpass FILE (the passphrase on the first line) to the profile, with the full path. The file must have restricted permissions (chmod 600). The app will read the file when you connect and apply it to the service."
 }
 
 // SAMPLE_PROFILE_PATH is the file of a simulated profile.
@@ -136,15 +136,28 @@ profile_file_group :: proc(app: ^App) {
 // desktop, or shows it in its folder.
 profile_file_action :: proc(app: ^App, reveal: bool) {
 	e := &app.edit
+	set_text(&e.file_note, path_action(app, e.path, reveal))
+}
+
+// path_action opens a file in the text editor of the desktop, or shows it in
+// its folder. It returns "" or the problem for the user. The simulation and
+// the tests start no program.
+path_action :: proc(app: ^App, path: string, reveal: bool) -> string {
 	ok: bool
 	if app.browser_test || app.link.kind == .Sim {
 		app.browser_calls += 1
-		set_text(&app.browser_last, tprint("%s %s", reveal ? "reveal" : "open", e.path))
+		set_text(&app.browser_last, tprint("%s %s", reveal ? "reveal" : "open", path))
 		ok = !app.browser_fail
 	} else {
-		ok = file_reveal(e.path) if reveal else file_open(e.path)
+		ok = file_reveal(path) if reveal else file_open(path)
 	}
-	set_text(&e.file_note, ok ? "" : (reveal ? "The folder could not be shown." : "The file could not be opened from here. Open it in an editor yourself, using the path above."))
+	switch {
+	case ok:
+		return ""
+	case reveal:
+		return "The folder could not be shown."
+	}
+	return "The file could not be opened from here. Open it in an editor yourself, using the path above."
 }
 
 // reload_start reads the profile file again and has the service check it,

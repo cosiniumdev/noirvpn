@@ -31,6 +31,7 @@
 package config
 
 import "core:mem"
+import "noir:proto/acl"
 
 // ----------------------------------------------------------------------------
 // Diagnostics
@@ -795,6 +796,16 @@ Client_Config :: struct {
 	ifconfig_ipv6:        Maybe([2]string),
 	// `dns` and `dhcp-option` lines, as written.
 	dns_options:          []Raw_Option,
+	// `allow-inbound`: the destinations that tunnel peers may open connections
+	// to. Empty: every inbound connection passes. A `.Host` rule points into
+	// `acl_hosts`.
+	allow_inbound:        []acl.Rule,
+	acl_hosts:            []string,
+	acl_max_flows:        int,
+	acl_resolve_interval: int,
+	// `forward`: ports of the tunnel address relayed to a target.
+	forwards:             []Forward,
+	forward_max_conns:    int,
 }
 
 // `auth-user-pass`.

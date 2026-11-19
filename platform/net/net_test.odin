@@ -4,6 +4,7 @@
 #+build linux
 package noirnet
 
+import "core:strings"
 import "core:sys/linux"
 import "core:testing"
 import "core:time"
@@ -476,4 +477,130 @@ v4_endpoint_on_v4_socket_only :: proc(t: ^testing.T) {
 	testing.expect_value(t, bind(s, LO6), Error.Invalid)
 	data := [1]u8{0}
 	testing.expect_value(t, send_to(s, data[:], LO6), Error.Invalid)
+}
+
+// `keepalive` sets SO_KEEPALIVE and the probe timing, on a connecting socket
+// and on an accepted one.
+@(test)
+test_tcp_keepalive_options :: proc(t: ^testing.T) {
+	l, lerr := tcp_listen(LO4)
+	if !testing.expect_value(t, lerr, Error.None) {
+		return
+	}
+	defer close(l)
+	lep, _ := local_endpoint(l)
+	c, _, cerr := tcp_connect(lep, {keepalive = true})
+	if !testing.expect_value(t, cerr, Error.None) {
+		return
+	}
+	defer close(c)
+	plain, _, perr := tcp_connect(lep)
+	if !testing.expect_value(t, perr, Error.None) {
+		return
+	}
+	defer close(plain)
+	acc: [2]Socket
+	for i in 0 ..< 2 {
+		// The first connection of the queue is the keepalive one.
+		for _ in 0 ..< 200 {
+			s, _, aerr := tcp_accept(l, {keepalive = i == 0})
+			if aerr == .None {
+				acc[i] = s
+				break
+			}
+			time.sleep(5 * time.Millisecond)
+		}
+		if !testing.expect(t, is_valid(acc[i])) {
+			return
+		}
+	}
+	defer close(acc[0])
+	defer close(acc[1])
+	want := [?]i32{1, KEEPALIVE_IDLE, KEEPALIVE_INTERVAL, KEEPALIVE_PROBES}
+	opts := [?][2]int{{SOL_SOCKET, int(linux.Socket_Option.KEEPALIVE)}, {IPPROTO_TCP, TCP_KEEPIDLE}, {IPPROTO_TCP, TCP_KEEPINTVL}, {IPPROTO_TCP, TCP_KEEPCNT}}
+	for o, i in opts {
+		v, _ := get_int_opt(c.fd, o[0], o[1])
+		testing.expect_value(t, v, want[i])
+		v, _ = get_int_opt(acc[0].fd, o[0], o[1])
+		testing.expect_value(t, v, want[i])
+	}
+	v, _ := get_int_opt(plain.fd, SOL_SOCKET, int(linux.Socket_Option.KEEPALIVE))
+	testing.expect_value(t, v, 0)
+	v, _ = get_int_opt(acc[1].fd, SOL_SOCKET, int(linux.Socket_Option.KEEPALIVE))
+	testing.expect_value(t, v, 0)
+}
+
+// The name of the device that a socket is limited to, "" for none.
+@(private = "file")
+device_of :: proc(s: Socket) -> string {
+	name: [16]u8
+	size := u32(len(name))
+	if linux.syscall(linux.SYS_getsockopt, s.fd, SOL_SOCKET, int(linux.Socket_Option.BINDTODEVICE), &name, &size) < 0 {
+		return "?"
+	}
+	n := int(size)
+	for n > 0 && name[n - 1] == 0 {
+		n -= 1
+	}
+	return strings.clone(string(name[:n]), context.temp_allocator)
+}
+
+// A listener and a UDP socket limited to the loopback device: connections
+// over loopback arrive, and the accepted socket has the same limit.
+@(test)
+test_bind_device :: proc(t: ^testing.T) {
+	l, lerr := tcp_listen(LO4, 16, .Dual_Stack, "lo")
+	if !testing.expect_value(t, lerr, Error.None) {
+		return
+	}
+	defer close(l)
+	testing.expect_value(t, device_of(l), "lo")
+	lep, _ := local_endpoint(l)
+	c, _, cerr := tcp_connect(lep)
+	if !testing.expect_value(t, cerr, Error.None) {
+		return
+	}
+	defer close(c)
+	acc := INVALID_SOCKET
+	for _ in 0 ..< 200 {
+		s, _, aerr := tcp_accept(l)
+		if aerr == .None {
+			acc = s
+			break
+		}
+		time.sleep(5 * time.Millisecond)
+	}
+	if !testing.expect(t, is_valid(acc), "no connection arrived on the loopback device") {
+		return
+	}
+	defer close(acc)
+	testing.expect_value(t, device_of(acc), "lo")
+
+	plain, perr := tcp_listen(LO4)
+	if testing.expect_value(t, perr, Error.None) {
+		testing.expect_value(t, device_of(plain), "")
+		close(plain)
+	}
+
+	u, uerr := udp_open(.V4)
+	if testing.expect_value(t, uerr, Error.None) {
+		testing.expect_value(t, bind_device(u, "lo"), Error.None)
+		testing.expect_value(t, bind(u, LO4), Error.None)
+		testing.expect_value(t, device_of(u), "lo")
+		close(u)
+	}
+}
+
+// A device that does not exist, and a name that is too long.
+@(test)
+test_bind_device_errors :: proc(t: ^testing.T) {
+	_, err := tcp_listen(LO4, 16, .Dual_Stack, "nodev-noir0")
+	testing.expect(t, err != .None, "a listener on a device that does not exist opened")
+	_, err = tcp_listen(LO4, 16, .Dual_Stack, "a-name-of-16-chr")
+	testing.expect_value(t, err, Error.Invalid)
+	u, uerr := udp_open(.V4)
+	if testing.expect_value(t, uerr, Error.None) {
+		testing.expect_value(t, bind_device(u, ""), Error.Invalid)
+		close(u)
+	}
 }

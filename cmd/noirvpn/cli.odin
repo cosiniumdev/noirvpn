@@ -21,10 +21,16 @@ Cli :: struct {
 	name: string,
 	// `--name` was given without a value.
 	name_missing: bool,
+	// `--allow-user NAME` and `--allow-group NAME`: who may use the control bus
+	// as an operator, for this run.
+	allow_user:   string,
+	allow_group:  string,
+	// A problem with these flags, for the user; "" when they are good.
+	allow_error:  string,
 }
 
 // Splits the daemon's own flags (`--check-config`, `--version`, `--help`, `-h`,
-// `--name NAME`)
+// `--name NAME`, `--allow-user NAME`, `--allow-group NAME`)
 // off the command line. Everything else belongs to the config parser. The
 // result's `args` is a new slice (free it with `delete`).
 cli_split :: proc(argv: []string, allocator := context.allocator) -> Cli {
@@ -43,6 +49,20 @@ cli_split :: proc(argv: []string, allocator := context.allocator) -> Cli {
 				skip = true
 			} else {
 				c.name_missing = true
+			}
+		case "--allow-user", "--allow-group":
+			user := a == "--allow-user"
+			switch {
+			case i + 1 >= len(argv) || strings.has_prefix(argv[i + 1], "--") || argv[i + 1] == "":
+				c.allow_error = strings.concatenate({a, " requires a name"}, context.temp_allocator)
+			case (user && c.allow_user != "") || (!user && c.allow_group != ""):
+				c.allow_error = strings.concatenate({a, " can be given only once"}, context.temp_allocator)
+			case user:
+				c.allow_user = argv[i + 1]
+				skip = true
+			case:
+				c.allow_group = argv[i + 1]
+				skip = true
 			}
 		case "--version", "-V":
 			c.mode = .Version
@@ -132,6 +152,12 @@ NAME.events and NAME.control in /var/run/noirvpn. Without it, the name is the
 config file name without its extension. Use the noirvpnctl tool to connect to
 these sockets (see docs/management.md).
 
+Only root can use the sockets, unless the config says more. --allow-user NAME
+lets one user in (the sockets belong to that user, mode 0600), and
+--allow-group NAME lets the members of a group in (mode 0660). Both give the
+role operator: load a profile, connect and disconnect, as the desktop app
+does. They apply to this run only and are not written to a config file.
+
 The options are the same as in an OpenVPN config file, written with two
 dashes. Options on the command line are read after the files and override them.
 A server config is refused, because on macOS noirvpn is a client only.
@@ -172,6 +198,12 @@ NAME.events and NAME.control in /run/noirvpn (or $XDG_RUNTIME_DIR/noirvpn for
 another user). Without it, the name is the config file name without its
 extension. Use the noirvpnctl tool to connect to these sockets (see
 docs/management.md).
+
+Only root can use the sockets, unless the config says more. --allow-user NAME
+lets one user in (the sockets belong to that user, mode 0600), and
+--allow-group NAME lets the members of a group in (mode 0660). Both give the
+role operator: load a profile, connect and disconnect, as the desktop app
+does. They apply to this run only and are not written to a config file.
 
 The options are the same as in an OpenVPN config file, written with two
 dashes. Options on the command line are read after the files and override them.

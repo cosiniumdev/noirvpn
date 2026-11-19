@@ -21,6 +21,7 @@ View :: enum u8 {
 	Create,
 	Created,
 	Key_Request, // view_key.odin
+	Rules, // view_rules.odin
 }
 
 LOGO_PNG :: #load("assets/logo-mask.png")
@@ -75,7 +76,7 @@ App :: struct {
 	import_wait:    bool, // profile.check is on its way
 	dialog:         Dialog,
 
-	stack:          [4]View,
+	stack:          [5]View,
 	depth:          int,
 
 	// Frameless window: see frame.odin.
@@ -108,6 +109,7 @@ App :: struct {
 	keyreq:         Key_Req, // the key request of the profile view
 	confirm:        Confirm, // a question over the window (view_key.odin)
 	copied:         string, // the last text put on the clipboard
+	rules:          Rules_View, // the Inbound rules view
 
 	// The self-test starts no browser: web_open counts the calls.
 	browser_test:   bool,
@@ -135,6 +137,12 @@ push_view :: proc(app: ^App, v: View) {
 	app.u.focus = 0
 }
 
+// view_below is the view under the current one, or the current one at the
+// bottom of the stack.
+view_below :: proc(app: ^App) -> View {
+	return app.stack[max(app.depth - 1, 0)]
+}
+
 pop_view :: proc(app: ^App) {
 	if app.depth > 0 {
 		app.depth -= 1
@@ -156,6 +164,10 @@ app_init :: proc(app: ^App) {
 	app.conn.phase = .Disconnected
 	edit_init(&app.edit)
 	key_request_init(&app.keyreq)
+	rules_init(&app.rules)
+	if app.link.kind == .Sim {
+		acl_sample(app)
+	}
 	app.stack[0] = .List
 }
 
@@ -165,7 +177,7 @@ attach_enter :: proc(app: ^App) {
 		return
 	}
 	app.stack[0] = .Attach
-	if current_view(app) == .Connection {
+	if v := current_view(app); v == .Connection || v == .Rules {
 		app.depth = 0
 	}
 	app.fresh = 2
@@ -199,6 +211,7 @@ open_connection :: proc(app: ^App, i: int) {
 		app.link.error = ""
 	}
 	push_view(app, .Connection)
+	acl_read(app)
 }
 
 // start_connection shows row i and connects it, for --open, the scenes and the
@@ -280,6 +293,8 @@ build :: proc(app: ^App, dt: f32) {
 			view_created(app)
 		case .Key_Request:
 			view_key_request(app)
+		case .Rules:
+			view_rules(app)
 		}
 		mu.end_window(ctx)
 	}
@@ -293,7 +308,7 @@ build :: proc(app: ^App, dt: f32) {
 			if !conn_locked(app) {
 				pop_view(app)
 			}
-		case .Profile, .Settings, .Created:
+		case .Profile, .Settings, .Created, .Rules:
 			pop_view(app)
 		case .Create:
 			create_leave(app)

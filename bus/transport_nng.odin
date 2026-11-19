@@ -59,9 +59,12 @@ transport_prepare :: proc(h: ^Host, opts: Host_Options) -> Open_Error {
 // group of the control socket (else the events socket). An existing folder is
 // only checked. A daemon that keeps other files there calls this first, so the
 // folder gets the bus mode and group.
+// With `open_dir`, or a socket with an owner, the folder gets mode 0755, also
+// when it exists, so that the user or group of the sockets can enter it.
 prepare_dirs :: proc(opts: Host_Options) -> Open_Error {
 	ev, has_events := opts.events.?
 	ctl, has_control := opts.control.?
+	open := opts.open_dir || (has_control && ctl.owner != "") || (has_events && ev.owner != "")
 	gid_for_dir: Maybe(u32)
 	if has_control && ctl.group != "" {
 		if g, ok := default_resolver(.Gid, ctl.group); ok {
@@ -73,12 +76,12 @@ prepare_dirs :: proc(opts: Host_Options) -> Open_Error {
 		}
 	}
 	if has_events {
-		if e := ensure_dir(dir_of(ev.path), gid_for_dir); e != .None {
+		if e := ensure_dir(dir_of(ev.path), gid_for_dir, open); e != .None {
 			return e
 		}
 	}
 	if has_control {
-		if e := ensure_dir(dir_of(ctl.path), gid_for_dir); e != .None {
+		if e := ensure_dir(dir_of(ctl.path), gid_for_dir, open); e != .None {
 			return e
 		}
 	}
@@ -114,8 +117,9 @@ u32_to_mode :: proc(m: u32) -> posix.mode_t {
 
 // Create the directory if it is missing; otherwise check that it is a
 // directory owned by root or us and not writable by others (unless sticky).
+// `open` gives the directory mode 0755, also when it exists.
 @(private)
-ensure_dir :: proc(dir: string, gid: Maybe(u32)) -> Open_Error {
+ensure_dir :: proc(dir: string, gid: Maybe(u32), open := false) -> Open_Error {
 	if dir == "/" {
 		return .None
 	}
@@ -133,13 +137,16 @@ ensure_dir :: proc(dir: string, gid: Maybe(u32)) -> Open_Error {
 		if mode & 0o022 != 0 && mode & 0o1000 == 0 {
 			return .Dir_Not_Safe
 		}
+		if open && mode & 0o055 != 0o055 && owner == euid() {
+			posix.chmod(cdir, u32_to_mode((mode & 0o7777) | 0o055))
+		}
 		return .None
 	}
 	if posix.mkdir(cdir, u32_to_mode(DIR_MODE)) != .OK {
 		return .Dir_Create_Failed
 	}
 	// mkdir applies the umask; set the mode we want.
-	posix.chmod(cdir, u32_to_mode(DIR_MODE))
+	posix.chmod(cdir, u32_to_mode(0o755 if open else DIR_MODE))
 	if g, ok := gid.?; ok {
 		posix.chown(cdir, max(posix.uid_t), posix.gid_t(g))
 	}
@@ -164,13 +171,25 @@ listen_socket :: proc(
 		}
 		return listen_failed, lerr
 	}
+	uid := max(posix.uid_t)
+	gid := max(posix.gid_t)
+	if ep.owner != "" {
+		id, ok := default_resolver(.Uid, ep.owner)
+		if !ok {
+			return .Bad_Owner, .None
+		}
+		uid = posix.uid_t(id)
+	}
 	if ep.group != "" {
-		gid, ok := default_resolver(.Gid, ep.group)
+		id, ok := default_resolver(.Gid, ep.group)
 		if !ok {
 			return .Bad_Group, .None
 		}
+		gid = posix.gid_t(id)
+	}
+	if ep.owner != "" || ep.group != "" {
 		cpath := strings.clone_to_cstring(ep.path, context.temp_allocator)
-		if posix.chown(cpath, max(posix.uid_t), posix.gid_t(gid)) != .OK {
+		if posix.chown(cpath, uid, gid) != .OK {
 			return chown_failed, .None
 		}
 	}

@@ -352,6 +352,61 @@ format_profile :: proc(b: ^strings.Builder, result: View) {
 	write_pairs(b, pairs[:])
 }
 
+// The result of `rules`: the state of the filter, a table of the rules, and a
+// table of the forward ports.
+format_rules :: proc(b: ^strings.Builder, result: View) {
+	pairs := make([dynamic]Pair, context.temp_allocator)
+	append(&pairs, Pair{"filter", field_text(result, "filter")})
+	append(&pairs, Pair{"source", field_text(result, "source")})
+	append(&pairs, Pair{"pending", field_text(result, "pending")})
+	append(&pairs, Pair{"denied", field_text(result, "denied")})
+	if view_int(result, "profile_ignored") > 0 {
+		append(&pairs, Pair{"profile_ignored", field_text(result, "profile_ignored")})
+	}
+	write_pairs(b, pairs[:])
+	join :: proc(v: View, key: string) -> string {
+		list, _ := view_get(v, key)
+		parts := make([dynamic]string, context.temp_allocator)
+		for it in list.items {
+			append(&parts, scalar_text(it))
+		}
+		return strings.join(parts[:], ",", context.temp_allocator)
+	}
+	rules, _ := view_get(result, "rules")
+	if len(rules.items) > 0 {
+		rows := make([dynamic][]string, context.temp_allocator)
+		for r in rules.items {
+			row := make([]string, 4, context.temp_allocator)
+			row[0] = field_text(r, "dest")
+			row[1] = join(r, "protos")
+			row[2] = field_text(r, "source")
+			row[3] = "-"
+			if _, has := view_get(r, "addresses"); has {
+				row[3] = join(r, "addresses")
+				if row[3] == "" {
+					row[3] = "(not looked up yet)"
+				}
+			}
+			append(&rows, row)
+		}
+		strings.write_byte(b, '\n')
+		write_table(b, {"DESTINATION", "PROTOCOLS", "SOURCE", "ADDRESSES"}, rows[:])
+	}
+	fwds, _ := view_get(result, "forwards")
+	if len(fwds.items) > 0 {
+		rows := make([dynamic][]string, context.temp_allocator)
+		for f in fwds.items {
+			row := make([]string, 3, context.temp_allocator)
+			row[0] = field_text(f, "port")
+			row[1] = join(f, "protos")
+			row[2] = field_text(f, "target")
+			append(&rows, row)
+		}
+		strings.write_byte(b, '\n')
+		write_table(b, {"FORWARD PORT", "PROTOCOLS", "TARGET"}, rows[:])
+	}
+}
+
 @(private = "file")
 field_text :: proc(v: View, key: string) -> string {
 	item, found := view_get(v, key)

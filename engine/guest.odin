@@ -521,6 +521,9 @@ guest_pump_push :: proc(d: ^Daemon) {
 		if d.mss4 != 0 {
 			mss.clamp_syn(room[:len(pkt)], d.mss4)
 		}
+		if d.acl != nil {
+			acl_out(d, room[:len(pkt)])
+		}
 		slot.n = len(pkt)
 		ring_commit(&d.ring)
 		if d.ring.count + 2 > RING_SLOTS {

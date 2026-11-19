@@ -29,12 +29,16 @@ User_Class :: enum u8 {
 // The options of the service. A profile cannot set them.
 @(private, rodata)
 USER_SERVICE := [?]string {
+	"acl-max-flows",
+	"acl-resolve-interval",
 	"bus-allow",
 	"bus-control",
 	"bus-events",
 	"client-service",
 	"datapath",
 	"dco-socket",
+	"forward",
+	"forward-max-conns",
 	"group",
 	"stats-interval",
 	"user",
@@ -56,6 +60,7 @@ USER_IGNORED := [?]string{"disable-dco", "mlock", "verb"}
 @(private, rodata)
 USER_ALLOWED := [?]string {
 	"allow-compression",
+	"allow-inbound",
 	"askpass",
 	"auth",
 	"auth-retry",

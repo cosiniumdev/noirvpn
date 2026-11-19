@@ -6,6 +6,7 @@ package main
 
 import "core:os"
 import "noir:bus"
+import _ "noir:platform/cpu"
 
 main :: proc() {
 	os.exit(int(run()))

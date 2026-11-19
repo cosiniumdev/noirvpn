@@ -9,6 +9,7 @@ import "core:os"
 import "core:strings"
 import "core:sys/linux"
 import "noir:bus"
+import _ "noir:platform/cpu"
 
 main :: proc() {
 	os.exit(int(run()))

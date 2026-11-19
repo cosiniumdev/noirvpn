@@ -11,6 +11,7 @@ package main
 // event; link_poll takes them there. Transport is package bus (Unix sockets,
 // Windows named pipes).
 
+import "core:encoding/json"
 import "core:mem"
 import "core:slice"
 import "core:strings"
@@ -42,6 +43,8 @@ Job_Kind :: enum u8 {
 	Profile_Set,
 	Profile_Check,
 	Profile_Clear,
+	Acl_Get,
+	Acl_Reload,
 	Stop,
 }
 
@@ -238,6 +241,10 @@ op_name :: proc(k: Job_Kind) -> string {
 		return "profile.check"
 	case .Profile_Clear:
 		return "profile.clear"
+	case .Acl_Get:
+		return "acl.get"
+	case .Acl_Reload:
+		return "acl.reload"
 	case .Search, .Stop:
 	}
 	return ""
@@ -258,7 +265,7 @@ worker_main :: proc(b: ^Bus_Impl) {
 			return
 		case .Search:
 			search(b)
-		case .Status, .Stats, .Connect, .Disconnect, .Auth_Supply, .Profile_Set, .Profile_Check, .Profile_Clear:
+		case .Status, .Stats, .Connect, .Disconnect, .Auth_Supply, .Profile_Set, .Profile_Check, .Profile_Clear, .Acl_Get, .Acl_Reload:
 			m := Msg {
 				kind = .Reply,
 				job  = j.kind,
@@ -470,6 +477,9 @@ apply_reply :: proc(app: ^App, m: ^Msg) {
 		l.status_busy = false
 	case .Stats:
 		l.stats_busy = false
+	case .Acl_Get, .Acl_Reload:
+		acl_reply(app, m)
+		return
 	}
 	if m.err != .None && (m.job == .Profile_Set || m.job == .Profile_Check) {
 		text := bus.call_error_string(m.err)
@@ -493,12 +503,7 @@ apply_reply :: proc(app: ^App, m: ^Msg) {
 	if m.err != .None {
 		#partial switch m.err {
 		case .Daemon_Not_Running, .Permission_Denied, .Not_Service:
-			if l.state == .Up {
-				link_lost(app)
-				l.state = m.err == .Daemon_Not_Running ? .Not_Found : .Denied
-				l.status_busy = true
-				bus_request(app, .Search)
-			}
+			call_lost(app, m.err)
 		case:
 			if m.job != .Stats && m.job != .Status {
 				set_text(&l.error, bus.call_error_string(m.err))
@@ -542,6 +547,85 @@ apply_reply :: proc(app: ^App, m: ^Msg) {
 		// The events say the rest. Read status too, in case the events socket is off.
 		link_refresh(app)
 	}
+}
+
+// call_lost goes back to searching after a call found no service, or one
+// that this user may not use.
+call_lost :: proc(app: ^App, err: bus.Call_Error) {
+	l := &app.link
+	if l.state == .Up {
+		link_lost(app)
+		l.state = err == .Daemon_Not_Running ? .Not_Found : .Denied
+		l.status_busy = true
+		bus_request(app, .Search)
+	}
+}
+
+// acl_reply takes the reply of acl.get or acl.reload. Their failures are no
+// failure of the connection, so they never set the error of the link.
+acl_reply :: proc(app: ^App, m: ^Msg) {
+	r := &m.reply
+	if m.job == .Acl_Get {
+		if m.err == .None {
+			acl_got(app, r.ok, r.code, r.result)
+		} else {
+			app.link.acl.busy = false
+		}
+	} else if m.err == .None {
+		acl_reload_done(app, r.ok, r.code, r.message, r.result, r.details)
+	} else {
+		acl_reload_done(app, false, "", bus.call_error_string(m.err), nil, nil)
+	}
+	#partial switch m.err {
+	case .Daemon_Not_Running, .Permission_Denied, .Not_Service:
+		call_lost(app, m.err)
+	}
+}
+
+// acl_reload_done takes the reply of acl.reload, then reads the rules again.
+acl_reload_done :: proc(app: ^App, ok: bool, code, message: string, result, details: json.Value) {
+	a := &app.link.acl
+	a.reload_wait = max(a.reload_wait - 1, 0)
+	a.reload_error = !ok
+	set_text(&a.reload_note, "")
+	if ok {
+		msg := "Reloaded. Nothing changed."
+		if jbool(result, "changed") {
+			msg = tprint("Reloaded. %s, %s.", count_text(int(jint(result, "rules")), "rule", "rules", "No rules"), count_text(int(jint(result, "forwards")), "forward", "forwards", "no forwards"))
+		}
+		if closed := int(jint(result, "closed")); closed > 0 {
+			msg = tprint("%s %s closed.", msg, count_text(closed, "forwarded connection was", "forwarded connections were", ""))
+		}
+		set_text(&a.reload_msg, msg)
+		note := ""
+		if jbool(result, "pending") {
+			note = ACL_PENDING_TEXT
+		}
+		if arr, has := jarr(result, "ignored"); has && len(arr) > 0 {
+			restart := tprint("Restart the service to apply %s.", acl_join(arr))
+			note = note == "" ? restart : tprint("%s %s", note, restart)
+		}
+		set_text(&a.reload_note, note)
+	} else {
+		text: string
+		switch code {
+		case "bad_request":
+			text = refusal_text(code, message, details)
+			if arr, listed := details.(json.Array); listed && len(arr) > 0 {
+				text = tprint("Nothing changed. %s", text)
+			} else {
+				text = sentence(text)
+			}
+		case "unknown_op", "unsupported":
+			text = "This service cannot reload its rules."
+		case "denied", "busy", "timeout":
+			text = request_error_text(.Acl_Reload, code, message)
+		case:
+			text = sentence(message if message != "" else code)
+		}
+		set_text(&a.reload_msg, text)
+	}
+	acl_read(app)
 }
 
 request_error_text :: proc(job: Job_Kind, code, message: string) -> string {

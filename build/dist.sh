@@ -73,6 +73,8 @@ fi
 repo=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)
 odin=${ODIN:-odin}
 export ODIN=$odin
+# The CPU level of the build: x86-64-v3 on amd64 (see build/microarch.sh).
+archflags=$("$repo/build/microarch.sh")
 
 case "$(uname -s)" in
 Linux) os=linux ;;
@@ -116,7 +118,7 @@ if [[ $os == darwin ]]; then
 	mkdir -p "$out/bin"
 	for name in noirvpn noirvpnctl; do
 		echo "== $name"
-		"$odin" build "$repo/cmd/$name" -collection:noir="$repo" -vet -strict-style -o:speed \
+		"$odin" build "$repo/cmd/$name" -collection:noir="$repo" -vet -strict-style -o:speed $archflags \
 			-extra-linker-flags:"-L$brew_lib" -out:"$out/bin/$name"
 	done
 	echo "== noirvpn-hook: skipped, not on macOS"
@@ -128,7 +130,7 @@ elif [[ $os == linux ]]; then
 			"$repo/build/musl.sh" "cmd/$name" "$name" -vet -strict-style
 			cp "$repo/out/musl/$name" "$out/bin/$name"
 		else
-			"$odin" build "$repo/cmd/$name" -collection:noir="$repo" -vet -strict-style -o:speed \
+			"$odin" build "$repo/cmd/$name" -collection:noir="$repo" -vet -strict-style -o:speed $archflags \
 				-out:"$out/bin/$name"
 		fi
 	done
@@ -137,7 +139,7 @@ else
 	"$repo/build/windows-openssl.sh" "$lib"
 	for name in noirvpn noirvpnctl; do
 		echo "== $name"
-		"$odin" build "$repo/cmd/$name" -collection:noir="$repo" -vet -strict-style -o:speed \
+		"$odin" build "$repo/cmd/$name" -collection:noir="$repo" -vet -strict-style -o:speed $archflags \
 			-extra-linker-flags:"/LIBPATH:$(cygpath -w "$lib")" -out:"$out/$name.exe"
 	done
 	echo "== noirvpn-hook: skipped, not on Windows"

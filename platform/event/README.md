@@ -141,22 +141,30 @@ handles for the things that are not sockets.
 
 | Call | Meaning |
 |------|---------|
-| `add_fd`, `modify_fd`, `remove_fd` | A socket (the `SOCKET` value as an `i32`). Each gets a WSA event (`WSAEventSelect`). |
+| `add_fd`, `modify_fd`, `remove_fd` | A socket (the `SOCKET` value as an `i32`). All sockets of a loop use one WSA event (`WSAEventSelect`). |
 | `add_handle`, `remove_handle` | Any waitable handle: the wintun read event, the event of an overlapped pipe operation. The `Handle_Handler` runs when it is signaled. |
 | `handle_again` | Report an auto-reset event again on the next `wait`. A handler that stops before its source is empty must call it: the wait has reset the event. |
 
-- **Limit.** One wait takes 64 objects: the wake event, the timer and
-  `MAX_REGISTRATIONS` (62) sockets and handles. `add_fd` and `add_handle`
-  return `.Register_Failed` when the table is full. A client needs about
-  ten.
+- **Limit.** One wait takes 64 objects: the wake event, the timer, the event
+  of the sockets and `MAX_HANDLES` (61) handles. `add_handle` returns
+  `.Register_Failed` when the handle table is full; a client needs three.
+  Sockets have no fixed limit, because they all use one event that
+  only ends the wait.
 - **Level triggering.** WSA events are edge-like (set once per new event).
   Before it blocks and after it wakes, the loop asks `WSAPoll` which sockets
   are ready now, so a socket with data left is reported again, as on Linux.
-  `.Edge` has no effect. A connect that fails is reported as
-  `{.Error, .Write}`; a closed peer as `.Hangup`. A socket that was closed
-  without `remove_fd` is dropped without a report, but Windows can give its
-  value to the next new socket at once, and the loop then reports that
-  socket. Call `remove_fd` before `closesocket`.
+  That is one call for all sockets. A closed peer is reported as `.Hangup`.
+  A socket that was closed without `remove_fd` is dropped without a report,
+  but Windows can give its value to the next new socket at once, and the
+  loop then reports that socket. Call `remove_fd` before `closesocket`.
+- **Recorded events.** The loop reads the events that Winsock recorded for a
+  socket (`WSAEnumNetworkEvents`) only in two cases, so a socket that waits
+  for data costs no system call of its own:
+  - `.Edge`: the socket is reported from its recorded events only, once for
+    each new event.
+  - Write interest: a connect that fails is reported as `{.Error, .Write}`.
+    `WSAPoll` reports it only since Windows 10 2004, so register a
+    connecting socket with `.Write`.
 - **Timers.** A high resolution waitable timer
   (`CREATE_WAITABLE_TIMER_HIGH_RESOLUTION`, Windows 10 1803 and later) wakes
   the loop, so a 2 ms timer fires after about 2 ms. Without it the wait

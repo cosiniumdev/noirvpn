@@ -75,7 +75,7 @@ test_table_counts :: proc(t: ^testing.T) {
 		total += c[d]
 	}
 	testing.expect_value(t, total, len(option_table()))
-	testing.expect_value(t, c[.New], 23)
+	testing.expect_value(t, c[.New], 28)
 	testing.expect(t, c[.Supported] > 100)
 	testing.expect(t, c[.Rejected] > 80)
 	testing.expect(t, c[.Ignored] > 30)
@@ -116,6 +116,11 @@ test_table_new_options :: proc(t: ^testing.T) {
 		"tls-transport-strict",
 		"tls-transport-ws",
 		"client-service",
+		"allow-inbound",
+		"acl-max-flows",
+		"acl-resolve-interval",
+		"forward",
+		"forward-max-conns",
 	}
 	for n in names {
 		o := option_find(n)

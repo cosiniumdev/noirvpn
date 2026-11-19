@@ -199,6 +199,7 @@ finish_client :: proc(b: ^Build) {
 	c := &b.common
 	cl.pull_filters = b.pull_filters[:]
 	cl.dns_options = b.dns_options[:]
+	finish_acl(b)
 	if b.service {
 		// The base config holds service settings only: the profile checks below
 		// are skipped.

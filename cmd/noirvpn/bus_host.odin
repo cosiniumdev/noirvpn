@@ -55,10 +55,41 @@ B: Bus
 
 // ------------------------------------------------------------------ opening
 
+// `--allow-user` and `--allow-group`: set once at start, used at each bus setup
+// and at `daemon.reload`.
+BUS_ACCESS: bus.Access
+
+// Checks `--allow-user` and `--allow-group` and keeps them in BUS_ACCESS.
+// Returns the problem for the user, or "".
+bus_access_check :: proc(cli: ^Cli) -> string {
+	if cli.allow_error != "" {
+		return cli.allow_error
+	}
+	if cli.allow_user == "" && cli.allow_group == "" {
+		return ""
+	}
+	when ODIN_OS == .Windows {
+		return "--allow-user and --allow-group are for Linux and macOS; on Windows, use bus-allow sid in the config"
+	} else {
+		if cli.allow_user != "" {
+			if _, ok := bus.default_resolver(.Uid, cli.allow_user); !ok {
+				return fmt.tprintf("--allow-user: '%s' is not a user on this host", cli.allow_user)
+			}
+		}
+		if cli.allow_group != "" {
+			if _, ok := bus.default_resolver(.Gid, cli.allow_group); !ok {
+				return fmt.tprintf("--allow-group: '%s' is not a group on this host", cli.allow_group)
+			}
+		}
+		BUS_ACCESS = {user = cli.allow_user, group = cli.allow_group}
+		return ""
+	}
+}
+
 // Checks the bus part of the config (paths, and that every `bus-allow` name
 // exists) and prints what is wrong. For `--check-config` and for the start.
 bus_check :: proc(c: ^config.Common_Config, mode: bus.Daemon_Mode, name: string) -> (ok: bool) {
-	setup, err := bus.setup_from_config(c, mode, name)
+	setup, err := bus.setup_from_config(c, mode, name, access = BUS_ACCESS)
 	defer bus.setup_destroy(&setup)
 	switch err {
 	case .None:
@@ -89,7 +120,7 @@ bus_instance_name :: proc(cli_name: string, cfgw: ^config.Config) -> string {
 // and group first (the bus does not change an existing folder). A daemon with
 // both sockets off creates nothing. `bus_start` reports errors.
 bus_prepare_dirs :: proc(c: ^config.Common_Config, mode: bus.Daemon_Mode, name: string) {
-	setup, err := bus.setup_from_config(c, mode, name)
+	setup, err := bus.setup_from_config(c, mode, name, access = BUS_ACCESS)
 	defer bus.setup_destroy(&setup)
 	if err == .None {
 		bus.prepare_dirs(setup.opts)
@@ -122,7 +153,7 @@ bus_start :: proc(
 	bus.writer_init(&B.rw)
 	B.w_ok = true
 
-	setup, err := bus.setup_from_config(common, mode, name)
+	setup, err := bus.setup_from_config(common, mode, name, access = BUS_ACCESS)
 	defer bus.setup_destroy(&setup)
 	if err != .None {
 		logf(.Error, "bus: %s", bus.setup_error_string(err))
@@ -156,6 +187,12 @@ bus_start :: proc(
 	}
 	if has_control {
 		logf(.Notice, "bus: accepting control requests on %s", B.control_path)
+		when ODIN_OS != .Windows {
+			ctl := setup.opts.control.?
+			if mode := ctl.mode if ctl.mode != 0 else bus.DEFAULT_SOCKET_MODE; bus.euid() == 0 && ctl.group == "" && ctl.owner == "" && mode & 0o006 == 0 {
+				logf(.Notice, "bus: only root can use the control socket; to let a user in (for example the desktop app), start with --allow-user NAME or --allow-group NAME")
+			}
+		}
 	}
 	return true
 }
@@ -397,6 +434,8 @@ reload_plan_destroy :: proc(p: ^Reload_Plan) {
 // reported as `ignored`. (`peer-keys` is not here: its path is not swapped, the
 // file at the old path is read again.)
 RELOAD_APPLIED :: [?]string{"bus-allow", "verb", "stats-interval", "config"}
+// The client also applies its rule lines (acl_reload).
+RELOAD_APPLIED_CLIENT :: [?]string{"allow-inbound", "forward", "acl-resolve-interval", "forward-max-conns"}
 
 // Reads the config again and only checks it. `err` (temp
 // allocated) says what is wrong. The new config must be for the same role.
@@ -413,7 +452,7 @@ reload_prepare :: proc(plan: ^Reload_Plan) -> (err: string) {
 	}
 	common := config.config_common(&plan.cfg)
 	unresolved: [dynamic]string
-	plan.policy, unresolved = bus.policy_from_config(common.bus_allow, bus.euid(), bus.default_resolver)
+	plan.policy, unresolved = bus.policy_from_config(bus.access_rules(common.bus_allow, BUS_ACCESS), bus.euid(), bus.default_resolver)
 	plan.policy_ok = true
 	defer delete(unresolved)
 	if len(unresolved) > 0 {
@@ -477,6 +516,11 @@ diff_directives :: proc(old, new_: []config.Directive, out: ^[dynamic]string) {
 		skip := false
 		for ap in RELOAD_APPLIED {
 			skip ||= ap == n
+		}
+		if B.mode != .Server {
+			for ap in RELOAD_APPLIED_CLIENT {
+				skip ||= ap == n
+			}
 		}
 		if skip {
 			continue

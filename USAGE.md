@@ -74,23 +74,33 @@ sudo noirvpn --verb 4
 
 ## Start the service for your user only
 
-Use this when you do not want a `noirvpn` group. The sockets get your primary group, and only your user gets the role `operator`.
+Use this when you do not want a `noirvpn` group. Specify your user name to `--allow-user`:
 
-1. Make sure that the folder `/run/noirvpn` does not exist yet. See [No access to the service, and /run/noirvpn belongs to root](#no-access-to-the-service-and-runnoirvpn-belongs-to-root).
+```
+sudo noirvpn --allow-user $USER
+```
 
-2. Start the service:
+Then start the desktop app as your normal user.
 
-   ```
-   sudo noirvpn \
-     --bus-control /run/noirvpn/desktop.control mode 0660 group $(id -gn) \
-     --bus-events  /run/noirvpn/desktop.events  mode 0660 group $(id -gn) \
-     --bus-allow uid $USER operator \
-     --bus-allow uid 0 admin
-   ```
+- The sockets belong to your user, with mode `0600` - only your user and root can connect.
+- The user role is `operator`, the same as the members of `noirvpn` in the usual setup. Root stays the administrator.
+- The folder `/run/noirvpn` gets mode `0755`.
+- The setting applies to this run only and is not written to a config file.
 
-3. Start the desktop app as your normal user.
+## Start the service for another group
 
-> **Note**: A `--bus-allow` option on the command line replaces all the default `bus-allow` lines. Keep `--bus-allow uid 0 admin` if you want to use `sudo noirvpnctl` with this service.
+To grant access to the members of a group that already exists, specify its name to `--allow-group`:
+
+```
+sudo noirvpn --allow-group vpnusers
+```
+
+The sockets will set that group, with mode `0660`, and given the `operator` role.
+You can set `--allow-user` and `--allow-group` together.
+
+> **Note**: `--allow-user` and `--allow-group` are flags of `noirvpn` itself,
+and they work on Linux and macOS. On Windows the installed service already
+lets the users who are logged on connect.
 
 ## Keep the settings in a config file
 
@@ -100,9 +110,16 @@ To keep your settings, give a config file:
 sudo noirvpn --config /etc/noirvpn/service.conf
 ```
 
-If the file does not exist, `noirvpn` creates it from the defaults and from the options on the command line, then reads it. `noirvpn` never changes a file that exists.
+If the file does not exist, `noirvpn` creates it from the defaults and from the options on the command line.
+`noirvpn` never changes a file that exists.
 
-A config file must contain the `bus-control`, `bus-events` and `bus-allow` lines shown above. A file with only `client-service` starts a root-only accessible service.
+A config file must contain the `bus-control`, `bus-events` and `bus-allow` lines shown above. A file with only `client-service` starts a root-only accessible service. You can add `--allow-user` or `--allow-group` to the command line of a config file too:
+
+```
+sudo noirvpn --config /etc/noirvpn/service.conf --allow-user $USER
+```
+
+`noirvpn` does not write these two flags into a new config file.
 
 ## Troubleshooting
 
@@ -114,13 +131,17 @@ A config file must contain the `bus-control`, `bus-events` and `bus-allow` lines
 
 **Solution**: Do one of these:
 
+- Stop the service and start it again with `--allow-user` or `--allow-group`. These flags change the folder so that your user can enter it:
+
+  ```
+  sudo noirvpn --allow-user $USER
+  ```
+
 - Change the folder to the group of your sockets while the service runs:
 
   ```
   sudo chgrp noirvpn /run/noirvpn
   ```
-
-  For the setup for your user only, use your primary group in place of `noirvpn`.
 
 - Or stop the service, remove the folder, and start the service again:
 
@@ -151,7 +172,7 @@ To check the result, run `sudo ls -la /run/noirvpn`. The folder and the files `d
    ```
    noirvpn-desktop --socket /path/to/NAME.control
    ```
-3. Look at the output of the service, particularly for errors.
+3. Look at the output of the service, particularly for errors. The line "only root can use the control socket" means that no user or group was given access. Start the service with `--allow-user` or `--allow-group`, or create the group `noirvpn`.
 
 ## Related documentation
 

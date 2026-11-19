@@ -88,8 +88,8 @@ log_status :: proc(d: ^Daemon, level: Level, what: string) {
 	) // fmt: skip
 	logf(
 		level,
-		"%s: daemon drops ring=%d seal=%d not-up=%d tun-write=%d oversize=%d rx-no-tun=%d source=%d block-ipv6-tx=%d block-ipv6-rx=%d; errors tun-read=%d send=%d recv=%d; send-blocked=%d; waiting=%d",
-		what, s.drop_ring, s.drop_seal, s.drop_not_up, s.drop_tun_write, s.drop_oversize, s.drop_rx_not_up, s.drop_source, s.drop_block6_tx, s.drop_block6_rx,
+		"%s: daemon drops ring=%d seal=%d not-up=%d tun-write=%d oversize=%d rx-no-tun=%d source=%d block-ipv6-tx=%d block-ipv6-rx=%d acl=%d; errors tun-read=%d send=%d recv=%d; send-blocked=%d; waiting=%d",
+		what, s.drop_ring, s.drop_seal, s.drop_not_up, s.drop_tun_write, s.drop_oversize, s.drop_rx_not_up, s.drop_source, s.drop_block6_tx, s.drop_block6_rx, s.drop_acl,
 		s.tun_read_errors, s.sock_send_errors, s.sock_recv_errors, s.sock_blocked, d.ring.count,
 	) // fmt: skip
 	off_sync_batches(&d.off, &d.rx_batch, {&d.tx_batch})

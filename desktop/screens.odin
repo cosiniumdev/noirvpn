@@ -69,6 +69,11 @@ scenes := [?]Scene {
 	{"attach-approval", scene_attach_approval},
 	{"attach-starting", scene_attach_starting},
 	{"settings", scene_settings},
+	{"rules", scene_rules},
+	{"rules-blocked", scene_rules_blocked},
+	{"rules-builder", scene_rules_builder},
+	{"rules-forward", scene_rules_forward},
+	{"rules-reload-error", scene_rules_reload_error},
 }
 
 SCENE_TIME :: 100.0 // the clock of every scene, in seconds
@@ -155,6 +160,8 @@ render_all :: proc(dir: string, density: int) -> bool {
 		set_text(&app.link.auto_note, "")
 		set_text(&app.link.datapath_mode, "")
 		app.link.service = false
+		rules_reset(&app.rules)
+		acl_sample(app)
 		settle(app)
 		s.setup(app)
 		settle(app)
@@ -608,4 +615,55 @@ scene_key_request_confirm :: proc(app: ^App) {
 scene_key_request_done :: proc(app: ^App) {
 	scene_key_request(app)
 	key_set(app)
+}
+
+// scene_rules is the top of the Inbound rules view of a live tunnel.
+scene_rules :: proc(app: ^App) {
+	scene_up(app)
+	rules_open(app)
+	hover_scrollbar(app)
+}
+
+// scene_rules_blocked is the list of blocked connections and the config file.
+scene_rules_blocked :: proc(app: ^App) {
+	scene_rules(app)
+	settle(app)
+	scroll_to(app, "rules", app.rules.blocked_y - 8)
+}
+
+// scene_rules_builder is the builder with a line, and two lines to copy.
+scene_rules_builder :: proc(app: ^App) {
+	scene_rules(app)
+	r := &app.rules
+	r.proto = .Tcp
+	ui.field_set(&r.addr, "192.168.50.20")
+	ui.field_set(&r.port, "8443")
+	rules_add(r, BLOCK_ALL_BUT_PING)
+	rules_add(r, "allow-inbound :22 tcp")
+	settle(app)
+	scroll_to(app, "rules", r.builder_y - 8)
+}
+
+// scene_rules_forward is the builder of a forward, with a problem.
+scene_rules_forward :: proc(app: ^App) {
+	scene_rules(app)
+	r := &app.rules
+	r.kind = .Forward
+	r.fproto = .Both
+	ui.field_set(&r.fport, "5353")
+	ui.field_set(&r.fhost, "fd00::1")
+	ui.field_set(&r.ftport, "70000")
+	settle(app)
+	scroll_to(app, "rules", r.builder_y - 8)
+}
+
+// scene_rules_reload_error is Check and reload of a config file with a
+// problem.
+scene_rules_reload_error :: proc(app: ^App) {
+	scene_rules(app)
+	a := &app.link.acl
+	set_text(&a.reload_msg, "Nothing changed. The service found a problem: Line 7, allow-inbound: '10.0.0.300' is not an address, a prefix or a host name")
+	a.reload_error = true
+	settle(app)
+	scroll_to(app, "rules", app.rules.config_y - 8)
 }

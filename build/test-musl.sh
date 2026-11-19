@@ -96,4 +96,5 @@ exec "$PODMAN" run --rm \
 	-out:/tmp/noir_test \
 	-define:NOIR_CRYPTO="$crypto" \
 	-extra-linker-flags:"-static $ldpaths -Wl,--strip-debug" \
+	$("$here/microarch.sh") \
 	"$@"

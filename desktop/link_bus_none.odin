@@ -24,6 +24,8 @@ Job_Kind :: enum u8 {
 	Profile_Set,
 	Profile_Check,
 	Profile_Clear,
+	Acl_Get,
+	Acl_Reload,
 	Stop,
 }
 

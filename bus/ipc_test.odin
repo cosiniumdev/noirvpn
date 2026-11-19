@@ -1455,6 +1455,43 @@ default_socket_mode_is_explicit :: proc(t: ^testing.T) {
 	testing.expect_value(t, m, DEFAULT_SOCKET_MODE)
 }
 
+// `--allow-user`: the socket belongs to the user with mode 0600, and the
+// folder gets mode 0755, also when it exists.
+@(test)
+socket_owner_opens_the_folder :: proc(t: ^testing.T) {
+	testing.set_fail_timeout(t, 60 * time.Second)
+	dir := make_test_dir(t, "owner")
+	defer remove_test_dir(dir)
+	me := fmt.tprintf("%d", posix.geteuid())
+	sub := fmt.tprintf("%s/new", dir)
+	opts := Host_Options {
+		control   = Endpoint{path = fmt.tprintf("%s/c.sock", sub), owner = me, mode = 0o600},
+		allocator = context.allocator,
+	}
+	h, err, _ := host_open(opts)
+	testing.expect_value(t, err, Open_Error.None)
+	if h != nil {
+		st: posix.stat_t
+		posix.stat(strings.clone_to_cstring(fmt.tprintf("%s/c.sock", sub), context.temp_allocator), &st)
+		testing.expect_value(t, u32(st.st_uid), u32(posix.geteuid()))
+		testing.expect_value(t, mode_to_u32(st.st_mode) & 0o777, 0o600)
+		posix.stat(strings.clone_to_cstring(sub, context.temp_allocator), &st)
+		testing.expect_value(t, mode_to_u32(st.st_mode) & 0o777, 0o755)
+		host_close(h)
+	}
+	// The test folder exists with mode 0700.
+	opts.control = Endpoint{path = fmt.tprintf("%s/d.sock", dir), owner = me, mode = 0o600}
+	testing.expect_value(t, prepare_dirs(opts), Open_Error.None)
+	st: posix.stat_t
+	posix.stat(strings.clone_to_cstring(dir, context.temp_allocator), &st)
+	testing.expect_value(t, mode_to_u32(st.st_mode) & 0o777, 0o755)
+
+	opts.control = Endpoint{path = fmt.tprintf("%s/e.sock", dir), owner = "no-such-user-xyz"}
+	h, err, _ = host_open(opts)
+	testing.expect_value(t, err, Open_Error.Bad_Owner)
+	testing.expect(t, h == nil)
+}
+
 @(test)
 socket_group_is_applied :: proc(t: ^testing.T) {
 	testing.set_fail_timeout(t, 60 * time.Second)

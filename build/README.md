@@ -8,20 +8,60 @@ You can build noirvpn on Linux, macOS and Windows. The targets are:
 | macOS (Apple silicon) | `noirvpn`, `noirvpnctl`, `noirvpn-desktop` |
 | Windows 10 and 11 (x64) | `noirvpn.exe`, `noirvpnctl.exe`, `noirvpn-desktop.exe` |
 
+## The CPU level of an amd64 build
+
+The amd64 programs use the x86-64-v3 instructions (AVX2, BMI2, FMA). Intel
+CPUs since Haswell (2013) and AMD CPUs since Excavator (2015) have them.
+
+- On an older CPU, the Linux programs print the reason at the start and stop.
+  On Windows and macOS they stop with an "illegal instruction" error.
+- For an older CPU, set `NOIR_MICROARCH` for the build:
+
+  ```sh
+  NOIR_MICROARCH=x86-64-v2 make dist
+  ```
+
+- `build/microarch.sh` prints the compiler flag. Every build script and
+  `make test` use it. `NOIR_MICROARCH=default` gives the default of the
+  compiler.
+- arm64 builds use the default of the compiler.
+
 ## The Odin compiler
 
-All systems need the Odin compiler, release `dev-2026-11a` or later.
+All systems need an Odin nightly build of 2026-11-15 or later (commit
+`ece728c`). The release `dev-2026-11a` is too old for this code.
 
-1. Download the compiler archive for your system from
-   <https://github.com/odin-lang/Odin/releases>.
+1. Download the nightly archive for your system from
+   <https://odin-lang.org/docs/nightly/>. The page keeps only the builds of
+   the last few days.
 2. Unpack it, for example to `~/odin` (Linux and macOS) or `C:\odin` (Windows).
 3. Add that folder to your `PATH`, or set `ODIN` to the path of the compiler.
 
+Linux and macOS:
+
 ```sh
 mkdir -p ~/odin
-tar -xf odin-linux-amd64-dev-2026-11a.tar.gz -C ~/odin --strip-components=1
+tar -xf odin-linux-amd64-nightly+2026-11-15.tar.gz -C ~/odin --strip-components=1
 export PATH=$HOME/odin:$PATH
-odin version
+odin version      # dev-2026-11-nightly:ece728c or later
+```
+
+Windows (MSYS2 shell). The zip has one `dist` folder:
+
+```sh
+unzip odin-windows-amd64-nightly+2026-11-15.zip -d /c/
+mv /c/dist /c/odin
+/c/odin/odin.exe version
+```
+
+To build the same compiler from source on Linux or macOS (needs clang and
+LLVM 17 to 22):
+
+```sh
+git clone https://github.com/odin-lang/Odin.git ~/odin
+cd ~/odin
+git checkout ece728cb96f67000e7d6e7105e70e26d11c26186
+./build_odin.sh release
 ```
 
 ## Linux
@@ -62,7 +102,7 @@ make test      # run the tests
 To build only one program, such as `noirvpn`:
 
 ```sh
-odin build cmd/noirvpn -collection:noir=. -o:speed -out:noirvpn
+odin build cmd/noirvpn -collection:noir=. -o:speed $(build/microarch.sh) -out:noirvpn
 ```
 
 ### Static musl build in a container
