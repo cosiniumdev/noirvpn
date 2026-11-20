@@ -147,7 +147,7 @@ session_seal_overhead :: proc "contextless" (s: ^Session) -> int {
 // was not sealed.
 @(private)
 seal_done :: proc(s: ^Session, r: Dp_Seal, now: Time) -> bool {
-	if r.exhausted && !s.rekeying && !s.closing && s.state == .Up {
+	if r.exhausted && !s.rekeying && !s.closing && s.state == .Up && is_primary(s, r.key) {
 		begin_rekey(s, keys.key_id_next(s.ks.id), false, now)
 	}
 	if r.err != .None {
@@ -155,10 +155,17 @@ seal_done :: proc(s: ^Session, r: Dp_Seal, now: Time) -> bool {
 	}
 	s.last_tx = now
 	s.counters.data_tx += 1
-	if r.due {
+	if r.due && is_primary(s, r.key) {
 		start_rekey(s, now)
 	}
 	return true
+}
+
+// Is `id` the newest key of the session?
+@(private)
+is_primary :: proc(s: ^Session, id: u8) -> bool {
+	cur, _, ok := keys.slots_primary(&s.slots)
+	return ok && cur == id
 }
 
 // Checks that a tunnel packet of `n` bytes can be sealed now.
@@ -316,7 +323,7 @@ session_rx_finish :: proc(s: ^Session, pkt: []u8, r: Dp_Open, now: Time, from: [
 		s.rx_from = saved
 	}
 	plain := pkt[r.off:][:r.len]
-	if r.due {
+	if r.due && is_primary(s, r.key) {
 		start_rekey(s, now)
 	}
 	switch r.code {

@@ -1051,6 +1051,7 @@ srv_dco_release_tls_device :: proc(d: ^Srv) {
 	d.tun.fd = -1
 	d.tun_tx.on = false
 	d.tun_paused = false
+	d.tun_wk_wait = false
 	logf(.Info, "tun device %s closed", d.dco.tun_name)
 }
 

@@ -224,6 +224,7 @@ guest_run :: proc(d: ^Daemon, after: proc(d: ^Daemon)) {
 			shutdown(d)
 			break
 		}
+		wk_after_wake(d)
 		guest_tick(d)
 		after(d)
 		guest_flush_out(d)
@@ -372,7 +373,10 @@ guest_teardown :: proc(d: ^Daemon) {
 // The descriptor of the host (Android, the Linux test host).
 guest_set_fd :: proc(d: ^Daemon, fd: i32) {
 	if d.tun_open {
-		tun_unwatch(d)
+		if !d.tun_held {
+			tun_unwatch(d)
+		}
+		d.tun_held = false
 		tun_close_dev(&d.tun)
 		d.tun_open = false
 	}

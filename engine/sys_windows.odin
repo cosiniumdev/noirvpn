@@ -37,6 +37,15 @@ on_tun_event :: proc(loop: ^event.Loop, h: win.HANDLE, user: rawptr) {
 	}
 }
 
+// After `tun_watch` of a session that has packets: the read event may have been
+// taken before, so read now, and ask for another report if the burst stopped at
+// its limit.
+tun_kick :: proc(d: ^Daemon) {
+	if tun_burst(d) {
+		event.handle_again(&d.loop, d.tun.read_event)
+	}
+}
+
 // ------------------------------------------------------------ the tun adapter
 
 // The adapter name for `dev tun`, set at start from the instance name.

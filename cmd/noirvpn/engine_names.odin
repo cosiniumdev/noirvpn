@@ -72,13 +72,20 @@ crl_server_config :: engine.crl_server_config
 
 // crypto_worker.odin
 WK_JOBS :: engine.WK_JOBS
+WK_SLOT :: engine.WK_SLOT
+WK_TUN_ROOM :: engine.WK_TUN_ROOM
 Wk_Job :: engine.Wk_Job
 Wk_Pool :: engine.Wk_Pool
 Wk_Worker :: engine.Wk_Worker
+Wk_Batch :: engine.Wk_Batch
+batch_free :: engine.batch_free
 job_add :: engine.job_add
-lane_recycle :: engine.lane_recycle
-lane_run :: engine.lane_run
 pool_attach :: engine.pool_attach
+pool_jobs :: engine.pool_jobs
+pool_next :: engine.pool_next
+pool_post :: engine.pool_post
+pool_room :: engine.pool_room
+rx_msgs_for_room :: engine.rx_msgs_for_room
 pool_start :: engine.pool_start
 pool_stop :: engine.pool_stop
 pool_text :: engine.pool_text
@@ -106,7 +113,6 @@ tun_name :: engine.tun_name
 write_tun :: engine.write_tun
 
 // datapath_workers.odin
-RX_COPY_AT :: engine.RX_COPY_AT
 
 // dco.odin
 DCO_ECONNREFUSED :: engine.DCO_ECONNREFUSED

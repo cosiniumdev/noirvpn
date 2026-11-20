@@ -74,6 +74,7 @@ Listener :: struct {
 	sh:         ^session.Server_Shared,
 	tx_batch:   net.Batch, // UDP
 	want_write: bool, // UDP: watched for writing (a send stopped)
+	rx_paused:  bool, // UDP: reads wait for room on the crypto workers
 	rx_per_msg: int, // UDP: datagrams per message the last read gave (UDP GRO), at least 1
 	text:       string, // for the log
 	ep:         net.Endpoint, // where it is bound
@@ -89,11 +90,6 @@ Tx_Slot :: struct {
 	ep:   net.Endpoint,
 	// The address to send from (the one the client used), see `Conn.local`.
 	local: net.Local,
-	// With crypto workers: the packet waits for its worker (see server_workers.odin).
-	job:  ^Wk_Job,
-	cidx: u32, // the conn's slot in the table
-	sess: u64, // and its session number: the conn may be gone when the result is read
-	n:    int, // the tunnel packet size
 }
 
 // The packets of the current batch.
@@ -103,9 +99,6 @@ Udp_Out :: struct {
 	// A send stopped on this listener's socket and the rest waits.
 	blocked: bool,
 	lidx:    u8,
-	// Slots before `done` hold sealed packets; the ones after wait for a worker.
-	done:    int,
-	sealing: bool, // `out_finish` is running
 }
 
 Srv_Stats :: struct {
@@ -195,6 +188,7 @@ Srv :: struct {
 	tun:        tun.Device,
 	tun_open:   bool,
 	tun_paused: bool,
+	tun_wk_wait: bool, // tun reads wait for send room on the crypto workers
 	ifindex:    u32,
 	nc:         client.Netcfg,
 	nc_ok:      bool,
@@ -215,16 +209,16 @@ Srv :: struct {
 	dco:        Dco_Server, // the data channel on a DCO service (server_dco.odin)
 	// Crypto workers (`workers N`, server_workers.odin); nil: the packets are sealed and opened here.
 	wk:         ^Wk_Pool,
-	recs:       [dynamic]Srv_Rec, // received data packets that wait for their worker, in order
-	later:      [dynamic]Srv_Ref, // conns to look at when the records are done
+	wk_rx:      []Srv_Rec, // a record for each open job (by job number)
+	wk_tx:      []Srv_Tx_Rec, // a record for each seal job
+	wk_draining: bool, // `srv_wk_drain` is running
 	rx_conn:    ^Conn, // the conn whose session is in `session_receive`
 	rx_from:    session.Peer_Addr, // the source of that datagram (UDP)
 	rx_has_from: bool,
 	rx_local:   net.Local, // the local address of that datagram (UDP)
-	rx_copied:  int, // bytes of the copy area of `rx_buf` in use
+	rx_stable:  []u8, // memory the tun coalescer may keep slices of, if not `rx_buf`
 	taken:      u64, // data packets the workers took
 	rx_seen:    Srv_Ref, // the conn whose data packets wait for a look (`srv_rx_seen`)
-	rx_running: bool, // `srv_rx_run` is running
 	link:       [session.LINK_BUF_SIZE]u8,
 	areq:       session.Auth_Request,
 
@@ -883,6 +877,7 @@ srv_run :: proc(d: ^Srv) {
 			break
 		}
 		srv_pw_drain(d)
+		srv_wk_drain(d)
 		free_all(context.temp_allocator)
 	}
 }

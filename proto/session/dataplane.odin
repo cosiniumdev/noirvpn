@@ -222,14 +222,17 @@ dp_read_public :: proc "contextless" (dp: ^Data_Plane) -> Dp_Public {
 }
 
 // Is a renegotiation due by the usage of the newest key (or by its age)? The
-// caller starts it. A key that is not there yet counts as not due.
-dp_rekey_due :: proc "contextless" (dp: ^Data_Plane, now: Time) -> bool {
-	id, established, ok := keys.slots_primary(&dp.slots)
+// caller starts it. A key that is not there yet counts as not due. `id` is the
+// key that was looked at.
+dp_rekey_due :: proc "contextless" (dp: ^Data_Plane, now: Time) -> (due: bool, id: u8) {
+	established: Time
+	ok: bool
+	id, established, ok = keys.slots_primary(&dp.slots)
 	if !ok || dp.dk_of[id] < 0 {
-		return false
+		return false, id
 	}
 	usage := crypt.data_key_usage(&dp.dk[dp.dk_of[id]])
-	return keys.rekey_check(&dp.policy, established, now, &usage) != .None
+	return keys.rekey_check(&dp.policy, established, now, &usage) != .None, id
 }
 
 // ------------------------------------------------------------------- seal
@@ -244,6 +247,9 @@ Dp_Seal :: struct {
 	exhausted: bool,
 	// Time to look at the rekey triggers (every 256th packet).
 	due:       bool,
+	// The key that `exhausted` or `due` is about. With the data plane on another
+	// thread the session may have a newer key when the result arrives.
+	key:       u8,
 }
 
 // Seals the tunnel packet that sits at `buf[TUNNEL_HEADROOM:][:n]`, in place.
@@ -281,7 +287,7 @@ dp_seal :: proc(dp: ^Data_Plane, buf: []u8, n: int, counted: bool, now: Time) ->
 			if counted {
 				dp.ops += 1
 				if dp.ops & 0xFF == 0 {
-					r.due = dp_rekey_due(dp, now)
+					r.due, r.key = dp_rekey_due(dp, now)
 				}
 			}
 			return
@@ -289,6 +295,7 @@ dp_seal :: proc(dp: ^Data_Plane, buf: []u8, n: int, counted: bool, now: Time) ->
 			// This key is used up: send on another one and start a rekey.
 			keys.slots_block_tx(&dp.slots, key_id)
 			r.exhausted = true
+			r.key = key_id
 			continue
 		case:
 			r.err = .Crypto
@@ -325,6 +332,8 @@ Dp_Open :: struct {
 	len:  int,
 	// Time to look at the rekey triggers (every 256th packet).
 	due:  bool,
+	// The key that `due` is about (see `Dp_Seal.key`).
+	key:  u8,
 }
 
 // Checks and opens one data packet in place.
@@ -376,7 +385,7 @@ dp_open :: proc(dp: ^Data_Plane, pkt: []u8, now: Time) -> (r: Dp_Open) {
 	}
 	dp.ops += 1
 	if dp.ops & 0xFF == 0 {
-		r.due = dp_rekey_due(dp, now)
+		r.due, r.key = dp_rekey_due(dp, now)
 	}
 	r.off, r.len = head, res.n
 	kind := crypt.classify_payload(pkt[head:][:res.n])

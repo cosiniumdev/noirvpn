@@ -31,6 +31,32 @@ The programs:
 | `noirvpn-hook` | Linux | Run commands on daemon events; does not need root. |
 | `noirvpn-desktop` | Linux, macOS, Windows | The graphical desktop app, using SDL3 rendering. It has a profile manager and interacts with `noirvpn` client. |
 
+## Performance
+
+TCP inside the tunnel with one iperf3 stream. Other than WireGuard which uses
+ChaCha20-Poly1305, the data cipher is AES-256-GCM.
+The numbers show the received rate in Gbit/s; "up" means the client host transmit.
+
+| Implementation | UDP up | UDP down | TCP up | TCP down |
+|---|---:|---:|---:|---:|
+| OpenVPN 2.7.7, userspace | 0.72 | 1.22 | 0.84 | 1.15 |
+| OpenVPN 2.7.7, kernel DCO | 4.23 | 4.18 | 4.31 | 4.58 |
+| noirvpn, userspace | 8.34 | 6.98 | 4.91 | 5.17 |
+| noirvpn, userspace, `workers 2` | 12.19 | 9.42 | 6.01 | 6.66 |
+| WireGuard, kernel | 7.09 | 5.42 | n/a | n/a |
+
+- Without workers, noirvpn runs the data path in one thread. With
+  [`workers`](docs/options.md) it performs crypto on separate threads.
+- WireGuard has no TCP transport.
+
+Test setup (2026-11-20):
+
+- Two VMware ESXi virtual machines with 4 vCPUs of an AMD Ryzen 9 5900X and 3.9 GiB of
+  memory each, Alpine Linux (musl), Linux 6.18, OpenSSL 3.5.
+- Networking: ConnectX-5 virtual functions between them, 30 Gbit/s raw.
+- tls-crypt on all OpenVPN and noirvpn tunnels. Tunnel MTU is 1400 for noirvpn, 1428
+  for OpenVPN and 1420 for WireGuard.
+
 ## What is different
 
 **Smaller surface.** Noir keeps the parts of OpenVPN that current

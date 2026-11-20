@@ -187,3 +187,31 @@ test_remote_tables_agree :: proc(t: ^testing.T) {
 	testing.expect_value(t, keys.slots_in_use(&m.s.slots), keys.slots_in_use(&m.s.rdp.slots))
 	testing.expect_value(t, card(keys.slots_in_use(&m.s.slots)), 2)
 }
+
+// A result about a key that is no longer the newest (the packet was on the
+// worker while the next key was installed) starts no rekey. One about the newest
+// key does.
+@(test)
+test_remote_due_of_an_old_key_is_ignored :: proc(t: ^testing.T) {
+	m := connect(t, {mode = .Tls_Crypt, dyn = true}, 0, remote_sim)
+	if m == nil {
+		return
+	}
+	defer sim_free(m)
+	old, _, _ := keys.slots_primary(&m.s.slots)
+	rekey_cycle(t, m, true)
+	cur, _, ok := keys.slots_primary(&m.s.slots)
+	testing.expect(t, ok && cur != old, "the rekey did not install a new key")
+	testing.expect(t, !m.s.rekeying, "a rekey still runs")
+	n := m.s.counters.rekeys
+	now := m.now
+	pkt: [16]u8
+	session_rx_finish(&m.s, pkt[:], Dp_Open{code = .Ping, due = true, key = old}, now)
+	seal_done(&m.s, Dp_Seal{due = true, key = old}, now)
+	seal_done(&m.s, Dp_Seal{exhausted = true, key = old}, now)
+	testing.expect_value(t, m.s.counters.rekeys, n)
+	testing.expect(t, !m.s.rekeying, "a result about the old key started a rekey")
+	seal_done(&m.s, Dp_Seal{exhausted = true, key = cur}, now)
+	testing.expect_value(t, m.s.counters.rekeys, n + 1)
+	testing.expect(t, m.s.rekeying, "a used-up newest key started no rekey")
+}

@@ -203,8 +203,15 @@ Daemon :: struct {
 	wk:           ^Wk_Pool, // crypto workers (`workers N`), nil: the data path runs here
 	wkr:          ^Wk_Worker, // the worker that has this session's data channel
 	dco:          Dco_Client, // the data channel on a DCO service (dco.odin)
-	rx_jobs:      [dynamic]^Wk_Job, // received packets that wait for their worker, in order
-	rx_copied:    int, // bytes of the copy area of `rx_buf` in use (see `client_take`)
+	wk_recs:      []u64, // the session number (`wk_gen`) of each worker job
+	wk_gen:       u64,
+	wk_tx_wait:   int, // TCP: bytes of seal jobs in flight
+	wk_out:       [TX_BATCH][]u8, // sealed datagrams in batch memory, to send
+	wk_nout:      int,
+	wk_draining:  bool, // `wk_drain` is running
+	rx_paused:    bool, // UDP reads wait for room on the crypto worker
+	tun_held:     bool, // tun reads wait for room on the crypto worker
+	rx_stable:    []u8, // memory the tun coalescer may keep slices of, if not `rx_buf`
 	in_pump:      bool,
 	up:           bool, // the tunnel is up (Up event handled)
 	up_at:        time.Duration,
@@ -360,12 +367,12 @@ daemon_init :: proc(d: ^Daemon, cfgw: ^config.Config) -> (ok: bool) {
 		net.batch_set_recv(&d.rx_batch, i, d.rx_buf[i * d.rx_slot:][:d.rx_slot])
 	}
 	if d.cfg.workers > 0 {
-		d.wk = pool_start(d.cfg.workers)
+		d.wk = pool_start(d.cfg.workers, &d.loop)
 		if d.wk == nil {
 			logf(.Error, "cannot start the crypto workers")
 			return false
 		}
-		d.rx_jobs = make([dynamic]^Wk_Job, 0, WK_LANE_JOBS)
+		d.wk_recs = make([]u64, pool_jobs(d.wk))
 		logf(.Info, "crypto workers: %d", d.cfg.workers)
 	}
 
@@ -452,7 +459,8 @@ daemon_destroy :: proc(d: ^Daemon) {
 	}
 	pool_stop(d.wk)
 	d.wk = nil
-	delete(d.rx_jobs)
+	delete(d.wk_recs)
+	d.wk_recs = nil
 	guest_destroy(d)
 	ring_destroy(&d.ring)
 	delete(d.rx_buf)
@@ -478,6 +486,7 @@ daemon_run :: proc(d: ^Daemon) -> Exit {
 			shutdown(d)
 			break
 		}
+		wk_after_wake(d)
 		free_all(context.temp_allocator)
 	}
 	return d.exit_code
@@ -635,7 +644,7 @@ start_attempt :: proc(d: ^Daemon, a: client.Action) {
 	if use_dco {
 		dco_attempt_begin(d)
 	} else if d.wk != nil {
-		w, ok := pool_attach(d.wk, &d.s, d, client_take, client_barrier)
+		w, ok := pool_attach(d.wk, &d.s, d, client_take)
 		if !ok {
 			fatal(d, .System, "cannot hand the data channel to a crypto worker")
 			return
@@ -1423,7 +1432,10 @@ teardown_network :: proc(d: ^Daemon, close_tun: bool) {
 		ring_clear(&d.ring)
 	}
 	if close_tun && d.tun_open {
-		tun_unwatch(d)
+		if !d.tun_held {
+			tun_unwatch(d)
+		}
+		d.tun_held = false
 		tun.close(&d.tun)
 		d.tun_open = false
 		if d.nc_ok {
@@ -1475,6 +1487,7 @@ close_transport :: proc(d: ^Daemon) {
 	}
 	d.want_write = false
 	d.blocked = false
+	d.rx_paused = false
 }
 
 // The session (or attempt) ended. Releases the connection, removes the network

@@ -40,6 +40,12 @@ on_srv_tun :: proc(loop: ^event.Loop, fd: i32, ready: event.Ready, user: rawptr)
 	now := now_srv(d)
 	budget := SRV_TUN_BURST
 	for budget > 0 {
+		if d.wk != nil && pool_room(d.wk, .Tx) < WK_TUN_ROOM {
+			// The workers are behind: the packets wait in the tun queue.
+			d.tun_wk_wait = true
+			srv_tun_pause(d, true)
+			break
+		}
 		got: int
 		stop: bool
 		if d.tun.vnet && len(d.tun_stage) > 0 {
@@ -218,7 +224,7 @@ conn_of_handle :: proc(d: ^Srv, h: server.Peer_Handle) -> ^Conn {
 //   TCP - sealed bytes are copied to the client's queue; the slot stays free
 seal_and_queue :: proc(d: ^Srv, c: ^Conn, slot: ^Tx_Slot, n: int, now: time.Duration) {
 	if c.wkr != nil {
-		// The worker seals it; `out_finish` does the rest.
+		// The worker seals it; `srv_seal_done` does the rest.
 		if !seal_submit(d, c, slot, n, now) {
 			d.stats.drop_seal += 1
 			c.drops += 1
@@ -295,11 +301,14 @@ out_next :: proc(d: ^Srv) -> ^Tx_Slot {
 // A socket that takes only some keeps the rest, stops tun reads and waits for
 // `Write`. A packet the kernel refuses for another reason is dropped and counted.
 out_flush :: proc(d: ^Srv) {
+	if d.wk != nil {
+		// Seal jobs added since the last post go to the workers now.
+		pool_post(d.wk)
+	}
 	o := &d.out
-	if o.count == 0 || o.blocked || o.sealing {
+	if o.count == 0 || o.blocked {
 		return
 	}
-	out_finish(d)
 	i := 0
 	for i < o.count {
 		lidx := o.slots[i].lidx
@@ -345,13 +354,12 @@ out_flush :: proc(d: ^Srv) {
 				o.slots[x] = o.slots[k + x]
 			}
 			o.count = left
-			o.done = left
 			o.blocked = true
 			o.lidx = lidx
 			d.stats.sock_blocked += 1
 			if !ln.want_write {
 				ln.want_write = true
-				event.modify_fd(&d.loop, ln.sock.fd, {.Read, .Write})
+				event.modify_fd(&d.loop, ln.sock.fd, ln_interest(ln))
 			}
 			srv_tun_pause(d, true)
 			return
@@ -359,7 +367,28 @@ out_flush :: proc(d: ^Srv) {
 		i = j
 	}
 	o.count = 0
-	o.done = 0
+}
+
+// Read interest is off while the crypto workers have no room (`rx_paused`).
+ln_interest :: proc(ln: ^Listener) -> event.Interest {
+	i: event.Interest
+	if !ln.rx_paused {
+		i += {.Read}
+	}
+	if ln.want_write {
+		i += {.Write}
+	}
+	return i
+}
+
+// Stops or resumes reading a UDP socket. The datagrams wait in the kernel
+// buffer meanwhile.
+ln_rx_pause :: proc(d: ^Srv, ln: ^Listener, pause: bool) {
+	if pause == ln.rx_paused {
+		return
+	}
+	ln.rx_paused = pause
+	event.modify_fd(&d.loop, ln.sock.fd, ln_interest(ln))
 }
 
 // Stops or resumes reading the tun device.
@@ -381,7 +410,7 @@ srv_tun_pause :: proc(d: ^Srv, pause: bool) {
 // must stay unchanged (it is a slice of the receive buffer).
 tun_write :: proc(d: ^Srv, pkt: []u8) {
 	if d.tun.vnet && d.tun_tx.on {
-		tun_tx_push(&d.tun, &d.tun_tx, &d.off, pkt, d.rx_buf)
+		tun_tx_push(&d.tun, &d.tun_tx, &d.off, pkt, d.rx_stable if d.rx_stable != nil else d.rx_buf)
 		srv_tun_account(d)
 		return
 	}
@@ -422,11 +451,11 @@ on_srv_udp :: proc(loop: ^event.Loop, fd: i32, ready: event.Ready, user: rawptr)
 	}
 	if .Write in ready && ln.want_write {
 		ln.want_write = false
-		event.modify_fd(loop, fd, {.Read})
+		event.modify_fd(loop, fd, ln_interest(ln))
 		if d.out.blocked && d.out.lidx == ln.index {
 			d.out.blocked = false
 			out_flush(d)
-			if !d.out.blocked {
+			if !d.out.blocked && !d.tun_wk_wait {
 				srv_tun_pause(d, false)
 			}
 		}
@@ -451,6 +480,15 @@ srv_read_udp :: proc(d: ^Srv, ln: ^Listener) {
 	left := SRV_READ_ROUNDS * RX_BATCH
 	for left > 0 {
 		want := rx_vlen(d.rx_msgs, left, ln.rx_per_msg)
+		if d.wk != nil {
+			// Read no more than the workers can take: the rest waits in the kernel.
+			fit := rx_msgs_for_room(pool_room(d.wk, .Rx), d.rx_slot)
+			if fit == 0 {
+				ln_rx_pause(d, ln, true)
+				return
+			}
+			want = min(want, fit)
+		}
 		n, err := net.recv_batch(ln.sock, &d.rx_batch, want)
 		if err == .Would_Block || err == .Interrupted {
 			return

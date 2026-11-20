@@ -50,6 +50,11 @@ on_tun :: proc(loop: ^event.Loop, fd: i32, ready: event.Ready, user: rawptr) {
 	_ = tun_burst((^Daemon)(user))
 }
 
+// After `tun_watch` of a device that has packets: nothing to do, the loop
+// reports a readable descriptor on the next wait.
+tun_kick :: proc(d: ^Daemon) {
+}
+
 // --------------------------------------------------------------- crl-verify
 
 crl_stat :: proc(path: string) -> Crl_Stat {

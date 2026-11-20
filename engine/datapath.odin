@@ -34,6 +34,15 @@ tun_burst :: proc(d: ^Daemon) -> (more: bool) {
 	budget := TUN_BURST
 	more = true
 	for budget > 0 {
+		if d.wkr != nil && lane_room(d.wkr, .Tx) - d.ring.count < WK_TUN_ROOM {
+			flush_tx(d)
+			if lane_room(d.wkr, .Tx) - d.ring.count < WK_TUN_ROOM {
+				// The worker is behind: the packets wait in the tun queue.
+				tun_hold(d, true)
+				more = false
+				break
+			}
+		}
 		got: int
 		stop: bool
 		if d.tun.vnet && len(d.tun_stage) > 0 {
@@ -60,6 +69,24 @@ tun_burst :: proc(d: ^Daemon) -> (more: bool) {
 	// Sealing can start a renegotiation: send what the session queued.
 	pump(d)
 	return more && d.tun_open
+}
+
+// Stops or resumes reading the tun device while the crypto worker has no send room.
+tun_hold :: proc(d: ^Daemon, hold: bool) {
+	if hold == d.tun_held || !d.tun_open {
+		return
+	}
+	d.tun_held = hold
+	if hold {
+		tun_unwatch(d)
+		return
+	}
+	if err := tun_watch(d); err != .None {
+		logf(.Error, "cannot watch the tun device again: %v", err)
+		fatal(d, .System, "the tun device cannot be watched")
+		return
+	}
+	tun_kick(d)
 }
 
 // One read from a tun without the virtio header. `stop`: nothing more to read
@@ -197,6 +224,9 @@ flush_tx :: proc(d: ^Daemon) {
 	}
 	if d.wkr != nil {
 		seal_ring(d)
+		pool_post(d.wk)
+		d.stats.drop_ring = d.ring.dropped
+		return
 	}
 	if d.proto == .Udp {
 		flush_udp(d)
@@ -367,8 +397,29 @@ set_blocked :: proc(d: ^Daemon, on: bool) {
 		return
 	}
 	d.want_write = on
-	interest := event.Interest{.Read, .Write} if on else event.Interest{.Read}
-	event.modify_fd(&d.loop, d.sock.fd, interest)
+	event.modify_fd(&d.loop, d.sock.fd, sock_interest(d))
+}
+
+// Read interest is off while the crypto worker has no room (`rx_paused`).
+sock_interest :: proc(d: ^Daemon) -> event.Interest {
+	i: event.Interest
+	if !d.rx_paused {
+		i += {.Read}
+	}
+	if d.want_write {
+		i += {.Write}
+	}
+	return i
+}
+
+// Stops or resumes reading the UDP socket. The datagrams wait in the kernel
+// buffer meanwhile.
+rx_pause :: proc(d: ^Daemon, pause: bool) {
+	if pause == d.rx_paused || !d.sock_open {
+		return
+	}
+	d.rx_paused = pause
+	event.modify_fd(&d.loop, d.sock.fd, sock_interest(d))
 }
 
 // A control packet (handshake, keepalive, ...) for the link.
@@ -494,6 +545,15 @@ read_udp :: proc(d: ^Daemon) {
 	left := READ_DATAGRAMS
 	for left > 0 {
 		want := rx_vlen(d.rx_msgs, left, d.rx_per_msg)
+		if d.wkr != nil {
+			// Read no more than the worker can take: the rest waits in the kernel.
+			fit := rx_msgs_for_room(lane_room(d.wkr, .Rx), d.rx_slot)
+			if fit == 0 {
+				rx_pause(d, true)
+				return
+			}
+			want = min(want, fit)
+		}
 		n, err := net.recv_batch(d.sock, &d.rx_batch, want)
 		if err == .Would_Block || err == .Interrupted {
 			return
@@ -635,7 +695,7 @@ write_tun :: proc(d: ^Daemon, pkt: []u8) {
 	if d.tun.vnet && d.tun_tx.on {
 		// Joins this packet to the run of its flow. Written at the end of the
 		// round (`flush_tun`), or when the run is full.
-		tun_tx_push(&d.tun, &d.tun_tx, &d.off, pkt, d.rx_buf)
+		tun_tx_push(&d.tun, &d.tun_tx, &d.off, pkt, d.rx_stable if d.rx_stable != nil else d.rx_buf)
 		tun_tx_account(d)
 		return
 	}

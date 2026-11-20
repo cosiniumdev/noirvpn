@@ -169,6 +169,18 @@ off_rx_layout :: proc() -> (msgs, slot: int) {
 	return RX_BATCH, RX_SLOT
 }
 
+// The most datagrams one message of a receive buffer with `slot` bytes per
+// message can hold: the kernel joins at most 64 with GRO.
+rx_max_per_msg :: proc(slot: int) -> int {
+	return 64 if slot >= UDP_GRO_SLOT else 1
+}
+
+// Messages of a read that the crypto workers have room for (`room` packets):
+// each message may hold `rx_max_per_msg` datagrams. 0: do not read now.
+rx_msgs_for_room :: proc(room, slot: int) -> int {
+	return room / rx_max_per_msg(slot)
+}
+
 // How many messages to ask `recv_batch` for when `left` datagrams may still be
 // taken this round. A GRO socket may give many datagrams per message, so the
 // average of the last call (`per_msg`, at least 1) decides.
