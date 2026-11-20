@@ -64,6 +64,8 @@ App :: struct {
 	scale_follow:   int, // the stepper button that the pointer follows when the scale changes: -1 smaller, 1 larger, 0 none
 	pointer_target: [2]f32, // window coordinates of the last pointer move (pointer_to)
 	unclamped:      bool, // do not limit the window to its display (self-test)
+	win_w:          i32, // logical width that the window has for the current view, 0 for WIN_W
+	wide_shift:     i32, // window coordinates that the left edge moved left for the wide window
 
 	profiles:       [MAX_PROFILES + 1]Profile, // the last row is for a tunnel with no row
 	n_profiles:     int,
@@ -110,6 +112,7 @@ App :: struct {
 	confirm:        Confirm, // a question over the window (view_key.odin)
 	copied:         string, // the last text put on the clipboard
 	rules:          Rules_View, // the Inbound rules view
+	nav:            Nav, // the section bar: see view_nav.odin
 
 	// The self-test starts no browser: web_open counts the calls.
 	browser_test:   bool,
@@ -260,6 +263,7 @@ build :: proc(app: ^App, dt: f32) {
 	if app.rescale {
 		scale_sync(app)
 	}
+	view_fit(app)
 	if app.cpu {
 		w, h: i32
 		_ = sdl.GetWindowSizeInPixels(app.window, &w, &h)

@@ -251,7 +251,7 @@ view_rules :: proc(app: ^App) {
 	r := &app.rules
 	a := &app.link.acl
 	w, h := u.size.x, u.size.y
-	res := topbar(app, {back = true, title = "Inbound rules", simulated = app.link.kind == .Sim})
+	res := topbar(app, {back = true, title = "Inbound rules", flat = true, simulated = app.link.kind == .Sim})
 	if res.back {
 		pop_view(app)
 		return
@@ -259,7 +259,7 @@ view_rules :: proc(app: ^App) {
 	if app.now >= r.profile_next {
 		rules_profile_load(app)
 	}
-	scroll_begin(app, "rules", {0, ui.TOPBAR_H, w, h - ui.TOPBAR_H})
+	nav_area_begin(app, "rules", {0, ui.TOPBAR_H, w, h - ui.TOPBAR_H})
 	cnt := mu.get_current_container(&u.ctx)
 	if r.jump {
 		cnt.scroll.y = max(r.builder_y - 8, 0)
@@ -268,20 +268,20 @@ view_rules :: proc(app: ^App) {
 	scroll_y := cnt.scroll.y
 	gap(app, 14)
 	rules_in_force(app)
-	r.blocked_y = app.cy - ui.TOPBAR_H + scroll_y
+	r.blocked_y = app.cy - app.nav.top + scroll_y
 	if a.known && a.filter {
 		rules_blocked(app)
 	}
-	r.config_y = app.cy - ui.TOPBAR_H + scroll_y
+	r.config_y = app.cy - app.nav.top + scroll_y
 	rules_config(app)
 	if r.profile {
 		rules_profile(app)
 	}
-	r.builder_y = app.cy - ui.TOPBAR_H + scroll_y
+	r.builder_y = app.cy - app.nav.top + scroll_y
 	rules_builder(app)
 	rules_copy_lines(app)
 	gap(app, 6)
-	scroll_end(app)
+	nav_area_end(app)
 }
 
 // acl_row is one rule or forward: the destination in the mono face, the

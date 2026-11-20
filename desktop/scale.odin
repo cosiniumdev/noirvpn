@@ -38,7 +38,7 @@ window_scales :: proc(window: ^sdl.Window) -> (d, s: f32) {
 }
 
 // scale_sync recomputes E. If E changed, it clears the glyph atlas and resizes the
-// window to its full logical size (WIN_W by WIN_H), so a window that the display
+// window to its full logical size (win_width by WIN_H), so a window that the display
 // limited at a larger scale grows back. A window on another display (refit) gets
 // its full size too. The resulting resize keeps E, so no loop.
 scale_sync :: proc(app: ^App) {
@@ -60,7 +60,69 @@ scale_sync :: proc(app: ^App) {
 	} else if !refit {
 		return
 	}
-	resize_window(app, WIN_W, WIN_H, d, e)
+	resize_window(app, win_width(app), WIN_H, d, e)
+}
+
+// view_width is the logical width of the window for view v. The list and the
+// connection are narrow; the views that edit settings are wide.
+view_width :: proc(v: View) -> i32 {
+	#partial switch v {
+	case .List, .Connection, .Attach:
+		return WIN_W
+	}
+	return WIN_W_WIDE
+}
+
+// win_width is the logical width that the window has now.
+win_width :: proc(app: ^App) -> i32 {
+	return app.win_w if app.win_w > 0 else WIN_W
+}
+
+// view_fit gives the window the width of the current view. The wide window
+// keeps the centre of the narrow one, and the narrow one goes back by the same
+// shift, so it returns to its place when the wide one was not moved.
+view_fit :: proc(app: ^App) {
+	lw := view_width(current_view(app))
+	if lw == win_width(app) {
+		return
+	}
+	app.win_w = lw
+	win := app.window
+	if win == nil {
+		return
+	}
+	if app.fixed_scale {
+		// --screens: the window has the pixels of the logical size at the draw scale.
+		k := app.u.g.scale
+		_ = sdl.SetWindowSize(win, i32(math.round(f32(lw) * k)), i32(math.round(f32(WIN_H) * k)))
+		return
+	}
+	if sdl.GetWindowFlags(win) & {.MAXIMIZED, .FULLSCREEN} != {} {
+		return
+	}
+	d, _ := window_scales(win)
+	x, y, old_w, new_w, h: i32
+	placed := position_kept() && sdl.GetWindowPosition(win, &x, &y) && sdl.GetWindowSize(win, &old_w, &h)
+	if placed {
+		if lw == WIN_W {
+			_ = sdl.SetWindowPosition(win, x + app.wide_shift, y)
+		} else {
+			k := app.eff / d
+			new_w = i32(math.round(f32(lw) * k))
+			_ = sdl.SetWindowPosition(win, x - (new_w - old_w) / 2, y)
+		}
+	}
+	resize_window(app, lw, WIN_H, d, app.eff)
+	if !placed {
+		app.wide_shift = 0
+		return
+	}
+	nx, ny: i32
+	if lw == WIN_W {
+		app.wide_shift = 0
+	} else if sdl.GetWindowPosition(win, &nx, &ny) {
+		app.wide_shift = x - nx
+	}
 }
 
 // resize_window gives the window a logical size of lw by lh at scale e, limited

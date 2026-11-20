@@ -57,6 +57,7 @@ Live_Create :: struct {
 }
 
 WIN_W :: 400
+WIN_W_WIDE :: 640 // width of the views that edit settings: see view_width
 WIN_H :: 720
 
 STALL_RETRY :: 0.002 // seconds before a frame that had no pixels is tried again

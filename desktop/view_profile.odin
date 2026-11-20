@@ -449,6 +449,7 @@ GROUP_PAD_Y :: 12
 // section draws a section label and its gap.
 section :: proc(app: ^App, label: string) {
 	r := row(app, 16)
+	nav_note(app, label, r.y)
 	ui.text(&app.u, ui.ST_SECTION, r.x + 2, r.y - 1, label, ui.MUTED)
 	gap(app, 6)
 }
@@ -479,14 +480,14 @@ view_profile :: proc(app: ^App) {
 	w, h := u.size.x, u.size.y
 	p := &app.profiles[e.index]
 
-	res := topbar(app, {back = true, title = ui.field_text(&e.name) == "" ? p.name : ui.field_text(&e.name), simulated = app.link.kind == .Sim})
+	res := topbar(app, {back = true, title = ui.field_text(&e.name) == "" ? p.name : ui.field_text(&e.name), flat = true, simulated = app.link.kind == .Sim})
 	if res.back {
 		pop_view(app)
 		return
 	}
 
 	bar_h := i32(ui.button_height()) + 20 + 1
-	scroll_begin(app, "profile", {0, ui.TOPBAR_H, w, h - ui.TOPBAR_H - bar_h})
+	nav_area_begin(app, "profile", {0, ui.TOPBAR_H, w, h - ui.TOPBAR_H - bar_h})
 	scroll_y := mu.get_current_container(&u.ctx).scroll.y
 	gap(app, 14)
 
@@ -586,7 +587,7 @@ view_profile :: proc(app: ^App) {
 
 	// Overrides.
 	section(app, "OVERRIDES")
-	e.overrides_y = app.cy - 22 - ui.TOPBAR_H + scroll_y
+	e.overrides_y = app.cy - 22 - app.nav.top + scroll_y
 	gr = row(app, 0)
 	y0 = app.cy
 	g = ui.group_begin(u, {gr.x, y0, gr.w, 0})
@@ -662,7 +663,7 @@ view_profile :: proc(app: ^App) {
 	gap(app, GROUP_PAD_Y + 1)
 	ui.group_end(u, g, app.cy - y0)
 	gap(app, 20)
-	scroll_end(app)
+	nav_area_end(app)
 
 	// Save bar, or the question of New key.
 	br := mu.Rect{0, h - bar_h, w, bar_h}

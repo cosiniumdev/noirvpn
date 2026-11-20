@@ -181,7 +181,12 @@ pos_store :: proc(app: ^App) {
 		return
 	}
 	x, y: i32
-	if !sdl.GetWindowPosition(app.window, &x, &y) || !on_display({x, y}, usable_areas()) {
+	if !sdl.GetWindowPosition(app.window, &x, &y) {
+		return
+	}
+	// The stored place is the place of the narrow window.
+	x += app.wide_shift
+	if !on_display({x, y}, usable_areas()) {
 		return
 	}
 	if old, ok := app.settings.pos.?; ok && old == {x, y} {

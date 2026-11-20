@@ -397,8 +397,9 @@ scene_close_connected :: proc(app: ^App) {
 
 // hover_scrollbar parks the pointer at the right edge, as when a scroll area was in use.
 hover_scrollbar :: proc(app: ^App) {
-	app.u.ctx.mouse_pos = {390, 300}
-	app.u.ctx.last_mouse_pos = {390, 300}
+	x := view_width(current_view(app)) - 10
+	app.u.ctx.mouse_pos = {x, 300}
+	app.u.ctx.last_mouse_pos = {x, 300}
 }
 
 scene_profile :: proc(app: ^App) {

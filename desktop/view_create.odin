@@ -812,13 +812,13 @@ view_create :: proc(app: ^App) {
 	u := &app.u
 	e := &app.edit
 	w, h := u.size.x, u.size.y
-	res := topbar(app, {back = true, title = "New profile", simulated = app.link.kind == .Sim})
+	res := topbar(app, {back = true, title = "New profile", flat = true, simulated = app.link.kind == .Sim})
 	if res.back {
 		create_leave(app)
 		return
 	}
 	bar_h := i32(ui.button_height()) + 20 + 1
-	scroll_begin(app, "create", {0, ui.TOPBAR_H, w, h - ui.TOPBAR_H - bar_h})
+	nav_area_begin(app, "create", {0, ui.TOPBAR_H, w, h - ui.TOPBAR_H - bar_h})
 	gap(app, 14)
 	section(app, "NAME")
 	r := row(app, ui.FIELD_H)
@@ -826,7 +826,7 @@ view_create :: proc(app: ^App) {
 	gap(app, 18)
 	form_groups(app, false)
 	gap(app, 10)
-	scroll_end(app)
+	nav_area_end(app)
 
 	br := mu.Rect{0, h - bar_h, w, bar_h}
 	ui.bar(u, br)

@@ -83,7 +83,7 @@ selftest :: proc() -> int {
 	click(app, 320, 128)
 	check("Edit opens profile", current_view(app) == .Profile, &failed)
 	check("name loaded", ui.field_text(&app.edit.name) == "Home", &failed)
-	click(app, 200, 110)
+	click(app, 200, 110 + NAV_H)
 	key(app, sdl.K_END)
 	typ(app, "xyz")
 	check("typing appends", ui.field_text(&app.edit.name) == "Homexyz", &failed)
@@ -140,7 +140,7 @@ selftest_scale :: proc(app: ^App, failed: ^int, check: proc(name: string, ok: bo
 	}
 	click(app, 292, 28)
 	check("gear opens settings", current_view(app) == .Settings, failed)
-	check("scale starts automatic", app.settings.scale == 0 && app.eff == s && size_is(app, WIN_W, WIN_H), failed)
+	check("scale starts automatic", app.settings.scale == 0 && app.eff == s && size_is(app, WIN_W_WIDE, WIN_H), failed)
 	// step clicks a button of the size stepper at its place in the window: -1 is smaller, 1 is larger.
 	step :: proc(app: ^App, d: f32, dir: int) {
 		r := app.scale_btn[dir < 0 ? 0 : 1]
@@ -159,7 +159,7 @@ selftest_scale :: proc(app: ^App, failed: ^int, check: proc(name: string, ok: bo
 	check("the pointer follows the button to its place at the new scale", app.scale_follow == 0 && app.pointer_target == {(f32(larger.x) + f32(larger.w) / 2) * 2, (f32(larger.y) + f32(larger.h) / 2) * 2}, failed)
 	ww, wh: i32
 	_ = sdl.GetWindowSize(app.window, &ww, &wh)
-	check("window grows, logical size stays", size_is(app, WIN_W, WIN_H) && f32(ww) == WIN_W * 2 && f32(wh) == WIN_H * 2, failed)
+	check("window grows, logical size stays", size_is(app, WIN_W_WIDE, WIN_H) && f32(ww) == WIN_W_WIDE * 2 && f32(wh) == WIN_H * 2, failed)
 	e := app.eff
 	k := e / d
 	click(app, 28 * k, 28 * k)
@@ -172,7 +172,7 @@ selftest_scale :: proc(app: ^App, failed: ^int, check: proc(name: string, ok: bo
 	for _ in 0 ..< 5 {
 		step(app, d, -1)
 	}
-	check("Automatic returns to the display scale", app.settings.scale == 0 && app.eff == s && size_is(app, WIN_W, WIN_H), failed)
+	check("Automatic returns to the display scale", app.settings.scale == 0 && app.eff == s && size_is(app, WIN_W_WIDE, WIN_H), failed)
 	k = app.eff / d
 	click(app, 28 * k, 28 * k)
 	check("back to the list", current_view(app) == .List, failed)
@@ -231,6 +231,22 @@ selftest_scale :: proc(app: ^App, failed: ^int, check: proc(name: string, ok: bo
 	check("a limited window on another display gets its full size", limited && size_is(app, WIN_W, WIN_H), failed)
 	set_scale(app, 0)
 	frame(app, 0)
+	// The wide window keeps the centre of the narrow one; the narrow one returns to its place.
+	_ = sdl.SetWindowPosition(app.window, 300, 200)
+	_ = sdl.SyncWindow(app.window)
+	x0, y0, xw, yw, x1, y1, nw, ww2: i32
+	_ = sdl.GetWindowPosition(app.window, &x0, &y0)
+	_ = sdl.GetWindowSize(app.window, &nw, &wh)
+	push_view(app, .Settings)
+	frame(app, 0)
+	_ = sdl.GetWindowPosition(app.window, &xw, &yw)
+	_ = sdl.GetWindowSize(app.window, &ww2, &wh)
+	wide := size_is(app, WIN_W_WIDE, WIN_H) && xw == x0 - (ww2 - nw) / 2 && yw == y0
+	pop_view(app)
+	frame(app, 0)
+	_ = sdl.GetWindowPosition(app.window, &x1, &y1)
+	check("settings widen the window around its centre", wide, failed)
+	check("the narrow window returns to its place", size_is(app, WIN_W, WIN_H) && x1 == x0 && y1 == y0 && app.wide_shift == 0, failed)
 }
 
 // near is true when two colours differ by at most tol in every channel.
@@ -886,13 +902,36 @@ selftest_connection :: proc(app: ^App, failed: ^int, check: proc(name: string, o
 	check("Page Down scrolls the profile view", scroll_of(app, "profile") > 0, failed)
 	key(app, sdl.K_HOME)
 	frame(app, 0.016)
-	click(app, 200, 110)
+	click(app, 200, 110 + NAV_H)
 	key(app, sdl.K_PAGEDOWN)
 	key(app, sdl.K_END)
 	frame(app, 0.016)
 	check("keys in a text field do not scroll", scroll_of(app, "profile") == 0 && ui.text_focused(&app.u), failed)
 	key(app, sdl.K_ESCAPE)
 	check("Escape from the profile view", current_view(app) == .List, failed)
+
+	// The section bar jumps to a section and marks it.
+	open_profile(app, 0)
+	frame(app, 0.016)
+	nv := &app.nav
+	ov := -1
+	for i in 0 ..< nv.n {
+		if nv.items[i].label == "Overrides" {
+			ov = i
+		}
+	}
+	check("section bar lists the profile sections", nv.area == "profile" && nv.n >= 6 && nv.items[0].label == "Name" && ov > 0 && nav_active(nv, scroll_of(app, "profile")) == 0, failed)
+	if ov > 0 {
+		b := nv.rects[ov]
+		click(app, f32(b.x + b.w / 2), f32(b.y + b.h / 2))
+		frame(app, 0.016)
+		check("a section item scrolls to its section", scroll_of(app, "profile") == nv.items[ov].y - NAV_OFFSET && nav_active(nv, scroll_of(app, "profile")) == ov, failed)
+		b = nv.rects[0]
+		click(app, f32(b.x + b.w / 2), f32(b.y + b.h / 2))
+		frame(app, 0.016)
+		check("Name goes back to the top", scroll_of(app, "profile") == 0 && nav_active(nv, 0) == 0, failed)
+	}
+	key(app, sdl.K_ESCAPE)
 
 	open_profile(app, 1)
 	check("an imported profile has Block IPv6, off", !app.edit.block_ipv6 && !app.edit.dirty && click_block6(app) && app.edit.block_ipv6 && app.edit.dirty, failed)
@@ -1498,7 +1537,7 @@ selftest_create :: proc(app: ^App, failed: ^int, check: proc(name: string, ok: b
 	transport_set(f, .Tls)
 	check("create: the port follows the transport", ui.field_text(&f.port) == "443", failed)
 	transport_set(f, .Udp)
-	click(app, 72, 296)
+	click(app, 72, 296 + NAV_H)
 	key(app, sdl.K_END)
 	key(app, sdl.K_BACKSPACE)
 	typ(app, "5")
@@ -1526,7 +1565,7 @@ selftest_create :: proc(app: ^App, failed: ^int, check: proc(name: string, ok: b
 	check("create: Copy puts the key pin as the line of the peers file", app.copied == peers_line(app), failed)
 	got, _ := ui.clipboard_paste()
 	check("create: the clipboard has the line", got == "Laptop " + SAMPLE_PIN, failed)
-	click(app, 248, 692)
+	click(app, 248 + WIN_W_WIDE - WIN_W, 692)
 	check("create: Open profile shows the created profile", current_view(app) == .Profile && e.created && e.pin == SAMPLE_PIN && e.index == n0 && ui.field_text(&f.host) == "vpn.example.com", failed)
 	check("create: the created profile has Block IPv6, off", !e.block_ipv6 && click_block6(app) && e.block_ipv6 && e.dirty, failed)
 	key(app, sdl.K_ESCAPE)
