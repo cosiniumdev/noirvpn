@@ -1,0 +1,88 @@
+name: Release
+
+# github Actions > Release > Run workflow.
+# Runs ci.yml build and test, then does GitHub release v<VERSION_NUMBER>
+# (cmd/noirvpn/cli.odin) at the commit of the run.
+# Change VERSION_NUMBER before a new release.
+on:
+  workflow_dispatch:
+    inputs:
+      draft:
+        description: "Make a draft release (publish it by hand on GitHub)"
+        type: boolean
+        default: true
+      prerelease:
+        description: "Mark the release as a pre-release"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  build:
+    uses: ./.github/workflows/ci.yml
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read the version
+        id: version
+        run: |
+          version=$(sed -n 's/^VERSION_NUMBER :: "\(.*\)"$/\1/p' cmd/noirvpn/cli.odin)
+          if [ -z "$version" ]; then
+            echo "::error::VERSION_NUMBER not found in cmd/noirvpn/cli.odin"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+
+      # A tag is made once: a second run for the same version stops here.
+      - name: Check the tag is new
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1 || git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null; then
+            echo "::error::$TAG exists already; change VERSION_NUMBER in cmd/noirvpn/cli.odin"
+            exit 1
+          fi
+
+      - name: Download the archives
+        uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          path: release
+          merge-multiple: true
+
+      - name: Write SHA256SUMS
+        working-directory: release
+        run: |
+          sha256sum noirvpn-* > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+          VERSION: ${{ steps.version.outputs.version }}
+          DRAFT: ${{ inputs.draft }}
+          PRERELEASE: ${{ inputs.prerelease }}
+        run: |
+          flags=()
+          [ "$DRAFT" = true ] && flags+=(--draft)
+          [ "$PRERELEASE" = true ] && flags+=(--prerelease)
+          gh release create "$TAG" release/* \
+            --target "$GITHUB_SHA" \
+            --title "noirvpn $VERSION" \
+            --generate-notes \
+            "${flags[@]}"

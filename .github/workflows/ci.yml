@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [ "main" ]
   workflow_dispatch:
+  # release.yml runs this workflow to build the release archives.
+  workflow_call:
+
+permissions:
+  contents: read
 
 env:
   # The code needs an Odin nightly of 2026-11-15 or later (build/README.md).
@@ -140,3 +145,29 @@ jobs:
         with:
           name: noirvpn-${{ runner.os }}
           path: dist/
+
+      # One archive per target, made here because artifacts lose the Unix file
+      # modes: noirvpn-<version>-<os>-<arch>.tar.gz (.zip on Windows), with one
+      # folder of the same name inside.
+      - name: Package release archive
+        run: |
+          version=$(sed -n 's/^VERSION_NUMBER :: "\(.*\)"$/\1/p' cmd/noirvpn/cli.odin)
+          rm -rf out/release out/stage
+          mkdir -p out/release out/stage
+          for d in dist/*/; do
+            name=noirvpn-$version-$(basename "$d")
+            cp -R "$d" "out/stage/$name"
+            if [ "$RUNNER_OS" = Windows ]; then
+              (cd out/stage && 7z a -tzip -bso0 "../release/$name.zip" "$name")
+            else
+              tar -C out/stage -czf "out/release/$name.tar.gz" "$name"
+            fi
+          done
+          ls -l out/release
+
+      - name: Upload release archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ runner.os }}
+          path: out/release/*
+          if-no-files-found: error
