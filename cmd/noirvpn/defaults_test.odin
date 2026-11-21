@@ -102,6 +102,10 @@ the_default_options_are_valid_config :: proc(t: ^testing.T) {
 	// The real defaults of this system give a service that passes the config check.
 	p := config_plan({}, service_default_args(), no_file, false)
 	testing.expect(t, has_option(p.args, "client-service"))
-	testing.expect(t, has_option(p.args, "bus-control"))
+	// On Windows, the control pipe name comes from the instance name
+	// (defaults_windows.odin).
+	when ODIN_OS != .Windows {
+		testing.expect(t, has_option(p.args, "bus-control"))
+	}
 	testing.expect(t, has_option(p.args, "bus-allow"))
 }

@@ -17,7 +17,8 @@ TEST_DEPS := macos-nng
 BREW_LIB  := $(shell brew --prefix 2>/dev/null || echo /opt/homebrew)/lib
 LINKFLAGS ?= -extra-linker-flags:"-L$(BREW_LIB)"
 # noirvpn-hook starts commands with fork and execve system calls: Linux only.
-NOT_ON_THIS_OS := cmd/noirvpn-hook/
+# The tests of platform/cpu are for Linux on amd64 only.
+NOT_ON_THIS_OS := cmd/noirvpn-hook/ platform/cpu/
 endif
 
 # Windows (MSYS2 MINGW64 shell): OpenSSL links through the import libraries of
@@ -26,7 +27,7 @@ endif
 ifneq ($(filter MINGW% MSYS% CYGWIN%,$(UNAME_S)),)
 TEST_DEPS := windows-openssl
 LINKFLAGS ?= -extra-linker-flags:"/LIBPATH:$(shell cygpath -w '$(CURDIR)/out/windows/lib')"
-NOT_ON_THIS_OS := bus/nng/ cmd/noirvpn-hook/
+NOT_ON_THIS_OS := bus/nng/ cmd/noirvpn-hook/ platform/cpu/
 endif
 
 # Every directory below these roots that has a *_test.odin file. A top-level

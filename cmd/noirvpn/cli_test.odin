@@ -53,7 +53,16 @@ test_cli_allow :: proc(t: ^testing.T) {
 
 	unknown := cli_split({"--allow-user", "no-such-user-xyz"})
 	defer delete(unknown.args)
-	testing.expect_value(t, bus_access_check(&unknown), "--allow-user: 'no-such-user-xyz' is not a user on this host")
+	when ODIN_OS == .Windows {
+		// On Windows, the config gives access with `bus-allow sid`.
+		testing.expect_value(
+			t,
+			bus_access_check(&unknown),
+			"--allow-user and --allow-group are for Linux and macOS; on Windows, use bus-allow sid in the config",
+		)
+	} else {
+		testing.expect_value(t, bus_access_check(&unknown), "--allow-user: 'no-such-user-xyz' is not a user on this host")
+	}
 	BUS_ACCESS = {}
 }
 

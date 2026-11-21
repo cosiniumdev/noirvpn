@@ -1031,8 +1031,9 @@ test_forward_next_address :: proc(t: ^testing.T) {
 	defer rig_destroy(&r)
 	fwd_listen(&r.d, []cnet.Address{LO4})
 	fw := r.d.fwd
-	// The echo server listens on 127.0.0.1 only: the first address refuses.
-	fw.lines[0].addrs = {cnet.IP4_Address{127, 0, 0, 2}, cnet.IP4_Address{127, 0, 0, 1}, nil, nil}
+	// The echo server listens on 127.0.0.1 only, so ::1 connection will be
+	// refused immediately on every system.
+	fw.lines[0].addrs = {cnet.IP6_Loopback, cnet.IP4_Address{127, 0, 0, 1}, nil, nil}
 	fw.lines[0].n = 2
 	fw.lines[0].until = now_of(&r.d) + time.Hour
 	c := dial(&r, 0)
