@@ -1,0 +1,8 @@
+# Keep LF line ends on every system
+* text=auto eol=lf
+
+# Binary files.
+*.der binary
+*.ico binary
+*.png binary
+*.ttf binary
