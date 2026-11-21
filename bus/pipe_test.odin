@@ -139,13 +139,18 @@ pipe_round_trip :: proc(t: ^testing.T) {
 	}
 	disconnect(&c)
 
-	// Several clients at once.
+	// Several clients at once. Not more than the default `max_pending` (6) of
+	// the host: one more can get a `busy` reply when the loop is slow.
 	Job :: struct {
-		url: string,
-		ok:  int,
+		url:  string,
+		ok:   int,
+		// The first failed call, so a failure in CI says what went wrong.
+		err:  Call_Error,
+		code: string,
+		msg:  string,
 	}
-	jobs: [8]Job
-	threads: [8]^thread.Thread
+	jobs: [6]Job
+	threads: [6]^thread.Thread
 	for i in 0 ..< len(jobs) {
 		jobs[i].url = fx.control
 		threads[i] = thread.create_and_start_with_poly_data(&jobs[i], proc(j: ^Job) {
@@ -153,6 +158,10 @@ pipe_round_trip :: proc(t: ^testing.T) {
 				r, e := call(j.url, "status")
 				if e == .None && r.ok {
 					j.ok += 1
+				} else if j.err == .None && j.code == "" {
+					j.err = e
+					j.code = strings.clone(r.code if e == .None else "")
+					j.msg = strings.clone(r.message if e == .None else "")
 				}
 				reply_destroy(&r)
 			}
@@ -163,7 +172,9 @@ pipe_round_trip :: proc(t: ^testing.T) {
 		thread.destroy(th)
 	}
 	for j in jobs {
-		testing.expect_value(t, j.ok, 10)
+		testing.expectf(t, j.ok == 10, "%d of 10 calls worked; first failure: error %v, reply code %q, message %q", j.ok, j.err, j.code, j.msg)
+		delete(j.code)
+		delete(j.msg)
 	}
 
 	// The tools find the instance.
