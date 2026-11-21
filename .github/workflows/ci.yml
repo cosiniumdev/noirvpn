@@ -1,0 +1,68 @@
+name: Build & Test
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Odin
+        uses: laytan/setup-odin@v2.12.2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          release: latest
+
+      # Linux dependencies (nng, OpenSSL, X11/Wayland headers for SDL3)
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libnng-dev libssl-dev \
+            libx11-dev libxext-dev libxrandr-dev libxcursor-dev \
+            libxi-dev libxfixes-dev libxss-dev libwayland-dev \
+            libxkbcommon-dev libdrm-dev libgbm-dev libgl1-mesa-dev
+
+      # macOS dependencies (dist.sh expects SDL3 & OpenSSL from Homebrew + cmake for macos-nng.sh)
+      - name: Install macOS dependencies
+        if: runner.os == 'macOS'
+        run: brew install sdl3 openssl@3 cmake
+
+      # Build SDL3 via setup-sdl on Linux & Windows (macOS uses Homebrew above)
+      - name: Setup SDL3
+        id: sdl
+        if: runner.os != 'macOS'
+        uses: libsdl-org/setup-sdl@v1
+        with:
+          version: 3-latest
+
+      - name: Run tests
+        env:
+          LIBRARY_PATH: ${{ steps.sdl.outputs.root }}/lib
+          LD_LIBRARY_PATH: ${{ steps.sdl.outputs.root }}/lib
+        run: make test
+
+      - name: Build distribution
+        shell: bash
+        env:
+          LIBRARY_PATH: ${{ steps.sdl.outputs.root }}/lib
+          LD_LIBRARY_PATH: ${{ steps.sdl.outputs.root }}/lib
+          SDL3_ROOT: ${{ steps.sdl.outputs.root }}
+        run: make dist
+
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: noirvpn-${{ runner.os }}
+          path: dist/
