@@ -35,7 +35,7 @@ jobs:
         shell: bash
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Linux (Ubuntu 26.04): OpenSSL 3, nng 1.x, SDL3, and LLVM for Odin.
       - name: Install Linux dependencies
@@ -64,7 +64,7 @@ jobs:
 
       - name: Restore Odin
         id: odin-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ runner.temp }}/odin
           key: odin-${{ runner.os }}-${{ runner.arch }}-${{ env.ODIN_COMMIT }}-llvm${{ env.ODIN_LLVM }}
@@ -141,7 +141,7 @@ jobs:
           make dist
 
       - name: Upload dist artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: noirvpn-${{ runner.os }}
           path: dist/
@@ -166,7 +166,7 @@ jobs:
           ls -l out/release
 
       - name: Upload release archive
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-${{ runner.os }}
           path: out/release/*
