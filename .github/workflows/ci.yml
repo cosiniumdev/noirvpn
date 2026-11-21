@@ -14,6 +14,9 @@ env:
   ODIN_COMMIT: ece728cb96f67000e7d6e7105e70e26d11c26186
   # The LLVM of the Odin compiler on Linux and macOS (Odin supports 17 to 22).
   ODIN_LLVM: "20"
+  # The Windows tunnel driver that dist.sh puts next to noirvpn.exe.
+  WINTUN_VERSION: 0.14.1
+  WINTUN_SHA256: 07c256185d6ee3652e09fa55c0b673e2624b565e02c4b9091c79ca7d2f24ef51
 
 jobs:
   build:
@@ -116,10 +119,21 @@ jobs:
         if: runner.os != 'Windows'
         run: make dist
 
+      - name: Download wintun (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          cd "$RUNNER_TEMP"
+          curl -sSfL -o wintun.zip "https://www.wintun.net/builds/wintun-$WINTUN_VERSION.zip"
+          echo "$WINTUN_SHA256  wintun.zip" | sha256sum -c -
+          unzip -q -o wintun.zip
+
       - name: Build distribution (Windows)
         if: runner.os == 'Windows'
         shell: msys2 {0}
-        run: make dist
+        run: |
+          # dist.sh copies the DLL and the LICENSE.txt of the zip.
+          export WINTUN_DLL="$(cygpath -u "$RUNNER_TEMP")/wintun/bin/amd64/wintun.dll"
+          make dist
 
       - name: Upload dist artifact
         uses: actions/upload-artifact@v4
