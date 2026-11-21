@@ -111,12 +111,21 @@ exec :: proc(runner: Command_Runner, argv: []string, stdin := "") -> (res: Comma
 	return run_command(nil, argv, stdin)
 }
 
+// The index lookup of `c`: its own, or the real interfaces.
+@(private)
+conn_index_of :: proc(c: ^Conn) -> Index_Of {
+	return c.index_of if c.index_of != nil else name_to_index
+}
+
 // A connection to the system. There is nothing to keep open: it holds the
 // runner of commands and the text of the last failure.
 Conn :: struct {
 	allocator: mem.Allocator,
 	// Leave it empty for the real commands.
 	runner:    Command_Runner,
+	// Gives the interface index of a name in the command output. Leave it
+	// empty for the real interfaces.
+	index_of:  Index_Of,
 	// The text of the last failed command (the first line of its error output).
 	text_buf:  [256]u8,
 	text_len:  int,
@@ -234,7 +243,7 @@ link_get :: proc(c: ^Conn, name: string) -> (l: Link_Info, err: Error) {
 	res := run(c, {IFCONFIG, name}) or_return
 	links := make([dynamic]Link_Info, context.temp_allocator)
 	addrs := make([dynamic]Addr_Info, context.temp_allocator)
-	parse_ifconfig(res.out, &links, &addrs, name_to_index)
+	parse_ifconfig(res.out, &links, &addrs, conn_index_of(c))
 	for &cand in links {
 		if link_name(&cand) == name {
 			return cand, .None
@@ -255,7 +264,7 @@ link_list :: proc(c: ^Conn, out: ^[dynamic]Link_Info) -> Error {
 	res := run(c, {IFCONFIG, "-a"}) or_return
 	addrs := make([dynamic]Addr_Info, context.temp_allocator)
 	clear(out)
-	parse_ifconfig(res.out, out, &addrs, name_to_index)
+	parse_ifconfig(res.out, out, &addrs, conn_index_of(c))
 	return .None
 }
 
@@ -378,7 +387,7 @@ addr_list :: proc(c: ^Conn, index: u32, family: Maybe(Family), out: ^[dynamic]Ad
 	res := run(c, argv) or_return
 	links := make([dynamic]Link_Info, context.temp_allocator)
 	all := make([dynamic]Addr_Info, context.temp_allocator)
-	parse_ifconfig(res.out, &links, &all, name_to_index)
+	parse_ifconfig(res.out, &links, &all, conn_index_of(c))
 	clear(out)
 	for a in all {
 		if index != 0 && a.index != index {
@@ -476,7 +485,7 @@ route_del :: proc(c: ^Conn, r: Route) -> Error {
 list_routes :: proc(c: ^Conn, family: Family, proto1: bool, protocol: u8, out: ^[dynamic]Route) -> Error {
 	res := run(c, {NETSTAT, "-rn", "-f", "inet6" if family == .V6 else "inet"}) or_return
 	clear(out)
-	parse_netstat(res.out, family, name_to_index, out, proto1, protocol)
+	parse_netstat(res.out, family, conn_index_of(c), out, proto1, protocol)
 	return .None
 }
 
@@ -509,7 +518,7 @@ route_list_protocol :: proc(c: ^Conn, family: Family, protocol: u8, out: ^[dynam
 route_get_default :: proc(c: ^Conn, family: Family) -> (r: Route, err: Error) {
 	res := run(c, build_route_get(default_dst(family), family, true)) or_return
 	ok: bool
-	r, ok = parse_route_get(res.out, family == .V6, name_to_index)
+	r, ok = parse_route_get(res.out, family == .V6, conn_index_of(c))
 	if !ok {
 		return {}, .Protocol
 	}
@@ -527,7 +536,7 @@ route_lookup :: proc(c: ^Conn, dst: Address) -> (r: Route, err: Error) {
 	family := Family.V6 if is_v6(dst) else Family.V4
 	res := run(c, build_route_get(dst, family, false)) or_return
 	ok: bool
-	r, ok = parse_route_get(res.out, family == .V6, name_to_index)
+	r, ok = parse_route_get(res.out, family == .V6, conn_index_of(c))
 	if !ok {
 		return {}, .Protocol
 	}

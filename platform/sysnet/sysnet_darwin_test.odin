@@ -533,6 +533,8 @@ fake_conn :: proc(f: ^Fake) -> Conn {
 		data = f,
 		run  = fake_run,
 	}
+	// The interfaces of the fake output, so the test runs the same on every Mac.
+	c.index_of = fake_index
 	return c
 }
 

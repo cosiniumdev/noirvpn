@@ -310,6 +310,11 @@ large_write_through_small_socket_buffers :: proc(t: ^testing.T) {
 				blocked_flushes += 1
 			}
 		}
+		// The reader reads only when the writer is blocked or done, so the socket
+		// buffers fill up on every system (Windows loopback drains them fast).
+		if link_pending(&p.c) == 0 && sent < N {
+			continue
+		}
 		n, rerr := link_read(&p.s, got[have:])
 		if rerr == .Would_Block {
 			time.sleep(100 * time.Microsecond)
