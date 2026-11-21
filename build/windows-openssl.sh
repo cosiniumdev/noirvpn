@@ -13,8 +13,8 @@
 #
 # Environment:
 #   OPENSSL_BIN  the folder of the two DLLs (default /mingw64/bin)
-#   VSTOOLS      the folder of dumpbin.exe and lib.exe (default: the newest
-#                MSVC Hostx64/x64 folder of Visual Studio 2022)
+#   VSTOOLS      the folder of dumpbin.exe and lib.exe (default: an MSVC
+#                Hostx64/x64 folder of Visual Studio 2022 or later)
 # Runs in an MSYS2 or Git Bash shell. Does nothing if the libraries are newer
 # than the DLLs.
 set -eu
@@ -24,7 +24,8 @@ bin=${OPENSSL_BIN:-/mingw64/bin}
 
 tools=${VSTOOLS:-}
 if [ -z "$tools" ]; then
-	for d in "/c/Program Files/Microsoft Visual Studio/2022"/*/VC/Tools/MSVC/*/bin/Hostx64/x64; do
+	# <version>/<edition>: 2022/BuildTools, 18/Enterprise (Visual Studio 2026), ...
+	for d in "/c/Program Files/Microsoft Visual Studio"/*/*/VC/Tools/MSVC/*/bin/Hostx64/x64; do
 		[ -x "$d/lib.exe" ] && tools=$d
 	done
 fi

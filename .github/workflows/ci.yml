@@ -5,6 +5,15 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+  workflow_dispatch:
+
+env:
+  # The code needs an Odin nightly of 2026-11-15 or later (build/README.md).
+  # No GitHub release has it yet (dev-2026-11a is too old), so the compiler is
+  # built from this commit and cached. Change it together with build/README.md.
+  ODIN_COMMIT: ece728cb96f67000e7d6e7105e70e26d11c26186
+  # The LLVM of the Odin compiler on Linux and macOS (Odin supports 17 to 22).
+  ODIN_LLVM: "20"
 
 jobs:
   build:
@@ -13,52 +22,103 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Odin
-        uses: laytan/setup-odin@v2.12.2
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          release: latest
-
-      # Linux dependencies (nng, OpenSSL, X11/Wayland headers for SDL3)
+      # Linux (Ubuntu 26.04): OpenSSL 3, nng 1.x, SDL3, and LLVM for Odin.
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
-            libnng-dev libssl-dev \
-            libx11-dev libxext-dev libxrandr-dev libxcursor-dev \
-            libxi-dev libxfixes-dev libxss-dev libwayland-dev \
-            libxkbcommon-dev libdrm-dev libgbm-dev libgl1-mesa-dev
+          sudo apt-get install -y make clang llvm-$ODIN_LLVM-dev \
+            libssl-dev libnng-dev libsdl3-dev
 
-      # macOS dependencies (dist.sh expects SDL3 & OpenSSL from Homebrew + cmake for macos-nng.sh)
+      # macOS: SDL3 and OpenSSL from Homebrew, cmake for build/macos-nng.sh,
+      # LLVM for Odin (the compiler links libLLVM dynamically).
       - name: Install macOS dependencies
         if: runner.os == 'macOS'
-        run: brew install sdl3 openssl@3 cmake
+        run: brew install sdl3 openssl@3 cmake llvm@$ODIN_LLVM
 
-      # Build SDL3 via setup-sdl on Linux & Windows (macOS uses Homebrew above)
-      - name: Setup SDL3
-        id: sdl
-        if: runner.os != 'macOS'
-        uses: libsdl-org/setup-sdl@v1
+      # Windows: the build scripts run in the MSYS2 MINGW64 shell, with the
+      # OpenSSL DLLs of MSYS2. SDL3 comes with Odin (vendor/sdl3).
+      - name: Setup MSYS2
+        if: runner.os == 'Windows'
+        uses: msys2/setup-msys2@v2
         with:
-          version: 3-latest
+          msystem: MINGW64
+          path-type: inherit
+          update: false
+          install: make mingw-w64-x86_64-openssl
 
-      - name: Run tests
-        env:
-          LIBRARY_PATH: ${{ steps.sdl.outputs.root }}/lib
-          LD_LIBRARY_PATH: ${{ steps.sdl.outputs.root }}/lib
+      - name: Restore Odin
+        id: odin-cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/odin
+          key: odin-${{ runner.os }}-${{ runner.arch }}-${{ env.ODIN_COMMIT }}-llvm${{ env.ODIN_LLVM }}
+
+      - name: Fetch Odin source
+        if: steps.odin-cache.outputs.cache-hit != 'true'
+        run: |
+          git init -q "$RUNNER_TEMP/odin"
+          cd "$RUNNER_TEMP/odin"
+          git remote add origin https://github.com/odin-lang/Odin
+          git fetch -q --depth=1 origin "$ODIN_COMMIT"
+          git checkout -q FETCH_HEAD
+          # SDL3.dll and SDL3.lib are in Git LFS; the desktop client needs them
+          # on Windows.
+          if [ "$RUNNER_OS" = Windows ]; then
+            git lfs install --local
+            git lfs pull --include="vendor/sdl3/*"
+          fi
+
+      - name: Build Odin (Linux, macOS)
+        if: steps.odin-cache.outputs.cache-hit != 'true' && runner.os != 'Windows'
+        working-directory: ${{ runner.temp }}/odin
+        run: |
+          if [ "$RUNNER_OS" = macOS ]; then
+            export LLVM_CONFIG="$(brew --prefix llvm@$ODIN_LLVM)/bin/llvm-config"
+          else
+            export LLVM_CONFIG=llvm-config-$ODIN_LLVM
+          fi
+          ./build_odin.sh release
+          # The stb libraries of the desktop client (macOS and Windows have
+          # them in the repository; the nightly archives build them on Linux).
+          if [ "$RUNNER_OS" = Linux ]; then
+            sh vendor/stb/src/build_stb.sh unix
+          fi
+
+      - name: Build Odin (Windows)
+        if: steps.odin-cache.outputs.cache-hit != 'true' && runner.os == 'Windows'
+        working-directory: ${{ runner.temp }}/odin
+        shell: cmd
+        run: build.bat release
+
+      - name: Add Odin to PATH
+        run: |
+          echo "$RUNNER_TEMP/odin" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/odin/odin" version
+
+      - name: Run tests (Linux, macOS)
+        if: runner.os != 'Windows'
         run: make test
 
-      - name: Build distribution
-        shell: bash
-        env:
-          LIBRARY_PATH: ${{ steps.sdl.outputs.root }}/lib
-          LD_LIBRARY_PATH: ${{ steps.sdl.outputs.root }}/lib
-          SDL3_ROOT: ${{ steps.sdl.outputs.root }}
+      - name: Run tests (Windows)
+        if: runner.os == 'Windows'
+        shell: msys2 {0}
+        run: make test
+
+      - name: Build distribution (Linux, macOS)
+        if: runner.os != 'Windows'
+        run: make dist
+
+      - name: Build distribution (Windows)
+        if: runner.os == 'Windows'
+        shell: msys2 {0}
         run: make dist
 
       - name: Upload dist artifact

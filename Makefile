@@ -11,12 +11,22 @@ ARCHFLAGS := $(shell build/microarch.sh)
 
 # macOS: nng 1.x is built by build/macos-nng.sh into out/macos/nng (Homebrew has
 # only nng 2.x) and bus/nng links that file by its path. OpenSSL comes from Homebrew.
-ifeq ($(shell uname -s),Darwin)
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Darwin)
 TEST_DEPS := macos-nng
 BREW_LIB  := $(shell brew --prefix 2>/dev/null || echo /opt/homebrew)/lib
 LINKFLAGS ?= -extra-linker-flags:"-L$(BREW_LIB)"
 # noirvpn-hook starts commands with fork and execve system calls: Linux only.
 NOT_ON_THIS_OS := cmd/noirvpn-hook/
+endif
+
+# Windows (MSYS2 MINGW64 shell): OpenSSL links through the import libraries of
+# build/windows-openssl.sh; the test programs find the DLLs on the PATH
+# (/mingw64/bin). The bus uses named pipes there, so bus/nng is not built.
+ifneq ($(filter MINGW% MSYS% CYGWIN%,$(UNAME_S)),)
+TEST_DEPS := windows-openssl
+LINKFLAGS ?= -extra-linker-flags:"/LIBPATH:$(shell cygpath -w '$(CURDIR)/out/windows/lib')"
+NOT_ON_THIS_OS := bus/nng/ cmd/noirvpn-hook/
 endif
 
 # Every directory below these roots that has a *_test.odin file. A top-level
@@ -59,6 +69,12 @@ dist:
 .PHONY: macos-nng
 macos-nng:
 	build/macos-nng.sh
+
+# Windows: the MSVC import libraries of the OpenSSL DLLs of MSYS2 (see
+# build/windows-openssl.sh).
+.PHONY: windows-openssl
+windows-openssl:
+	build/windows-openssl.sh out/windows/lib
 
 # The Windows installer from dist/windows-amd64/, in dist/ (see build/README.md).
 .PHONY: msi
