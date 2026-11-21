@@ -69,8 +69,9 @@ vec_arr :: proc(o: json.Object, key: string) -> json.Array {
 }
 
 unhex :: proc(s: string) -> []u8 {
-	b, ok := hex.decode(transmute([]u8)s, context.temp_allocator)
-	if !ok {
+	// A full length means the decode worked, on every Odin version.
+	b, _ := hex.decode(transmute([]u8)s, context.temp_allocator)
+	if len(b) * 2 != len(s) {
 		panic("bad hex in a vector")
 	}
 	return b

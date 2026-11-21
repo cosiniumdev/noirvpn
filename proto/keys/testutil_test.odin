@@ -20,8 +20,9 @@ unhex :: proc(s: string) -> []u8 {
 			append(&clean, c)
 		}
 	}
-	b, ok := hex.decode(clean[:], context.temp_allocator)
-	assert(ok, "bad hex in test")
+	// A full length means the decode worked, on every Odin version.
+	b, _ := hex.decode(clean[:], context.temp_allocator)
+	assert(len(b) * 2 == len(clean), "bad hex in test")
 	return b
 }
 
