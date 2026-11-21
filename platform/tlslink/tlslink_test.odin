@@ -40,6 +40,12 @@ sockets :: proc(t: ^testing.T, client_opts: net.TCP_Options = {}) -> (c, s: net.
 		return {}, {}, false
 	}
 	defer net.close(l)
+	// The server socket gets the buffer sizes of the client from the listener
+	// before the connect, so Windows does not grow its receive buffer.
+	if client_opts.recv_buffer > 0 || client_opts.send_buffer > 0 {
+		_, _, berr := net.set_buffer_sizes(l, client_opts.recv_buffer, client_opts.send_buffer)
+		testing.expect_value(t, berr, net.Error.None)
+	}
 	lep, _ := net.local_endpoint(l)
 	cs, _, cerr := net.tcp_connect(lep, client_opts)
 	if !testing.expect_value(t, cerr, net.Error.None) {
