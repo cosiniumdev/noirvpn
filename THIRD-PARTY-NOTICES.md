@@ -12,7 +12,7 @@ folder (Windows).
 
 | Component | Version or pin | License | Notice in binary form | File |
 |-----------|----------------|---------|-----------------------|------|
-| OpenSSL | 3.5.9 (Alpine `openssl-libs-static`, static musl builds); the system or Homebrew library on Linux and macOS; the MSYS2 DLLs on Windows | Apache-2.0 | yes | `OpenSSL-LICENSE.txt` |
+| OpenSSL | 3.5.9 (Alpine `openssl-libs-static`, static musl builds); the system or Homebrew library on Linux and macOS; built from source with the MSYS2 UCRT64 compiler on Windows | Apache-2.0 | yes | `OpenSSL-LICENSE.txt` |
 | AWS-LC | 5.0.0 (`AWSLC_VERSION`, static musl builds with `NOIR_CRYPTO=awslc`) | Apache-2.0 OR ISC, with parts under ISC, Apache-2.0, MIT and BSD-3-Clause (see the file) | yes | `AWS-LC-LICENSE.txt` |
 | nng | 1.11 (`NNG_VERSION`) | MIT | yes | `nng-LICENSE.txt` |
 | SDL3 | 3.4.20 (the Odin `vendor:sdl3` bindings and `SDL3.dll`; Homebrew `sdl3` on macOS) | Zlib | no (included anyway) | `SDL3-LICENSE.txt` |

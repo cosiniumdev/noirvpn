@@ -51,16 +51,24 @@ jobs:
         if: runner.os == 'macOS'
         run: brew install sdl3 openssl@3 cmake llvm@$ODIN_LLVM
 
-      # Windows: the build scripts run in the MSYS2 MINGW64 shell, with the
-      # OpenSSL DLLs of MSYS2. SDL3 comes with Odin (vendor/sdl3).
+      # Windows: the build scripts run in the MSYS2 UCRT64 shell. MSYS2 has
+      # only OpenSSL 4.x, so build/windows-openssl-src.sh builds the 3.5 LTS
+      # DLLs on a cache miss. SDL3 comes with Odin (vendor/sdl3).
       - name: Setup MSYS2
         if: runner.os == 'Windows'
         uses: msys2/setup-msys2@v2
         with:
-          msystem: MINGW64
+          msystem: UCRT64
           path-type: inherit
           update: false
-          install: make mingw-w64-x86_64-openssl
+          install: make perl mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-nasm
+
+      - name: Restore OpenSSL (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/cache@v6
+        with:
+          path: out/windows/openssl
+          key: openssl-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('build/windows-openssl-src.sh') }}
 
       - name: Restore Odin
         id: odin-cache

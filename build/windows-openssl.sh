@@ -2,8 +2,8 @@
 # SPDX-FileCopyrightText: 2026 Cosinium
 # SPDX-License-Identifier: Apache-2.0
 
-# Creates the MSVC import libraries crypto.lib and ssl.lib for the OpenSSL DLLs of
-# MSYS2 MinGW-w64 (libcrypto-3-x64.dll, libssl-3-x64.dll), and copies the DLLs
+# Creates the MSVC import libraries crypto.lib and ssl.lib for the MinGW-w64
+# OpenSSL DLLs (libcrypto-3-x64.dll, libssl-3-x64.dll), and copies the DLLs
 # next to them. The Odin linker cannot read the MinGW .dll.a files, so the
 # libraries are generated from the DLL exports with dumpbin and lib of Visual Studio.
 #
@@ -12,7 +12,8 @@
 #        and copy OUT/*.dll next to the program.
 #
 # Environment:
-#   OPENSSL_BIN  the folder of the two DLLs (default /mingw64/bin)
+#   OPENSSL_BIN  the folder of the two DLLs (default: out/windows/openssl/bin,
+#                built by build/windows-openssl-src.sh)
 #   VSTOOLS      the folder of dumpbin.exe and lib.exe (default: an MSVC
 #                Hostx64/x64 folder of Visual Studio 2022 or later)
 # Runs in an MSYS2 or Git Bash shell. Does nothing if the libraries are newer
@@ -20,7 +21,11 @@
 set -eu
 root=$(cd "$(dirname "$0")/.." && pwd)
 out=${1:-$root/out/windows/lib}
-bin=${OPENSSL_BIN:-/mingw64/bin}
+bin=${OPENSSL_BIN:-}
+if [ -z "$bin" ]; then
+	"$root/build/windows-openssl-src.sh"
+	bin=$root/out/windows/openssl/bin
+fi
 
 tools=${VSTOOLS:-}
 if [ -z "$tools" ]; then
@@ -44,7 +49,7 @@ for pair in crypto:libcrypto-3-x64 ssl:libssl-3-x64; do
 	dll=${pair#*:}
 	src="$bin/$dll.dll"
 	if [ ! -f "$src" ]; then
-		echo "windows-openssl.sh: $src not found (pacman -S mingw-w64-x86_64-openssl)" >&2
+		echo "windows-openssl.sh: $src not found (OPENSSL_BIN must hold OpenSSL 3.x)" >&2
 		exit 1
 	fi
 	cp -f "$src" "$out/"

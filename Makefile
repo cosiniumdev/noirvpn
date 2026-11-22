@@ -21,11 +21,12 @@ LINKFLAGS ?= -extra-linker-flags:"-L$(BREW_LIB)"
 NOT_ON_THIS_OS := cmd/noirvpn-hook/ platform/cpu/
 endif
 
-# Windows (MSYS2 MINGW64 shell): OpenSSL links through the import libraries of
+# Windows (MSYS2 UCRT64 shell): OpenSSL links through the import libraries of
 # build/windows-openssl.sh; the test programs find the DLLs on the PATH
-# (/mingw64/bin). The bus uses named pipes there, so bus/nng is not built.
+# (out/windows/lib). The bus uses named pipes there, so bus/nng is not built.
 ifneq ($(filter MINGW% MSYS% CYGWIN%,$(UNAME_S)),)
 TEST_DEPS := windows-openssl
+export PATH := $(CURDIR)/out/windows/lib:$(PATH)
 LINKFLAGS ?= -extra-linker-flags:"/LIBPATH:$(shell cygpath -w '$(CURDIR)/out/windows/lib')"
 NOT_ON_THIS_OS := bus/nng/ cmd/noirvpn-hook/ platform/cpu/
 endif
@@ -71,7 +72,7 @@ dist:
 macos-nng:
 	build/macos-nng.sh
 
-# Windows: the MSVC import libraries of the OpenSSL DLLs of MSYS2 (see
+# Windows: the MSVC import libraries of the OpenSSL DLLs (see
 # build/windows-openssl.sh).
 .PHONY: windows-openssl
 windows-openssl:

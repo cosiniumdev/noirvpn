@@ -149,7 +149,7 @@ Homebrew.
 
 ## Windows
 
-Use the MSYS2 MINGW64 shell for all build commands.
+Use the MSYS2 UCRT64 shell for all build commands.
 
 1. Install the Visual Studio 2022 Build Tools with the C++ workload. Odin uses
    its linker and the Windows SDK.
@@ -164,11 +164,16 @@ Use the MSYS2 MINGW64 shell for all build commands.
    winget install MSYS2.MSYS2
    ```
 
-3. Open the MSYS2 MINGW64 shell and install the tools and OpenSSL:
+3. Open the MSYS2 UCRT64 shell and install the tools:
 
    ```sh
-   pacman -S --needed git make mingw-w64-x86_64-openssl
+   pacman -S --needed git make perl mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-nasm
    ```
+
+   MSYS2 has only OpenSSL 4.x. The first build compiles OpenSSL 3.5 LTS
+   from source into `out/windows/openssl` (`build/windows-openssl-src.sh`),
+   which takes some minutes. To use other OpenSSL 3.x DLLs, set `OPENSSL_BIN`
+   to their folder.
 
 4. Download wintun from <https://www.wintun.net> and uncompress it.
    The `noirvpn` daemon needs `wintun.dll` for its tunnel.
@@ -181,7 +186,7 @@ Use the MSYS2 MINGW64 shell for all build commands.
    build/dist.sh          # all programs in dist/windows-amd64/
    ```
 
-The build will compile the MSVC import libraries for the OpenSSL DLLs of MSYS2 and
+The build will compile the MSVC import libraries for the OpenSSL DLLs and
 copies the DLLs, `SDL3.dll` and `wintun.dll` alongside the programs.
 
 ### The installer (optional)
