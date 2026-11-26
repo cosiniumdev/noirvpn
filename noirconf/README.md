@@ -11,6 +11,8 @@ Features:
 
 It only needs Python and the `openssl` command; there is nothing to install.
 
+https://github.com/user-attachments/assets/b3b926e3-e8db-4fa2-9360-fe0471dc6268
+
 ## Requirements
 
 - Linux with Python 3.9 or later and the `openssl` program.
