@@ -232,7 +232,7 @@ up reconnecting, 7 network setup failed, 8 inactive or session-timeout.
 `
 }
 
-VERSION_NUMBER :: "0.1.0-dev"
+VERSION_NUMBER :: "0.2.0-dev"
 // The data path is not part of the banner: the start line names the one in use.
 when ODIN_OS == .Windows {
 	VERSION :: "noirvpn " + VERSION_NUMBER + " (client, Windows)"

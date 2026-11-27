@@ -10,7 +10,7 @@ import "core:strings"
 import "core:time"
 import "noir:bus"
 
-VERSION :: "noirvpnctl 0.1.0-dev"
+VERSION :: "noirvpnctl 0.2.0-dev"
 
 DEFAULT_TIMEOUT :: 5 * time.Second
 MAX_TIMEOUT :: 3600 * time.Second

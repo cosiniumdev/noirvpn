@@ -8,7 +8,7 @@ import "core:strconv"
 import "core:strings"
 import "noir:bus"
 
-VERSION :: "noirvpn-hook 0.1.0-dev"
+VERSION :: "noirvpn-hook 0.2.0-dev"
 
 // Exit codes of noirvpn-hook.
 Exit :: enum u8 {
