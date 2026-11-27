@@ -43,6 +43,7 @@ Edit :: struct {
 	use_server_dns: bool,
 	redirect:       bool,
 	block_ipv6:     bool,
+	kill_switch:    bool, // the "Block traffic when the VPN is down" switch
 	use_dco:        bool, // the "Use DCO" switch (Linux)
 	dco_in_text:    bool, // the profile text has disable-dco
 	lists:          [List_Kind][MAX_DOMAINS]ui.Field,
@@ -62,6 +63,7 @@ Edit :: struct {
 	status_error:   bool,
 	overrides_y:    i32, // set by the view, for the screenshots
 	block6_at:      mu.Rect, // the Block IPv6 switch, set by the view for the tests
+	kill_at:        mu.Rect, // the kill switch, set by the view for the tests
 	dco_at:         mu.Rect, // the Use DCO switch, set by the view for the tests
 	ov_mtu:         ui.Field, // tun-mtu and mssfix overrides of an imported profile
 	ov_mss:         ui.Field,
@@ -132,8 +134,9 @@ edit_clear :: proc(e: ^Edit) {
 	e.use_server_dns = true
 	e.redirect = true
 	e.block_ipv6 = false
+	e.kill_switch = false
 	e.use_dco, e.dco_in_text = true, false
-	e.block6_at, e.dco_at = {}, {}
+	e.block6_at, e.kill_at, e.dco_at = {}, {}, {}
 	ui.field_set(&e.browser, "")
 	ui.field_set(&e.ov_mtu, "")
 	ui.field_set(&e.ov_mss, "")
@@ -233,6 +236,7 @@ edit_load_stored :: proc(app: ^App, e: ^Edit, index: int) -> bool {
 	e.use_server_dns = !meta.overrides.ignore_server_dns
 	e.redirect = !meta.overrides.ignore_redirect
 	e.block_ipv6 = meta.overrides.block_ipv6
+	e.kill_switch = meta.overrides.kill_switch
 	e.use_dco = !meta.overrides.no_dco
 	for d in meta.overrides.domains {
 		list_add(e, .Domain, d)
@@ -605,10 +609,18 @@ view_profile :: proc(app: ^App) {
 		gap(app, 12)
 		group_line(app)
 		gap(app, 12)
-		setting_row(app, "Send all traffic through the VPN when the server asks", &e.redirect)
-		gap(app, 12)
-		group_line(app)
-		gap(app, 12)
+		if e.kill_switch {
+			// The block needs all traffic in the tunnel: the choice is kept, but not used.
+			forced := true
+			setting_row(app, "Send all traffic through the VPN when the server asks", &forced, false)
+		} else {
+			setting_row(app, "Send all traffic through the VPN when the server asks", &e.redirect)
+		}
+		group_sep(app)
+		e.kill_at = setting_row(app, "Block traffic when the VPN is down", &e.kill_switch)
+		gap(app, 6)
+		group_caption(app, KILL_SWITCH_CAPTION)
+		group_sep(app)
 		e.block6_at = setting_row(app, "Block IPv6", &e.block_ipv6)
 		when DCO_UI {
 			dco_row(app)
@@ -756,6 +768,7 @@ edit_commit :: proc(app: ^App, text: string, form: pf.Form) {
 		meta.overrides.ignore_server_dns = !e.use_server_dns
 		meta.overrides.ignore_redirect = !e.redirect
 		meta.overrides.block_ipv6 = e.block_ipv6
+		meta.overrides.kill_switch = e.kill_switch
 		meta.overrides.no_dco = !e.use_dco
 		meta.overrides.domains = make([dynamic]string, context.temp_allocator)
 		meta.overrides.dns_servers = make([dynamic]string, context.temp_allocator)
@@ -940,6 +953,8 @@ setting_row :: proc(app: ^App, label: string, on: ^bool, enabled := true) -> mu.
 	}
 	return sw
 }
+
+KILL_SWITCH_CAPTION :: "While the app reconnects, traffic cannot leave outside the VPN. Disconnect ends the block."
 
 // DCO_UI shows the Use DCO switch and the notes of the data path: DCO is
 // Linux only. -define:DCO_UI=true shows them elsewhere, for the screenshots.

@@ -935,21 +935,33 @@ selftest_connection :: proc(app: ^App, failed: ^int, check: proc(name: string, o
 
 	open_profile(app, 1)
 	check("an imported profile has Block IPv6, off", !app.edit.block_ipv6 && !app.edit.dirty && click_block6(app) && app.edit.block_ipv6 && app.edit.dirty, failed)
+	check("an imported profile has the kill switch, off", !app.edit.kill_switch && click_kill(app) && app.edit.kill_switch && app.edit.dirty, failed)
+	check("the kill switch toggles off again and the redirect choice stays", app.edit.redirect && click_kill(app) && !app.edit.kill_switch, failed)
 	key(app, sdl.K_ESCAPE)
 }
 
 // click_block6 scrolls the profile view to the Block IPv6 switch and clicks
 // it. It returns false when the view does not draw the switch.
 click_block6 :: proc(app: ^App) -> bool {
-	e := &app.edit
-	e.block6_at = {}
+	return click_switch(app, &app.edit.block6_at)
+}
+
+// click_kill does the same for the "Block traffic when the VPN is down" switch.
+click_kill :: proc(app: ^App) -> bool {
+	return click_switch(app, &app.edit.kill_at)
+}
+
+// click_switch scrolls the profile view to the switch that the view stores in
+// `at`, and clicks it. It returns false when the view does not draw it.
+click_switch :: proc(app: ^App, at: ^mu.Rect) -> bool {
+	at^ = {}
 	frame(app, 0.016)
-	if e.block6_at.w == 0 {
+	if at.w == 0 {
 		return false
 	}
-	scroll_to(app, "profile", scroll_of(app, "profile") + e.block6_at.y - 300)
+	scroll_to(app, "profile", scroll_of(app, "profile") + at.y - 300)
 	frame(app, 0.016)
-	r := e.block6_at
+	r := at^
 	click(app, f32(r.x + r.w / 2), f32(r.y + r.h / 2))
 	return true
 }

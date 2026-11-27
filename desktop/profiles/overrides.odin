@@ -37,6 +37,9 @@ Overrides :: struct {
 	tun_mtu:           string `json:"tun_mtu,omitempty"`,
 	mssfix:            string `json:"mssfix,omitempty"`,
 	block_ipv6:        bool `json:"block_ipv6"`,
+	// "Block traffic when the VPN is down": the tunnel and its routes stay while
+	// the client reconnects, and all traffic (IPv4 and IPv6) goes to the tunnel.
+	kill_switch:       bool `json:"kill_switch"`,
 	// The "Use DCO" switch is off (Linux): `disable-dco`, so the connections
 	// of the profile run the data path in the service process.
 	no_dco:            bool `json:"no_dco"`,
@@ -130,7 +133,11 @@ override_lines :: proc(o: Overrides, allocator := context.allocator) -> string {
 		strings.write_string(&sb, "pull-filter ignore \"dhcp-option DOMAIN\"\n")
 		strings.write_string(&sb, "pull-filter ignore \"dns\"\n")
 	}
-	if o.ignore_redirect {
+	if o.kill_switch {
+		// All traffic must enter the tunnel, so the redirect filter is skipped.
+		strings.write_string(&sb, "persist-tun\n")
+		strings.write_string(&sb, "redirect-gateway def1 ipv6\n")
+	} else if o.ignore_redirect {
 		strings.write_string(&sb, "pull-filter ignore \"redirect-gateway\"\n")
 	}
 	for d in o.domains {
@@ -234,6 +241,7 @@ overrides_clone :: proc(o: Overrides, allocator := context.allocator) -> (c: Ove
 	c.tun_mtu = strings.clone(o.tun_mtu, allocator)
 	c.mssfix = strings.clone(o.mssfix, allocator)
 	c.block_ipv6 = o.block_ipv6
+	c.kill_switch = o.kill_switch
 	c.no_dco = o.no_dco
 	c.servers = make([dynamic]Server, 0, len(o.servers), allocator)
 	for sv in o.servers {

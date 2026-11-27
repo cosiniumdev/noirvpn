@@ -374,6 +374,30 @@ test_store_block_ipv6 :: proc(t: ^testing.T) {
 	testing.expect(t, ofound && om.name == "Old" && om.overrides.ignore_redirect && !om.overrides.block_ipv6)
 }
 
+// The kill switch: kill_switch is kept in the meta, and an old file reads as off.
+@(test)
+test_store_kill_switch :: proc(t: ^testing.T) {
+	base := test_dir(t)
+	defer test_dir_remove(base)
+	s := store_open(base)
+	defer store_close(&s)
+	id, ok := store_create(s, "Office", "client\n", context.temp_allocator)
+	testing.expect(t, ok)
+	path := file_path(s, id, META_FILE)
+	meta, _, _ := store_load(s, id, context.temp_allocator)
+	testing.expect(t, !meta.overrides.kill_switch)
+	meta.overrides.kill_switch = true
+	testing.expect(t, store_save_meta(s, meta))
+	raw, _ := os.read_entire_file(path, context.temp_allocator)
+	testing.expect(t, strings.contains(string(raw), "\"kill_switch\": true"))
+	back, _, found := store_load(s, id, context.temp_allocator)
+	testing.expect(t, found && back.overrides.kill_switch)
+
+	testing.expect(t, os.write_entire_file(path, `{"id":"x","name":"Old","created":1,"overrides":{"block_ipv6":true}}`) == nil)
+	om, _, ofound := store_load(s, id, context.temp_allocator)
+	testing.expect(t, ofound && om.overrides.block_ipv6 && !om.overrides.kill_switch)
+}
+
 // The Use DCO switch: no_dco is kept in the meta.
 @(test)
 test_store_no_dco :: proc(t: ^testing.T) {

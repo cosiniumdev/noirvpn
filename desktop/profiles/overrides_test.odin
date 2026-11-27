@@ -5,6 +5,7 @@ package profiles
 
 import "core:strings"
 import "core:testing"
+import "noir:proto/config"
 
 @(test)
 test_domain_valid :: proc(t: ^testing.T) {
@@ -178,6 +179,43 @@ test_override_lines_block_ipv6 :: proc(t: ^testing.T) {
 	c := overrides_clone(Overrides{block_ipv6 = true})
 	defer overrides_destroy(&c)
 	testing.expect(t, c.block_ipv6)
+}
+
+@(test)
+test_override_lines_kill_switch :: proc(t: ^testing.T) {
+	want := "persist-tun\nredirect-gateway def1 ipv6\n"
+	testing.expect_value(t, override_lines(Overrides{kill_switch = true}, context.temp_allocator), want)
+	testing.expect_value(t, override_lines(Overrides{}, context.temp_allocator), "")
+
+	// The switch replaces the redirect filter, so all traffic enters the tunnel.
+	both := Overrides {
+		kill_switch     = true,
+		ignore_redirect = true,
+		block_ipv6      = true,
+	}
+	testing.expect_value(t, override_lines(both, context.temp_allocator), "persist-tun\nredirect-gateway def1 ipv6\nblock-ipv6\n")
+	both.kill_switch = false
+	testing.expect_value(t, override_lines(both, context.temp_allocator), "pull-filter ignore \"redirect-gateway\"\nblock-ipv6\n")
+
+	testing.expect_value(t, compose("client\nremote a", Overrides{kill_switch = true}, context.temp_allocator), strings.concatenate({"client\nremote a\n", want}, context.temp_allocator))
+
+	// The service accepts these lines in a profile, with the settings they make.
+	base := "client\nremote a 1194 udp\nauth-user-pass\npeer-fingerprint 28:61:7C:C6:BA:52:47:69:EA:9B:5A:7E:4C:C3:96:08:E7:D9:5F:FA:1F:40:69:F3:27:DF:70:D0:B9:FA:2A:F2\n"
+	text := compose(base, Overrides{kill_switch = true}, context.temp_allocator)
+	up := config.user_profile_build(text, context.temp_allocator)
+	defer config.user_profile_destroy(&up)
+	testing.expectf(t, up.ok, "user profile rules: %v %v", up.problems, up.cfg.diags)
+	testing.expect(t, up.cfg.client.persist_tun)
+	testing.expect(t, up.cfg.client.redirect_gateway_set)
+	testing.expect(t, .Def1 in up.cfg.client.redirect_gateway && .Ipv6 in up.cfg.client.redirect_gateway)
+
+	ps := overrides_check(Overrides{kill_switch = true})
+	defer problems_destroy(&ps)
+	testing.expect_value(t, len(ps), 0)
+
+	c := overrides_clone(Overrides{kill_switch = true})
+	defer overrides_destroy(&c)
+	testing.expect(t, c.kill_switch)
 }
 
 @(test)

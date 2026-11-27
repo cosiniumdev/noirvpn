@@ -1,6 +1,6 @@
 # The noirvpn server
 
-This page explains how to configure and run the noirvpn server. The server reads the OpenVPN config syntax. An option that noirvpn supports works as in OpenVPN; see the [OpenVPN reference manual](https://openvpn.net/community-resources/reference-manual-for-openvpn-2-6/) or the openvpn(8) man page. This page describes only what is new or different. For the client, see [client.md](client.md). For every option, see [options.md](options.md).
+This page explains how to configure and run the noirvpn server. The server reads the OpenVPN config syntax. An option that noirvpn supports works the same way as in OpenVPN; see the [OpenVPN reference manual](https://openvpn.net/community-resources/reference-manual-for-openvpn-2-6/) or the openvpn(8) man page. This page describes only what is new or different. For the client, see [client.md](client.md). For every option, see [options.md](options.md).
 
 ## What the server is
 

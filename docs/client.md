@@ -2,7 +2,7 @@
 
 `noirvpn` is a VPN client and server in one program. This page describes the client. It connects to an OpenVPN 2.6 or 2.7 server, or to a noirvpn server, and sends IP traffic through a `tun` device.
 
-The client reads the OpenVPN config syntax. An option that noirvpn supports works as in OpenVPN; see the [OpenVPN reference manual](https://openvpn.net/community-resources/reference-manual-for-openvpn-2-6/) or the openvpn(8) man page. This page describes only what is new or different. [options.md](options.md) lists every option and what noirvpn does with it.
+The client reads the OpenVPN config syntax. An option that noirvpn supports works the same way as in OpenVPN; see the [OpenVPN reference manual](https://openvpn.net/community-resources/reference-manual-for-openvpn-2-6/) or the openvpn(8) man page. This page describes only what is new or different. [options.md](options.md) lists every option and what noirvpn does with it.
 
 Related pages:
 
@@ -71,13 +71,13 @@ Signals: SIGINT and SIGTERM stop the client. SIGHUP and SIGUSR1 reconnect. SIGUS
 
 ### Privileges
 
-On Linux, `user` and `group` change to that user after start-up. The client keeps `CAP_NET_ADMIN` for the tunnel and the routes, and drops all other capabilities. After the change, the client does not set the DNS settings of the system; the bus event `client.tunnel_settings` contains them for a helper. The user needs read and write access to `/dev/net/tun`. There is no `chroot`.
+On Linux, `user` and `group` change to that user after start-up. The client keeps `CAP_NET_ADMIN` for the tunnel and the routes, and drops all other capabilities. After the user change, the client does not set the DNS settings of the system; the bus event `client.tunnel_settings` contains them for a helper. The user needs read and write access to `/dev/net/tun`. There is no `chroot`.
 
 You can also start the client as an unprivileged user with the capability, for example with `AmbientCapabilities=CAP_NET_ADMIN` in systemd.
 
 ### The clean-up at start
 
-A client that ends without its teardown (a crash, `kill -9`) can leave routes and DNS settings behind. Each noirvpn daemon keeps a record of its changes in `/run/noirvpn/state/` while it runs. The next daemon that starts reverts the records of daemons that are gone, and leaves alone what a running daemon has set.
+A client that ends without its teardown (a crash, `kill -9`) can leave stale  routes and DNS settings behind. Each noirvpn daemon keeps a record of its changes in `/run/noirvpn/state/` while it runs. The next restart reverts the records that are gone, and leaves alone what a running daemon has set.
 
 ## Checking a config
 
@@ -104,7 +104,9 @@ Use `ca FILE` or `peer-fingerprint FP [FP ...]`, not both. `peer-fingerprint` pi
 openssl x509 -in vpn-server.crt -noout -fingerprint -sha256
 ```
 
-`capath` is not supported. `crl-verify`, `remote-cert-tls`, `remote-cert-ku`, `remote-cert-eku`, `verify-x509-name` and `tls-version-min` work as in OpenVPN. `verify-x509-name ... subject` uses the subject form of OpenVPN 2.8, with a backslash before special characters (`O=Acme\, Inc.`).
+- `capath` is not supported.
+- `crl-verify`, `remote-cert-tls`, `remote-cert-ku`, `remote-cert-eku`, `verify-x509-name` and `tls-version-min` work as in OpenVPN.
+- `verify-x509-name ... subject` uses the subject form of OpenVPN 2.8, with a backslash before special characters (`O=Acme\, Inc.`).
 
 ### The client identity
 
@@ -328,6 +330,8 @@ The `tls` transport has its own options for the server name, a strict check, Web
 ## MTU
 
 The tunnel MTU is 1400, unless you set `tun-mtu` or the server pushes it. `mssfix` works as in OpenVPN. With no `mssfix` line and the default MTU, the MSS is 1360 (IPv6: 1340).
+
+Raising the MTU risks packet fragmentation and dropping.
 
 ## DNS
 

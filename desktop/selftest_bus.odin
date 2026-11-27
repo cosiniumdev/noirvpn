@@ -924,6 +924,37 @@ selftest_service :: proc(base: ^App, failed: ^int, check: proc(name: string, ok:
 	link_disconnect(app)
 	_ = pump(app, f, proc(app: ^App, f: ^Fake) -> bool {return app.conn.phase == .Stopped && !app.link.status_busy}, 5)
 
+	// Kill switch: its lines go to profile.set only when the switch is on.
+	pop_view(app)
+	open_profile(app, 0)
+	check("service: the kill switch is in the profile view, off", !e.kill_switch && click_kill(app) && e.kill_switch && e.dirty, failed)
+	edit_save(app)
+	metak, _, _ := pf.store_load(app.store, app.profiles[0].id, context.temp_allocator)
+	check("service: Save keeps the kill switch", !e.status_error && metak.overrides.kill_switch, failed)
+	pop_view(app)
+	open_connection(app, 0)
+	row_connect(app, 0)
+	ok = pump(app, f, proc(app: ^App, f: ^Fake) -> bool {return app.conn.phase == .Up}, 5)
+	check("service: profile.set has persist-tun and redirect-gateway when the switch is on", ok && f.sets == 6 && strings.contains(f.text, "\npersist-tun\nredirect-gateway def1 ipv6\n") && !strings.contains(f.text, "pull-filter ignore \"redirect-gateway\""), failed)
+	blocked = false
+	for kv in route_lines(c, row_overrides(app, 0)) {
+		blocked ||= kv.value == "Blocked when the VPN is down" && kv.own
+	}
+	check("service: the Routes card shows the block in bold", blocked, failed)
+	link_disconnect(app)
+	_ = pump(app, f, proc(app: ^App, f: ^Fake) -> bool {return app.conn.phase == .Stopped && !app.link.status_busy}, 5)
+	pop_view(app)
+	open_profile(app, 0)
+	_ = click_kill(app)
+	edit_save(app)
+	pop_view(app)
+	open_connection(app, 0)
+	row_connect(app, 0)
+	ok = pump(app, f, proc(app: ^App, f: ^Fake) -> bool {return app.conn.phase == .Up}, 5)
+	check("service: profile.set has no kill switch lines when the switch is off", ok && f.sets == 7 && !e.kill_switch && !strings.contains(f.text, "persist-tun"), failed)
+	link_disconnect(app)
+	_ = pump(app, f, proc(app: ^App, f: ^Fake) -> bool {return app.conn.phase == .Stopped && !app.link.status_busy}, 5)
+
 	details, _ := json.parse_string(`[{"line":3,"option":"up","class":"not_supported","reason":"runs a program"},{"line":5,"option":"cd","class":"path","reason":"names a directory"}]`, allocator = context.temp_allocator)
 	check("service: the refusal names the first problem", refusal_text("bad_request", "", details) == "The service found a problem: Line 3, up: runs a program (and 1 more)", failed)
 	check("service: a refusal under the owner rule names it", refusal_text("denied", OWNER_DENIED, nil) == OWNER_TEXT, failed)

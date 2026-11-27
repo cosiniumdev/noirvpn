@@ -535,7 +535,9 @@ route_lines :: proc(c: ^Conn, o: pf.Overrides) -> []Kv {
 	if c.redirect {
 		append(&routes, Kv{value = "All traffic", muted = c.peer4 != "" ? tprint("via %s", c.peer4) : ""})
 	}
-	if o.ignore_redirect {
+	if o.kill_switch {
+		append(&routes, Kv{value = "Blocked when the VPN is down", own = true})
+	} else if o.ignore_redirect {
 		append(&routes, Kv{value = "All traffic: not sent", own = true})
 	}
 	if o.block_ipv6 {

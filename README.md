@@ -33,11 +33,11 @@ The programs:
 
 ## Performance
 
-TCP inside the tunnel with one iperf3 stream. Other than WireGuard which uses
-ChaCha20-Poly1305, the data cipher is AES-256-GCM.
-The numbers show the received rate in Gbit/s; "up" means the client host transmit.
+The table below are from testing peers of the same type with TCP single stream
+using iperf3. Other than WireGuard which uses ChaCha20-Poly1305, the data cipher
+is AES-256-GCM. Values are in Gbit/s.
 
-| Implementation | UDP up | UDP down | TCP up | TCP down |
+| Implementation | UDP TX | UDP RX | TCP TX | TCP RX |
 |---|---:|---:|---:|---:|
 | OpenVPN 2.7.7, userspace | 0.72 | 1.22 | 0.84 | 1.15 |
 | OpenVPN 2.7.7, kernel DCO | 4.23 | 4.18 | 4.31 | 4.58 |
@@ -45,8 +45,9 @@ The numbers show the received rate in Gbit/s; "up" means the client host transmi
 | noirvpn, userspace, `workers 2` | 12.19 | 9.42 | 6.01 | 6.66 |
 | WireGuard, kernel | 7.09 | 5.42 | n/a | n/a |
 
-- Without workers, noirvpn runs the data path in one thread. With
-  [`workers`](docs/options.md) it performs crypto on separate threads.
+Note:
+- `workers` is number of threads noirvpn uses for crypto, none if not specified.
+  See [`workers`](docs/options.md).
 - WireGuard has no TCP transport.
 
 Test setup (2026-11-20):
@@ -54,8 +55,8 @@ Test setup (2026-11-20):
 - Two VMware ESXi virtual machines with 4 vCPUs of an AMD Ryzen 9 5900X and 3.9 GiB of
   memory each, Alpine Linux (musl), Linux 6.18, OpenSSL 3.5.
 - Networking: ConnectX-5 virtual functions between them, 30 Gbit/s raw.
-- tls-crypt on all OpenVPN and noirvpn tunnels. Tunnel MTU is 1400 for noirvpn, 1428
-  for OpenVPN and 1420 for WireGuard.
+- tls-crypt on OpenVPN and noirvpn tunnels.
+- Tunnel MTU is 1400 for noirvpn, 1428 for OpenVPN and 1420 for WireGuard.
 
 ## What is different
 
@@ -65,42 +66,46 @@ peers older than OpenVPN 2.6. Run `noirvpn --check-config` to see what happens
 to each line of your configuration before you start the daemon. The
 [option reference](docs/options.md) lists every option it supports.
 
-**A control bus instead of scripts and plugins.** Built on
-[nng](https://nng.nanomsg.org), the bus replaces scripts, plugins and the
-management interface. It has a stream of JSON events and a request channel with
-per-user roles.
+**An nng control bus instead of scripts and plugins.** The bus replaces scripts,
+plugins and the management interface. It has a stream of JSON events and a
+request channel with per-user roles. Ref: [nng](https://nng.nanomsg.org)
+
+The bus capabilities:
 
 - Monitoring tools subscribe to the events.
-- A controller decides each client login (`auth-external`) with your own implementation.
-- `noirvpnctl` controls a daemon from the shell. With `client-service`, a user without root privileges loads a profile and connects through `noirvpnctl` (see [Service mode](docs/client.md#service-mode)).
+- Your own controller implementation can decide how and what to do with
+  each client login (`auth-external`).
+- `noirvpnctl` shell command to control a daemon. A user with the
+  authorised role can load a profile into the `client-service` and
+  connect through `noirvpnctl` (see [Service mode](docs/client.md#service-mode)).
 - `noirvpn-hook` can be used to run commands on events without root.
 
 **TLS transport.** `proto tls-client` and `proto tls-server` send the
 OpenVPN TCP stream inside TLS 1.3, so the tunnel looks like HTTPS.
 
-- One port serves both the TLS transport and plain OpenVPN TCP clients.
+- Only requires one port to serve both the TLS transport and plain OpenVPN TCP clients.
 - HTTP proxy support in the client (CONNECT, Basic authentication).
 - WebSocket framing support in the server, with reverse proxies that forward them using HTTP.
-- The inner OpenVPN session establishes the session trust; the client can detect if someone terminated
-  the encapsulating TLS transport on the way.
+- The client can detect if someone terminated the encapsulating TLS transport on the way, but
+  does not break the trust with the actual server.
 
 **Pinned keys instead of a CA.** A server can accept clients by the key they
-present by storing the keys in the (`peer-keys`) file, with or without
+present by storing the keys in a (`peer-keys`) file, with or without
 a certificate authority.
 
 **Post-quantum key exchange by default.** hybrid X25519MLKEM768 preferred.
 
-**A fast data path in userspace.** The data channel uses only AEAD ciphers
-(AES-GCM and ChaCha20-Poly1305) and the epoch data keys of OpenVPN 2.7,
-supporting both UDP and TCP connections.
+**A fast data path.** The data channel is tuned for high-throughput and
+uses only AEAD ciphers (AES-GCM and ChaCha20-Poly1305) and the epoch data
+keys of OpenVPN 2.7, supporting both UDP and TCP connections.
 
 **Kernel data channel offload.** With `datapath dco`, noirvpn passes the data
-channel to the `ovpn` module of the Linux kernel (Linux 6.16 or later).
+channel to the `ovpn` module of the Linux kernel (Linux 6.16 or later). With the
+fast data path in userspace, DCO is only necessary if you experience other
+bottleneck.
 
 **An open data channel offload interface.** With `datapath udco`, noirvpn
-passes the data channel to a separate userspace DCO service over a documented
-local socket protocol. noirvpn will handle the control channel while the service
-passes the packets.
+can use a custom userspace DCO service over the local unix socket.
 
 ## Building
 
@@ -152,6 +157,13 @@ Control a running daemon:
 noirvpnctl status
 noirvpnctl peers          # on a server
 ```
+
+## noirconf server Web-UI
+
+A server management interface is implemented in [noirconf](noirconf), which allows you
+to configure multiple instances of noirvpn server and generate per-user client configuration.
+It is a Python based application that is launched on the same host as the noirvpn server. Only
+python 3.9 (or newer) and openssl are required.
 
 ## Migrating an OpenVPN server to noirvpn
 
